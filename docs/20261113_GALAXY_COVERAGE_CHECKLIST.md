@@ -41,7 +41,8 @@ Have / Partial rows cite at least one file path or route verified in-tree (not d
 | Per-user Galaxy API key provisioning | **Have** | `provisionGalaxyUser` in `galaxy-api-proxy.ts` |
 | Connectors / credentials vault surface | **Have** | `connectors-dialog.tsx`; settings connections; vault-backed connector keys |
 | Save run outputs to project | **Have** | save-to-project paths on execute / AfterRun (`routes.ts` + panel) |
-| Step / file preview (tables, images, text, VCF table) | **Have** | `step-output-preview.tsx` — common formats; binary genomics still weak (see Display apps) |
+| Step / file preview (tables, images, text, VCF table) | **Have** | `step-output-preview.tsx` — common formats; **BAM + indexed VCF.gz via IGV.js** in preview slots (2026-11-14); Display apps / IT still unused |
+| Display applications (IGV, UCSC, Ensembl, …) | **Partial** | In-product IGV.js for BAM/VCF.gz in AfterRun/Files preview (not Galaxy Display Apps; `OPEN_IN_AVAILABLE` still false) |
 | Deferred / large URL import | **Have** | Chat `UrlImportForm` + Data Hub defer/413→deferred; Confirm & Run / `POST /api/workflows/execute` materializes deferred HDAs via `deferred-materialize.ts` then stages for Batch (2026-11-13) |
 | Remote public FTP/HTTP → project file | **Have** | Data Hub `RemoteSourcePicker` → sources/browse/fetch → `files/import-url` (2026-11-13). Agent/MCP unchanged |
 | FASTQ folder → **samplesheet** as one Analysis input | **Have** | `POST …/folders/samplesheet` + folder **Use samplesheet** (complement **Attach all files**) — 2026-11-13 |
@@ -61,7 +62,7 @@ Have / Partial rows cite at least one file path or route verified in-tree (not d
 | Built-in datatype converters (~98) | **Missing** | Galaxy converters registry; BioMate does not auto-convert (e.g. BAM→BAI) before Batch |
 | Collection operation tools (zip/filter/relabel/rules) | **Missing** | Semantics useful for samplesheets; not productized on project_files |
 | Rule-based uploader / Apply Rules | **Missing** | Stronger than folder expand for multi-lane clinical FASTQ |
-| Display applications (IGV, UCSC, Ensembl, …) | **Missing** | Configs in Galaxy; BioMate BAM/VCF/h5ad still download / IT-gated — no IGV.js product viewer |
+| Display applications (Galaxy Display Apps registry) | **Missing** | Galaxy Display Apps configs unused; BioMate uses in-product IGV.js instead (Partial row above) |
 | Visualizations registry / viz plugins | **Missing** | `visualizations.py` unused by product UI |
 | Published histories / anonymous history share URLs | **Missing** | Galaxy `enable_link_access` / published histories; BioMate sharing is project membership + share-link (different model — Have above) |
 | Storage cleaner / archive / purge UX | **Missing** | Galaxy `/api/storage/*`; no S3 abandoned-run cleanup product UX |
@@ -97,7 +98,8 @@ Cap for chat summary; full Missing rows remain in the table.
 1. ~~Deferred materialize on Confirm & Run~~ → **Have** (2026-11-13)  
 2. ~~Reproducibility pack zip~~ → **Have** (2026-11-13)  
 3. Inline estimate vs actual run cost  
-4. BAM/VCF/(h5ad) viewers without IT (IGV.js-class)  
+4. ~~BAM/VCF viewers without IT~~ → **Partial/Have** in-product IGV.js for BAM + indexed VCF.gz (2026-11-14); h5ad still IT/summary  
+
 5. Datatype auto-converters before Batch  
 6. Workflow landing / shareable pre-filled run links  
 7. Storage archive/purge for abandoned S3 data  

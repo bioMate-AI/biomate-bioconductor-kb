@@ -31,6 +31,8 @@ export const PDF_EXTS     = new Set(['pdf']);
 export const TABLE_EXTS   = new Set(['csv', 'tsv', 'json', 'tabular', 'star']);
 export const SEQ_EXTS     = new Set(['fasta', 'fa', 'fastq', 'fq']);
 export const VCF_EXTS     = new Set(['vcf', 'bcf']);
+/** Indexed alignment tracks for IGV.js (not CRAM in v1 — needs CRAI + more plumbing). */
+export const ALIGN_EXTS   = new Set(['bam']);
 // BED family (incl. ENCODE narrowPeak/broadPeak, bedGraph, BEDPE) + GFF/GTF intervals.
 export const ANNOT_EXTS   = new Set(['bed', 'gff', 'gtf', 'gff3', 'narrowpeak', 'broadpeak', 'bedgraph', 'bedpe']);
 export const STRUCT_EXTS  = new Set(['pdb', 'mmcif', 'cif']);
@@ -44,10 +46,27 @@ export const R_EXTS       = new Set(['rds', 'rdata']);
 
 export type ViewerKind =
   | 'image' | 'pdf' | 'table' | 'sequence' | 'vcf' | 'annotation'
-  | 'structure' | 'density' | 'r-object' | 'singlecell' | 'html' | 'text' | 'download';
+  | 'structure' | 'density' | 'r-object' | 'singlecell' | 'html' | 'text'
+  | 'igv' | 'download';
 
-export function resolveViewer(ext: string): ViewerKind {
+/**
+ * Prefer full file name when available — `sample.vcf.gz` is IGV, plain `.vcf` stays table;
+ * extension-only `gz` would otherwise miss both.
+ */
+export function resolveViewerFromName(name: string): ViewerKind | null {
+  const n = name.toLowerCase().split(/[?#]/)[0];
+  if (/\.bam$/i.test(n)) return 'igv';
+  if (/\.vcf\.gz$/i.test(n) || /\.vcf\.bgz$/i.test(n)) return 'igv';
+  return null;
+}
+
+export function resolveViewer(ext: string, fileName?: string): ViewerKind {
+  if (fileName) {
+    const byName = resolveViewerFromName(fileName);
+    if (byName) return byName;
+  }
   const e = ext.toLowerCase().replace(/^\./, '');
+  if (ALIGN_EXTS.has(e))        return 'igv';
   if (IMAGE_EXTS.has(e))        return 'image';
   if (PDF_EXTS.has(e))          return 'pdf';
   if (TABLE_EXTS.has(e))        return 'table';
@@ -71,8 +90,9 @@ export const TEXT_VIEWERS: ViewerKind[] = ['table', 'sequence', 'vcf', 'annotati
  * Viewers that fetch their own data — the caller skips the blob/text fetch
  * entirely and hands the URL to the viewer component directly.
  * 'r-object' and 'singlecell' are binary; no preview content to fetch.
+ * 'igv' needs Range GETs on BAM/VCF + index — never full-text fetch.
  */
-export const SELF_FETCHING: ViewerKind[] = ['density', 'r-object', 'singlecell'];
+export const SELF_FETCHING: ViewerKind[] = ['density', 'r-object', 'singlecell', 'igv'];
 
 // ---------------------------------------------------------------------------
 // Sequence viewer (FASTA / FASTQ)

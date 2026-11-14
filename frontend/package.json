@@ -115,6 +115,7 @@
     "express-session": "^1.18.1",
     "framer-motion": "^11.13.1",
     "helmet": "^8.1.0",
+    "igv": "^3.8.10",
     "input-otp": "^1.4.2",
     "json-edit-react": "^2.0.5",
     "jsonrepair": "^3.14.1",

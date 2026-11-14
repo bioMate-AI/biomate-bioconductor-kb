@@ -12,11 +12,14 @@ import { Download } from "lucide-react"
 import { gunzipPrefix, decompressionAvailable, DecompressionUnavailableError } from "./gzip-text"
 import {
   resolveViewer,
+  resolveViewerFromName,
   InlineStructureViewer,
   InlineVcfViewer,
   InlineSequenceViewer,
   InlineAnnotationViewer,
 } from "../viewers/inline-content-viewers"
+import { InlineIgvViewer } from "../viewers/inline-igv-viewer"
+import { genomicsTrackKind } from "../viewers/genomics-index"
 
 // Reuse the run-output 3-axis density viewer for cryo-EM map datasets — it takes
 // a direct `src` URL, so the dataset's own presigned URL drives it (no runId /
@@ -56,12 +59,20 @@ const MARKDOWN = /\.(md|markdown)$/i
  *  (a FASTQ uploaded as `.txt`, a VCF without its extension). */
 const TEXT_KINDS = new Set<string>(["table", "records", "json", "sequences", "reads", "variants", "intervals", "annotation", "molecules", "document"])
 
-type Mode = "text" | "gz" | "tiff" | "image" | "density" | "pdf" | "pending" | "none"
+type Mode = "text" | "gz" | "tiff" | "image" | "density" | "pdf" | "igv" | "pending" | "none"
 /** A cryo-EM density map: an image / structure kind whose format is the MRC family. The format
  *  comes from the profiler; without one, only an unambiguous `.mrc` / `.mrcs` name counts. */
 function isDensity(name: string, kind?: string, format?: string): boolean {
   if (kind !== "image" && kind !== "structure") return false
   return format ? DENSITY_FORMATS.has(format.toLowerCase()) : MRC_NAME.test(name)
+}
+
+/** BAM or indexed VCF.gz → IGV.js (not the gzip text-table path). */
+function isIgvTrack(name: string, kind?: string): boolean {
+  if (kind === "alignment") return true
+  if (resolveViewerFromName(name) === "igv") return true
+  if (kind === "variants" && genomicsTrackKind(name) === "vcf_gz") return true
+  return false
 }
 
 /** The profiler's format is a text format (it read the bytes as text: `txt`, `csv`, `json`…). */
@@ -83,6 +94,8 @@ export function previewMode(name: string, kind?: string, format?: string, profil
   if (profilePending && !format && MEDIA_NAME(name)) return "pending"
   // A "fake.png" that holds text is shown as the text it is (the QC card says so).
   if (textUnderMediaName(name, format)) return "text"
+  // Indexed genomics tracks before the generic .gz text decoder.
+  if (isIgvTrack(name, kind)) return "igv"
   if (GZ_TEXT.test(name)) return "gz"
   if (isTiff(name, format)) return "tiff"
   // A cryo-EM map is an image kind (the profiler's vocabulary) drawn by the density viewer —
@@ -366,6 +379,15 @@ export function DatasetFilePreview({ projectId, fileId, name, kind, format, stru
     <Suspense fallback={<p role="status" aria-busy="true" className="text-muted-foreground" data-testid="dataset-file-preview-loading">{t("dataset_obj.preview_loading_density")}</p>}>
       <DensityMapViewer src={state.url} name={name} />
     </Suspense>
+  )
+  if (state.url && mode === "igv") return (
+    <div data-testid="dataset-igv-preview">
+      <InlineIgvViewer
+        url={state.url}
+        name={name}
+        downloadUrl={fileDownloadUrl(projectId, fileId)}
+      />
+    </div>
   )
   if (state.url) return <iframe title={name} src={state.url} className="h-[60vh] w-full rounded-md border" />
   return <p role="status" aria-busy="true" className="text-muted-foreground" data-testid="dataset-file-preview-loading">{t(mode === "tiff" ? "dataset_obj.preview_tiff_loading" : "dataset_obj.preview_loading")}</p>

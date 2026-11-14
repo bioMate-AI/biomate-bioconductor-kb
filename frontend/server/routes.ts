@@ -15617,6 +15617,14 @@ Rules:
 
       // Infer Content-Type (shared for both S3 and local paths)
       const ext = (fileName || filePath).split('.').pop()?.toLowerCase() ?? '';
+      // Compound genomics names: sample.vcf.gz → prefer full suffix over bare "gz"
+      const lowerName = (fileName || filePath).toLowerCase();
+      const genomicsCt =
+        lowerName.endsWith('.bam') ? 'application/octet-stream'
+        : lowerName.endsWith('.bai') || lowerName.endsWith('.bam.bai') ? 'application/octet-stream'
+        : lowerName.endsWith('.vcf.gz') || lowerName.endsWith('.vcf.bgz') ? 'application/octet-stream'
+        : lowerName.endsWith('.tbi') || lowerName.endsWith('.csi') ? 'application/octet-stream'
+        : null;
       const contentTypeMap: Record<string, string> = {
         png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
         svg: 'image/svg+xml', pdf: 'application/pdf',
@@ -15631,11 +15639,17 @@ Rules:
         map: 'application/octet-stream', rec: 'application/octet-stream',
         // CryoSPARC binary datasets — trigger download
         cs: 'application/octet-stream',
+        // Genomics tracks for IGV.js (Range GETs)
+        bam: 'application/octet-stream', bai: 'application/octet-stream',
+        cram: 'application/octet-stream', crai: 'application/octet-stream',
+        tbi: 'application/octet-stream', csi: 'application/octet-stream',
       };
-      const ct = contentTypeMap[ext] || 'application/octet-stream';
+      const ct = genomicsCt || contentTypeMap[ext] || 'application/octet-stream';
+      const rangeHeader = typeof req.headers.range === 'string' ? req.headers.range : undefined;
 
       res.setHeader('Content-Disposition', stepFileDisposition(fileName || filePath, req.query.download));
       res.setHeader('Content-Type', ct);
+      res.setHeader('Accept-Ranges', 'bytes');
       setFilePreviewSecurityHeaders(res, ct);
 
       // If the path is just a bare filename (no directory separator, no s3://),
@@ -15740,8 +15754,21 @@ Rules:
           followRegionRedirects: true,
           ...(nfKey && nfSecret ? { credentials: { accessKeyId: nfKey, secretAccessKey: nfSecret } } : {}),
         });
-        const s3Obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+        const s3Obj = await s3.send(new GetObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          ...(rangeHeader ? { Range: rangeHeader } : {}),
+        }));
         if (!s3Obj.Body) return res.status(404).json({ error: 'S3 object empty' });
+
+        // IGV.js (and browsers) need 206 + Content-Range for BAM/BAI Range GETs.
+        if (rangeHeader && s3Obj.ContentRange) {
+          res.status(206);
+          res.setHeader('Content-Range', s3Obj.ContentRange);
+        }
+        if (typeof s3Obj.ContentLength === 'number') {
+          res.setHeader('Content-Length', String(s3Obj.ContentLength));
+        }
 
         // AWS SDK v3 Body is a SdkStreamMixin (Node.js Readable in Node context)
         // pipe it directly to the response
@@ -15780,7 +15807,7 @@ Rules:
         return res.status(403).json({ error: 'File outside allowed directories' });
       }
 
-      const { createReadStream, existsSync } = await import('fs');
+      const { createReadStream, existsSync, statSync } = await import('fs');
       if (!existsSync(resolved)) {
         // On-prem: the Galaxy backend container has /app/nf-work mounted but the
         // frontend container does not. Proxy the file through Galaxy's local-download API.
@@ -15812,6 +15839,24 @@ Rules:
         }
         return res.status(404).json({ error: 'File not found' });
       }
+      const st = statSync(resolved);
+      const size = st.size;
+      if (rangeHeader) {
+        const m = /^bytes=(\d*)-(\d*)$/i.exec(rangeHeader.trim());
+        if (m) {
+          const start = m[1] ? parseInt(m[1], 10) : 0;
+          const end = m[2] ? parseInt(m[2], 10) : Math.max(0, size - 1);
+          if (Number.isFinite(start) && Number.isFinite(end) && start <= end && start < size) {
+            const safeEnd = Math.min(end, size - 1);
+            res.status(206);
+            res.setHeader('Content-Range', `bytes ${start}-${safeEnd}/${size}`);
+            res.setHeader('Content-Length', String(safeEnd - start + 1));
+            createReadStream(resolved, { start, end: safeEnd }).pipe(res);
+            return;
+          }
+        }
+      }
+      res.setHeader('Content-Length', String(size));
       createReadStream(resolved).pipe(res);
     } catch (error: any) {
       console.error('[step-file] Error:', error);
