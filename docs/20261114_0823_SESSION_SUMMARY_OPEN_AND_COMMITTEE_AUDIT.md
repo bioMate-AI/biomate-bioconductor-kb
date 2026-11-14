@@ -6,7 +6,8 @@ Worktree: `/Users/kky/biomate-nextphase-ci-fix` · branch `sync/pr398-onto-dev`
 |-------|--------|
 | Live tip at audit start (`build-info.json`) | `0b63d793d78bc11a265d699468fabbd9b557d023` |
 | Worktree after FF to live | `0b63d793d7` (was behind live; FF restored merge-dropped files) |
-| This pass tip (post-fix commit) | `1084645a30` (`fix(audit): Bugbot High/Medium — chain_hint ADMET, download-all NF S3, mega-chain miss`) |
+| This pass tip (post-fix commit) | `1084645a30` (fixes) + `028df9f246` (doc SHA note); branch pushed |
+| Sync this pass | **BLOCKED** — `ssm.us-west-2.amazonaws.com` unreachable from Cursor env (proxy cleared). Live still `0b63d793` until operator sync. |
 
 ---
 
