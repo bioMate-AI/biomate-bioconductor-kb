@@ -94,6 +94,31 @@ describe('selectLibraryMoleculeRouting — dual path', () => {
     expect(selectLibraryMoleculeRouting('Run ADMET on aspirin', ['molecules'])).toBeNull();
   });
 
+  it('ignores a leaked ADMET-gated chain_hint on single-intent ADMET', () => {
+    // Prior-turn classifier leak must not steal "Run ADMET on aspirin" into mega-chain.
+    expect(
+      selectLibraryMoleculeRouting(
+        'Run ADMET on aspirin',
+        ['molecules'],
+        'drug_discovery_admet_gated_screening',
+      ),
+    ).toBeNull();
+    expect(
+      messageSupportsCatalogChainHint(
+        'Run ADMET on aspirin',
+        'drug_discovery_admet_gated_screening',
+      ),
+    ).toBe(false);
+    // Bare "Screen <compound> for ADMET" is still single-intent — not a library pipeline.
+    expect(
+      selectLibraryMoleculeRouting(
+        'Screen aspirin for ADMET',
+        ['molecules'],
+        'drug_discovery_admet_gated_screening',
+      ),
+    ).toBeNull();
+  });
+
   it('does not route Generate-500 + drug-like into ADMET-gated mega-chain', () => {
     const gen =
       'Generate 500 candidates for this target with drug-like properties.';

@@ -141,35 +141,30 @@ function isKnownLibraryCatalogChain(
 }
 
 /**
- * True when the current message plausibly supports a catalog chain slug
- * (same spirit as Tier-2 stale-hint guard in galaxy-assistant).
+ * True when the **current** message supports honouring a classifier chain_hint.
  *
- * Tokens must match as whole words — `includes('drug')` falsely matched
- * "drug-like" and stole Generate-500 into ADMET-gated screening (2026-11-13).
+ * Require either (a) the explicit catalog slug in the message, or (b) multi-step /
+ * library-screening phrasing. Do **not** honour a leaked hint on weak token
+ * overlap alone — `admet` ⊂ `drug_discovery_admet_gated_screening` hijacked
+ * single-intent "Run ADMET on aspirin" / "Screen aspirin for ADMET" (Bugbot 2026-11-14).
+ * Bare "screen" without a library/candidates cue is also insufficient.
  */
 export function messageSupportsCatalogChainHint(
   message: string,
   chainHint: string,
 ): boolean {
   const msgLc = (message || '').toLowerCase();
-  // Length ≥5 drops ambiguous 4-letter stems ("drug" ⊂ "drug-like"). Also refuse
-  // a match when the token is only the left side of a hyphenated compound.
-  const hintTokens = String(chainHint)
-    .toLowerCase()
-    .split(/[_\-\s]+/)
-    .filter((t) => t.length >= 5);
-  return (
-    /\b(chain|pipeline|then|followed by|and then|multi-?step|end[- ]?to[- ]?end|screen|screening|triage)\b/.test(
-      msgLc,
-    ) ||
-    hintTokens.some((t) =>
-      new RegExp(`\\b${escapeRegExp(t)}(?!-)\\b`, 'i').test(msgLc),
-    )
-  );
-}
+  const hintLc = String(chainHint || '').toLowerCase().trim();
+  if (hintLc && msgLc.includes(hintLc)) return true;
 
-function escapeRegExp(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const multiStepCue =
+    /\b(chain|pipeline|then|followed by|and then|multi-?step|end[- ]?to[- ]?end|admet[- ]gated|virtual screening)\b/.test(
+      msgLc,
+    );
+  const libraryScreenCue =
+    /\b(screen|screening|triage)\b/.test(msgLc) &&
+    /\b(library|libraries|candidates?|compounds?|ligands?|molecules?)\b/.test(msgLc);
+  return multiStepCue || libraryScreenCue;
 }
 
 /**

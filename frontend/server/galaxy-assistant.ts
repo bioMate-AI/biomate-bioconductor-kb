@@ -2,7 +2,12 @@ import { responseLanguageDirective } from "./response-language";
 import { runButtonLabel } from "./ui-labels";
 import { PROJECT_CONTEXT_NOTE, intentRulesBlock } from './project-rules';
 import { additionalIntentWorkflows, workflowIntent } from './multi-intent-workflows';
-import { applyLibraryMoleculeDualPath, isMoleculeGenerateRequest } from './library-triage-sequential';
+import {
+  applyLibraryMoleculeDualPath,
+  isMoleculeGenerateRequest,
+  messageSupportsCatalogChainHint,
+  type LibraryMoleculePath,
+} from './library-triage-sequential';
 import { isSimpleSequencePropertyRequest } from './sequence-property-intent';
 import { ChatContextBuilder, manifestSummary } from './chat-context-harness';
 import { localOnly, localOffline, localMessagesClient, localConfig, openaiCompatMessagesClient, reasoningBudgetBody, assertNotReasoningExhausted } from './local-llm.js';
@@ -2144,6 +2149,8 @@ export interface IntentDecomposition {
   needsThinking?: boolean;
   /** Name of a known workflow chain if the query maps to one, else null */
   chainHint?: string | null;
+  /** Library/molecule dual-path outcome (catalog mega-chain vs step-by-step). */
+  libraryMoleculePath?: LibraryMoleculePath;
   /** The user asked for generated / example / demo / synthetic data or a simulation (inferred from
    *  meaning, any language). undefined = the classifier did not say (run_code's synthetic-input
    *  guard then falls back to its keyword rule). */
@@ -6581,19 +6588,16 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     // can be contaminated by that history, so we check the MESSAGE TEXT: does it
     // reference a chain/pipeline, or any distinctive token of the hint slug?
     if (decomposition.chainHint) {
-      const _msgLc = (message || '').toLowerCase();
-      const _hintTokens = String(decomposition.chainHint)
-        .toLowerCase().split(/[_\-\s]+/).filter((t) => t.length >= 5);
-      // Whole-word token match — `includes('drug')` / `\bdrug\b` falsely matched
-      // "drug-like" and kept ADMET-gated screening on Generate-500 turns (2026-11-13).
-      const _msgSupportsChain =
-        /\b(chain|pipeline|then|followed by|and then|multi-?step|end[- ]?to[- ]?end)\b/.test(_msgLc)
-        || _hintTokens.some((t) =>
-          new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?!-)\\b`, 'i').test(_msgLc));
+      // Shared guard with selectLibraryMoleculeRouting — refuse leaked hints on
+      // single-intent ADMET / bare "screen compound" (Bugbot 2026-11-14).
+      const _msgSupportsChain = messageSupportsCatalogChainHint(
+        message,
+        decomposition.chainHint,
+      );
       // Generative design must never keep a screening mega-chain hint.
       if (!_msgSupportsChain || isMoleculeGenerateRequest(message)) {
         log(`Tier 2: dropping stale chain_hint "${decomposition.chainHint}" — ${
-          isMoleculeGenerateRequest(message) ? 'generate/design intent (not screening)' : 'current message has no chain/pipeline reference or hint-token overlap (likely inherited from prior-turn context)'
+          isMoleculeGenerateRequest(message) ? 'generate/design intent (not screening)' : 'current message lacks multi-step/library-screening phrasing or explicit chain slug (likely inherited from prior-turn context)'
         }`);
         decomposition.chainHint = null;
       }
@@ -6824,10 +6828,44 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     // (that flag only blocks Tier-1 single-wf collapse — e.g. Admet Pred).
     // Step-by-step library triage sets chainHint=null so this no-ops.
     {
+      const wantedCatalog =
+        decomposition.libraryMoleculePath === 'catalog_mega_chain' ||
+        (!!decomposition.chainHint && noCollapse);
+      const wantedHint = decomposition.chainHint;
       const tier2 = await this._curatedChainResponse(decomposition, message, context, log);
       if (tier2) return tier2;
       if (noCollapse && !decomposition.chainHint) {
         log('Tier 2: no catalog chainHint (sequential step-by-step path)');
+      }
+      // Catalog mega-chain miss must NOT silently invent Tier-3 placeholders
+      // that look like the curated chain (Bugbot Medium #4).
+      if (wantedCatalog && wantedHint && !tier2) {
+        log(`Tier 2: catalog mega-chain "${wantedHint}" unresolved — returning disambiguation (no Tier-3 invent)`);
+        return {
+          message: [
+            `I recognised your request as the curated **${wantedHint.replace(/_/g, ' ')}** pipeline, but that catalog chain could not be loaded right now.`,
+            '',
+            'I am **not** inventing a substitute step-by-step plan that would look like the mega-chain.',
+            'Retry in a moment, or ask for a single workflow (e.g. ADMET only, docking only) and I will route that directly.',
+          ].join('\n'),
+          intentType: 'clarification',
+          intentConfidence: 0.7,
+          isMultiIntent: false,
+          extractedFacts: [],
+          suggestions: [
+            'Retry the screening pipeline',
+            'Run ADMET only on my compounds',
+            'Dock my library with Vina',
+          ],
+          sources: {
+            toolSearchUsed: false,
+            datasetRAGUsed: false,
+            workflowGenerated: false,
+            thinkingUsed: false,
+            researchAgentUsed: false,
+            benchmarkAgentUsed: false,
+          },
+        };
       }
     }
 

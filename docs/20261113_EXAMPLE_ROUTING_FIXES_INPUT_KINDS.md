@@ -65,6 +65,13 @@ rule-origin rows** (method `NULL`/`'rule'`): on a rule-version bump (`_RULE_INPU
 `method='llm'`. The LLM apply stamps `'llm'`. This self-heals the above mislabels on dev/prod with
 no manual step and guarantees LLM refinements survive future rule corrections.
 
+> **Ops footgun (Bugbot Low #9):** bumping `_RULE_INPUT_KINDS_VERSION` is a **destructive heal**
+> for every `method IS NULL OR method='rule'` row at Galaxy init. LLM-labelled rows are safe;
+> rule-origin rows are recomputed. Before shipping a version bump to DEV/PROD: (1) dry-run the
+> classifier on a DB dump and diff labels, (2) confirm LLM coverage still preferred where
+> `method='llm'`, (3) avoid bundling an unrelated sync with a version bump so a bad rule can be
+> rolled back without a full catalog rewrite.
+
 ## Testing
 
 - **Rule-labeler regressions** (`tests/test_input_kinds_rule_regressions_20261113.py`): `linnorm`/
