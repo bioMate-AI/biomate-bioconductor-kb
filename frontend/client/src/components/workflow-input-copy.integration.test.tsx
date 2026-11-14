@@ -29,7 +29,7 @@ describe('actual viewer mapped-reference copy', () => {
     const {mapping,onExecute}=showInputMapping('s3://owned/input/counts.csv');
     expect(within(mapping).getByText('counts.csv')).toBeTruthy();
     expect(within(mapping).getByTestId('prerun-inputs-summary').textContent).toBe('1 mapped');
-    expect(within(mapping).getByText('resolved · format not checked')).toBeTruthy();
+    expect(within(mapping).getByText('resolved · format ok')).toBeTruthy();
     // The optional "Dataset ID" string is a setting, not a data input row.
     expect(within(mapping).queryByText('Dataset ID')).toBeNull();
     expect(within(mapping).queryByText(/paperclip/)).toBeNull();

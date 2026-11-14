@@ -135,6 +135,33 @@ export function attachmentRefValue(file: AttachedFile): string | undefined {
   return file.s3Uri || file.datasetId || file.galaxyDatasetId || undefined;
 }
 
+/**
+ * Resolve a param value back to a co-attached file when the value is that
+ * file's bare name, s3:// URI, dataset id, or a staged basename that ends
+ * with `_<original_name>` (e.g. `e252cce1b1_nanobody_constraints.json`).
+ */
+export function resolveAttachedFileForValue(
+  value: unknown,
+  files: readonly AttachedFile[],
+): AttachedFile | undefined {
+  if (typeof value !== 'string') return undefined;
+  const v = value.trim();
+  if (!v) return undefined;
+  const lower = v.toLowerCase();
+  const slash = lower.lastIndexOf('/');
+  const basename = slash >= 0 ? lower.slice(slash + 1) : lower;
+  for (const f of files) {
+    const name = f.name.trim().toLowerCase();
+    if (!name) continue;
+    if (lower === name) return f;
+    if (f.s3Uri && f.s3Uri.trim().toLowerCase() === lower) return f;
+    if (f.datasetId && f.datasetId.trim().toLowerCase() === lower) return f;
+    if (f.galaxyDatasetId && f.galaxyDatasetId.trim().toLowerCase() === lower) return f;
+    if (basename === name || basename.endsWith(`_${name}`)) return f;
+  }
+  return undefined;
+}
+
 /** Lower-case extension without the `.gz`/`.bz2` wrapper ("reads_R1.fastq.gz" → "fastq"). */
 export function fileExtension(name: string): string {
   const base = String(name || '').trim().toLowerCase().replace(/\.(gz|bz2|zip|xz)$/, '');
@@ -368,6 +395,21 @@ export function scoreBinding(
   return { score, reason: reasons.join('; '), overlap: shared.length > 0 };
 }
 
+/** Highest-scoring co-attached file that may bind to this param, if any. */
+export function bestAttachmentForParam(
+  param: BindableParam,
+  files: readonly AttachedFile[],
+): { file: AttachedFile; score: number; reason: string } | undefined {
+  let best: { file: AttachedFile; score: number; reason: string } | undefined;
+  for (const f of files) {
+    if (!attachmentRefValue(f)) continue;
+    const { score, reason } = scoreBinding(param, f);
+    if (score < BIND_SCORE_THRESHOLD) continue;
+    if (!best || score > best.score) best = { file: f, score, reason };
+  }
+  return best;
+}
+
 /**
  * Bind attached files to the workflow's unbound file parameters.
  *
@@ -387,8 +429,14 @@ export function bindAttachmentsToParams(
     // earlier single-file extractor already set it to ONE file — otherwise the other
     // modality tables are dropped and the panel still asks "Which omics?" (dev 2026-11-11:
     // omics pre-bound to rna.csv, protein/methyl never added). A single-value param keeps
-    // its binding.
-    if (isBound(p.value) && !paramAcceptsMultipleFiles(p)) continue;
+    // its binding — UNLESS that binding is a kind mismatch (coldstart Batch F:
+    // protein_diffusion `dataset` pre-filled with *_constraints.json while a
+    // co-attached .pdb/.cif is the structure-set pointer the trainer accepts).
+    if (isBound(p.value) && !paramAcceptsMultipleFiles(p)) {
+      const boundFile = resolveAttachedFileForValue(p.value, usableFiles);
+      const wrongKind = !!boundFile && scoreBinding(p, boundFile).score < BIND_SCORE_THRESHOLD;
+      if (!wrongKind) continue;
+    }
     // An optional parameter already carrying a default is an override, not an
     // empty input — leave the pipeline default in place.
     if (!p.required && isBound(p.default ?? p.defaultValue)) continue;
@@ -473,6 +521,11 @@ export function attachmentsNotUsed(
  * to nothing at run time and renders as a phantom value in the panel. Rewrite it
  * to the file's dataset reference when the parameter really takes a file, and
  * drop it otherwise (an inline-content parameter must not receive a path).
+ *
+ * Kind safety (Batch F / structure-set): when the named file is the wrong kind
+ * for the parameter (e.g. `*_constraints.json` on protein_diffusion `dataset`,
+ * which expects a PDB/mmCIF structure set), do NOT promote the JSON — remap to
+ * the best co-attached structure file, or drop so a later bind pass can fill it.
  */
 export function rebindFilenameValues<T extends Record<string, any>>(
   params: T,
@@ -482,17 +535,30 @@ export function rebindFilenameValues<T extends Record<string, any>>(
   const out: Record<string, any> = {};
   const rebound: string[] = [];
   const dropped: string[] = [];
-  const byName = new Map<string, AttachedFile>();
-  for (const f of files) byName.set(f.name.trim().toLowerCase(), f);
   const specFor = (k: string) => specs.find((s) => String(s.name || '') === k);
 
   for (const [k, v] of Object.entries(params || {})) {
     if (typeof v !== 'string') { out[k] = v; continue; }
-    const file = byName.get(v.trim().toLowerCase());
+    const file = resolveAttachedFileForValue(v, files);
     if (!file) { out[k] = v; continue; }
     const spec = specFor(k);
+    if (spec && !isFilePathParam(spec)) {
+      dropped.push(k);
+      continue;
+    }
+    // Kind mismatch: constraints JSON must not become a structure-set pointer.
+    if (spec && scoreBinding(spec, file).score < BIND_SCORE_THRESHOLD) {
+      const better = bestAttachmentForParam(spec, files);
+      if (better) {
+        out[k] = attachmentRefValue(better.file)!;
+        rebound.push(k);
+      } else {
+        dropped.push(k);
+      }
+      continue;
+    }
     const ref = attachmentRefValue(file);
-    if (ref && (!spec || isFilePathParam(spec))) {
+    if (ref) {
       out[k] = ref;
       rebound.push(k);
     } else {
@@ -567,4 +633,84 @@ export function bindClarificationAnswer(
   const ref = file ? attachmentRefValue(file) : undefined;
   if (!file || !ref) return { value: String(answer ?? ''), bound: false };
   return { value: ref, file, bound: true };
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// nf-core samplesheets whose cells must be resolvable URIs (not bare names)
+// ──────────────────────────────────────────────────────────────────────────
+
+function fileByName(files: readonly AttachedFile[], name: string): AttachedFile | undefined {
+  const want = name.trim().toLowerCase();
+  return files.find((f) => f.name.trim().toLowerCase() === want && !!attachmentRefValue(f));
+}
+
+function refOrEmpty(f: AttachedFile | undefined): string {
+  return (f && attachmentRefValue(f)) || '';
+}
+
+/**
+ * Build a schema-valid nf-core `input` samplesheet whose path cells are already
+ * resolvable dataset refs / s3:// URIs from the co-attached uploads.
+ *
+ * Cold-start fixtures ship CSVs with bare basenames (`normal_R1.fastq.gz`).
+ * Chat uploads land each file under a distinct S3 prefix, so those relative
+ * cells fail nf-schema `exists:true` and surface as
+ * "Validation of pipeline parameters failed". Resolving here (rule-first) is
+ * the single upstream fix for sarek + proteinfold cold-start launches.
+ *
+ * Returns null when the attached set cannot form a valid sheet for this workflow.
+ */
+export function buildResolvedNfcoreInputSamplesheet(
+  workflowName: string,
+  files: readonly AttachedFile[],
+): { csv: string; reason: string } | null {
+  const wf = String(workflowName || '').toLowerCase();
+
+  // nf-core/sarek — patient,sample,sex,status,lane,fastq_1,fastq_2
+  if (/\bsarek\b/.test(wf) || files.some((f) => /sequencing_samples\.csv$/i.test(f.name))) {
+    const n1 = fileByName(files, 'normal_R1.fastq.gz');
+    const n2 = fileByName(files, 'normal_R2.fastq.gz');
+    const t1 = fileByName(files, 'tumor_R1.fastq.gz');
+    const t2 = fileByName(files, 'tumor_R2.fastq.gz');
+    if (n1 && n2 && t1 && t2) {
+      const csv = [
+        'patient,sample,sex,status,lane,fastq_1,fastq_2',
+        `demo,normal,NA,0,1,${refOrEmpty(n1)},${refOrEmpty(n2)}`,
+        `demo,tumor,NA,1,1,${refOrEmpty(t1)},${refOrEmpty(t2)}`,
+        '',
+      ].join('\n');
+      return { csv, reason: 'sarek tumor/normal pair from attached FASTQs' };
+    }
+    if (n1 && n2) {
+      const csv = [
+        'patient,sample,sex,status,lane,fastq_1,fastq_2',
+        `demo,normal,NA,0,1,${refOrEmpty(n1)},${refOrEmpty(n2)}`,
+        '',
+      ].join('\n');
+      return { csv, reason: 'sarek germline pair from attached FASTQs' };
+    }
+  }
+
+  // nf-core/proteinfold — id,fasta (schema_input requires fasta + id|sequence)
+  if (/\bproteinfold\b/.test(wf) || files.some((f) => /proteinfold_samplesheet\.csv$/i.test(f.name))) {
+    const complex = fileByName(files, '1BXL.fasta');
+    const peptides = fileByName(files, 'peptide_candidates.fasta');
+    const lysozyme = fileByName(files, '1LYZ.fasta');
+    const pick = complex || peptides || lysozyme
+      || files.find((f) => /\.(fa|fasta|faa)$/i.test(f.name) && !!attachmentRefValue(f));
+    if (pick) {
+      const id = pick.name.replace(/\.(fa|fasta|faa)$/i, '').replace(/[^\w.-]+/g, '_');
+      const csv = ['id,fasta', `${id},${refOrEmpty(pick)}`, ''].join('\n');
+      return { csv, reason: `proteinfold samplesheet from ${pick.name}` };
+    }
+  }
+
+  return null;
+}
+
+/** True when a string is an inline nf-core samplesheet (not a path / URI). */
+export function looksLikeInlineSamplesheet(value: unknown): boolean {
+  if (typeof value !== 'string') return false;
+  const head = value.trim().split(/\r?\n/, 1)[0] || '';
+  return /^(patient,sample\b|id,fasta\b|sample,fastq_1\b)/i.test(head);
 }

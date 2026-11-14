@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biomate.ai/schemas/nfcore/proteinfold/nextflow_schema.json",
+  "title": "nf-core/proteinfold stub schema",
+  "description": "Display/execution-gate schema aligned with nf-core/proteinfold (input samplesheet required).",
+  "type": "object",
+  "$defs": {
+    "input_output_options": {
+      "title": "Global options",
+      "type": "object",
+      "required": ["input"],
+      "properties": {
+        "input": {
+          "type": "string",
+          "format": "file-path",
+          "description": "Samplesheet CSV with columns id,fasta (or sequence). One row per prediction."
+        },
+        "outdir": {
+          "type": "string",
+          "description": "Output directory",
+          "hidden": true
+        },
+        "mode": {
+          "type": "string",
+          "default": "esmfold",
+          "description": "Prediction backend: alphafold2, colabfold, esmfold, …"
+        },
+        "use_gpu": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run on GPUs when available"
+        }
+      }
+    },
+    "alphafold2_options": {
+      "title": "AlphaFold2 options",
+      "type": "object",
+      "required": [],
+      "properties": {
+        "alphafold2_model_preset": {
+          "type": "string",
+          "default": "monomer_ptm",
+          "enum": ["monomer", "monomer_casp14", "monomer_ptm", "multimer"],
+          "description": "Model preset for AlphaFold2 mode"
+        }
+      }
+    }
+  }
+}

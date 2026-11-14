@@ -60,12 +60,19 @@ process BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING {
     library(SeqVarTools)
     library(GenomicRanges)
     library(Biobase)
-    
-    # Define input files
-    vcffile <- "file.vcf"
+
+    # Resolve VCF: declared name, then any staged .vcf / .vcf.gz (coldstart CEPH
+    # demo ships ceph1463_genotypes.vcf.gz — do not require a rename to file.vcf).
+    vcf_cands <- c("file.vcf", "file.vcf.gz",
+                   list.files(".", pattern = "\\\\.vcf(\\\\.gz)?$", ignore.case = TRUE))
+    vcf_cands <- unique(vcf_cands[file.exists(vcf_cands) & !dir.exists(vcf_cands)])
+    if (!length(vcf_cands)) {
+      stop("No VCF found in the working directory (expected file.vcf or *.vcf/.vcf.gz).")
+    }
+    vcffile <- vcf_cands[[1]]
     gdsfile <- "tmp.gds"
-    pedigree_file <- "pedigree_data.RData"
-    
+    message("[seqvartools] using VCF: ", vcffile)
+
     # --- Convert VCF to GDS format and open it ---
     seqVCF2GDS(vcffile, gdsfile, verbose=FALSE)
     gds <- seqOpen(gdsfile)
@@ -210,18 +217,49 @@ process BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING {
     ic <- inbreedCoeff(gds, margin="by.sample")
     range(ic)
     
-    # --- Check for Mendelian errors using pedigree data ---
-    loaded_objs <- load(pedigree_file)
-    # Ensure the loaded pedigree object is correctly named 'pedigree'
-    if (!"pedigree" %in% loaded_objs) {
-      for (obj in loaded_objs) {
-        if (is.data.frame(get(obj))) {
-          pedigree <- get(obj)
-          break
+    # --- Pedigree: SeqVarTools .RData OR PLINK .ped (coldstart CEPH ships .ped) ---
+    pedigree <- NULL
+    if (file.exists("pedigree_data.RData")) {
+      loaded_objs <- load("pedigree_data.RData")
+      if (!"pedigree" %in% loaded_objs) {
+        for (obj in loaded_objs) {
+          if (is.data.frame(get(obj))) {
+            pedigree <- get(obj)
+            break
+          }
         }
       }
     }
-    
+    if (is.null(pedigree)) {
+      ped_cands <- c("pedigree.ped", "ceph1463.ped",
+                     list.files(".", pattern = "\\\\.ped$", ignore.case = TRUE))
+      ped_cands <- unique(ped_cands[file.exists(ped_cands) & !dir.exists(ped_cands)])
+      if (!length(ped_cands)) {
+        stop("No pedigree found (expected pedigree_data.RData or a PLINK .ped).")
+      }
+      ped_path <- ped_cands[[1]]
+      message("[seqvartools] building pedigree from PLINK ped: ", ped_path)
+      # PLINK ped: family, individual, father, mother, sex, phenotype, then genotypes…
+      raw <- utils::read.table(ped_path, header = FALSE, stringsAsFactors = FALSE,
+                               check.names = FALSE, comment.char = "", fill = TRUE)
+      if (ncol(raw) < 6) stop("PLINK .ped must have >=6 columns; got ", ncol(raw))
+      pedigree <- data.frame(
+        sample.id = as.character(raw[[2]]),
+        family = as.character(raw[[1]]),
+        father = as.character(raw[[3]]),
+        mother = as.character(raw[[4]]),
+        sex = as.integer(raw[[5]]),
+        phenotype = suppressWarnings(as.numeric(raw[[6]])),
+        stringsAsFactors = FALSE
+      )
+      # Map PLINK missing parents (0) to NA for SeqVarTools.
+      pedigree\$father[pedigree\$father %in% c("0", "")] <- NA
+      pedigree\$mother[pedigree\$mother %in% c("0", "")] <- NA
+    }
+    if (is.null(pedigree) || !nrow(pedigree)) {
+      stop("Pedigree table is empty after load/convert.")
+    }
+
     err <- mendelErr(gds, pedigree, verbose=FALSE)
     saveRDS(err, "mendelian_errors.rds")
     table(err\$by.variant)

@@ -13,7 +13,7 @@
  *     bare file NAME into an inline-content parameter.
  */
 import { describe, it, expect } from 'vitest';
-import { attachmentsNotUsed, parseAttachedFiles, attachedFilesFromMessages, bindAttachmentsToParams, bindClarificationAnswer, isFilePathParam, rebindFilenameValues, resolveAttachmentAnswer, scoreBinding, paramAcceptsMultipleFiles } from './attachment-binding';
+import { attachmentsNotUsed, parseAttachedFiles, attachedFilesFromMessages, bindAttachmentsToParams, bindClarificationAnswer, isFilePathParam, rebindFilenameValues, resolveAttachmentAnswer, resolveAttachedFileForValue, scoreBinding, paramAcceptsMultipleFiles, buildResolvedNfcoreInputSamplesheet, looksLikeInlineSamplesheet } from './attachment-binding';
 
 const S3 = 's3://biomate-nextflow-work/uploads';
 
@@ -189,6 +189,76 @@ describe('rebindFilenameValues — founder case 3 (bare file name as a value)', 
   });
 });
 
+describe('structure-set pointer — Batch F (constraints.json must not bind as dataset)', () => {
+  // Coldstart design-*-bio-* / pep optimise: protein_diffusion TRAIN failed with
+  // ValueError: unrecognized structure-set pointer '…_constraints.json'.
+  // Root cause: extractor set dataset=*_constraints.json; rebind promoted it
+  // kind-blindly; attachment bind then skipped the already-bound wrong file.
+  const nanobodyMsg =
+    'Design nanobody candidates against this epitope.\n\n[Attached files: 6Z43.pdb, 6Z43.fasta, 1HZH.fasta, nanobody_candidates.fasta, nanobody_constraints.json]\n' +
+    '[Uploaded datasets: 6Z43.pdb: dataset_id=a1, s3_uri=s3://b/a1/6Z43.pdb; 6Z43.fasta: dataset_id=a2, s3_uri=s3://b/a2/6Z43.fasta; 1HZH.fasta: dataset_id=a3, s3_uri=s3://b/a3/1HZH.fasta; nanobody_candidates.fasta: dataset_id=a4, s3_uri=s3://b/a4/nanobody_candidates.fasta; nanobody_constraints.json: dataset_id=a5, s3_uri=s3://b/a5/nanobody_constraints.json]';
+  const enzymeMsg =
+    'Propose enzyme variants.\n\n[Attached files: 1LYZ.pdb, 1LYZ.fasta, enzyme_candidates.fasta, enzyme_constraints.json]\n' +
+    '[Uploaded datasets: 1LYZ.pdb: dataset_id=e1, s3_uri=s3://b/e1/1LYZ.pdb; 1LYZ.fasta: dataset_id=e2, s3_uri=s3://b/e2/1LYZ.fasta; enzyme_candidates.fasta: dataset_id=e3, s3_uri=s3://b/e3/enzyme_candidates.fasta; enzyme_constraints.json: dataset_id=e4, s3_uri=s3://b/e4/enzyme_constraints.json]';
+  const peptideMsg =
+    'Improve serum stability.\n\n[Attached files: 1BXL.pdb, 1BXL.fasta, peptide_candidates.fasta, peptide_constraints.json]\n' +
+    '[Uploaded datasets: 1BXL.pdb: dataset_id=p1, s3_uri=s3://b/p1/1BXL.pdb; 1BXL.fasta: dataset_id=p2, s3_uri=s3://b/p2/1BXL.fasta; peptide_candidates.fasta: dataset_id=p3, s3_uri=s3://b/p3/peptide_candidates.fasta; peptide_constraints.json: dataset_id=p4, s3_uri=s3://b/p4/peptide_constraints.json]';
+
+  /** Live protein_diffusion dataset label from ml_training/config.py. */
+  const structureDataset = {
+    name: 'dataset',
+    type: 'file',
+    required: true,
+    label: 'Structure set (dir/manifest of PDB/mmCIF backbones, or s3://…)',
+    description: 's3://…/structures/ | dir | manifest.txt | fixture:structures',
+  };
+
+  it('rebinds dataset=nanobody_constraints.json → co-attached 6Z43.pdb', () => {
+    const attached = parseAttachedFiles(nanobodyMsg);
+    const r = rebindFilenameValues(
+      { dataset: 'nanobody_constraints.json' },
+      attached,
+      [structureDataset],
+    );
+    expect(r.params.dataset).toBe('s3://b/a1/6Z43.pdb');
+    expect(r.rebound).toEqual(['dataset']);
+  });
+
+  it('rebinds dataset already pointing at the constraints s3 URI → PDB', () => {
+    const attached = parseAttachedFiles(nanobodyMsg);
+    const r = rebindFilenameValues(
+      { dataset: 's3://b/a5/nanobody_constraints.json' },
+      attached,
+      [structureDataset],
+    );
+    expect(r.params.dataset).toBe('s3://b/a1/6Z43.pdb');
+  });
+
+  it('resolves a staged basename …_enzyme_constraints.json back to the attachment', () => {
+    const attached = parseAttachedFiles(enzymeMsg);
+    expect(resolveAttachedFileForValue('1cadc4aea8_enzyme_constraints.json', attached)?.name)
+      .toBe('enzyme_constraints.json');
+  });
+
+  it('overwrites a wrong-kind pre-bound dataset with the PDB in bindAttachmentsToParams', () => {
+    const attached = parseAttachedFiles(peptideMsg);
+    const params = [{
+      ...structureDataset,
+      value: 's3://b/p4/peptide_constraints.json',
+    }];
+    const bindings = bindAttachmentsToParams(attached, params);
+    expect(bindings).toHaveLength(1);
+    expect(bindings[0].file.name).toBe('1BXL.pdb');
+    expect(bindings[0].value).toBe('s3://b/p1/1BXL.pdb');
+  });
+
+  it('binds 1LYZ.pdb (not enzyme_constraints.json) when dataset is empty', () => {
+    const attached = parseAttachedFiles(enzymeMsg);
+    const bindings = bindAttachmentsToParams(attached, [structureDataset]);
+    expect(bindings.map((b) => b.file.name)).toEqual(['1LYZ.pdb']);
+  });
+});
+
 describe('multi-file inputs — hospital multi-omics bundle (dev d303eca6)', () => {
   // "Integrate a multi-omics cohort (RNA, protein, methylation) with SNF" attaches
   // the three modality tables plus evaluation truth and bundle documentation.
@@ -345,5 +415,55 @@ describe('multi-file param pre-bound to one file is topped up with the rest', ()
     const inp = { name: 'input_smiles', type: 'file', required: true, value: 's3://b/a.smi', autoFilled: true } as any;
     const out = bindAttachmentsToParams([f('a.smi'), f('b.smi')], [inp]);
     expect(out.length).toBe(0);
+  });
+});
+
+describe('buildResolvedNfcoreInputSamplesheet', () => {
+  const f = (name: string) => ({
+    name,
+    datasetId: name,
+    s3Uri: `s3://biomate-nextflow-work/uploads/${name}`,
+  });
+
+  it('builds a sarek tumor/normal sheet with resolvable FASTQ URIs', () => {
+    const sheet = buildResolvedNfcoreInputSamplesheet('nf-core/sarek', [
+      f('normal_R1.fastq.gz'),
+      f('normal_R2.fastq.gz'),
+      f('tumor_R1.fastq.gz'),
+      f('tumor_R2.fastq.gz'),
+      f('sequencing_samples.csv'),
+      f('reference_grch37.fasta'),
+    ]);
+    expect(sheet).not.toBeNull();
+    expect(looksLikeInlineSamplesheet(sheet!.csv)).toBe(true);
+    expect(sheet!.csv).toContain('patient,sample,sex,status,lane,fastq_1,fastq_2');
+    expect(sheet!.csv).toMatch(/demo,normal,NA,0,1,s3:\/\/.*normal_R1/);
+    expect(sheet!.csv).toMatch(/demo,tumor,NA,1,1,s3:\/\/.*tumor_R1/);
+    expect(sheet!.csv).not.toMatch(/(?<!\/)normal_R1\.fastq\.gz,/); // no bare basename cells
+  });
+
+  it('builds a proteinfold id,fasta sheet from 1BXL.fasta', () => {
+    const sheet = buildResolvedNfcoreInputSamplesheet('nf-core/proteinfold', [
+      f('1BXL.pdb'),
+      f('1BXL.fasta'),
+      f('peptide_candidates.fasta'),
+      f('proteinfold_samplesheet.csv'),
+    ]);
+    expect(sheet).not.toBeNull();
+    expect(sheet!.csv.split('\n')[0]).toBe('id,fasta');
+    expect(sheet!.csv).toContain('s3://biomate-nextflow-work/uploads/1BXL.fasta');
+  });
+
+  it('returns null when required FASTQs are missing', () => {
+    expect(buildResolvedNfcoreInputSamplesheet('nf-core/sarek', [f('sequencing_samples.csv')])).toBeNull();
+  });
+});
+
+describe('looksLikeInlineSamplesheet', () => {
+  it('detects sarek / proteinfold / rnaseq headers', () => {
+    expect(looksLikeInlineSamplesheet('patient,sample,sex,status,lane,fastq_1,fastq_2\n')).toBe(true);
+    expect(looksLikeInlineSamplesheet('id,fasta\nx,s3://b/a.fa\n')).toBe(true);
+    expect(looksLikeInlineSamplesheet('sample,fastq_1,fastq_2\n')).toBe(true);
+    expect(looksLikeInlineSamplesheet('s3://bucket/sheet.csv')).toBe(false);
   });
 });

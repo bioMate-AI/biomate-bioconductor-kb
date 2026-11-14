@@ -18,6 +18,10 @@ Stages (selectable with --stage):
 HONESTY: any missing CLI / prior / data, or a non-zero REINVENT4 exit, makes this
 exit NON-ZERO and writes a diagnosable training_summary.json — it never fabricates
 a checkpoint. A real result is a genuine REINVENT4 .model on disk or nothing.
+
+Live ECR bridge (2026-11-10 image): seeds /opt/REINVENT4 on PYTHONPATH and
+Zenodo-fetches reinvent_pubchem.prior when staged priors are missing — same
+contract as GENERATE_REINVENT4 / drug_discovery.reinvent4_runtime.
 """
 from __future__ import annotations
 
@@ -25,6 +29,23 @@ import argparse
 import json
 import os
 import sys
+import tempfile
+import urllib.error
+import urllib.request
+
+
+def _bootstrap_live_ecr_layout() -> None:
+    for src_root in ("/opt/REINVENT4", "/opt/reinvent4", "/opt/reinvent"):
+        if os.path.isdir(os.path.join(src_root, "reinvent")):
+            os.environ["PYTHONPATH"] = (
+                src_root + os.pathsep + os.environ.get("PYTHONPATH", "")
+            )
+            if src_root not in sys.path:
+                sys.path.insert(0, src_root)
+            break
+
+
+_bootstrap_live_ecr_layout()
 
 
 def _import_trainer():
@@ -40,6 +61,55 @@ def _import_trainer():
         + "\n(Expected PYTHONPATH=/opt/biomate in the reinvent4-nf container.)\n"
     )
     sys.exit(2)
+
+
+def _ensure_prior(explicit):
+    """Resolve prior path; Zenodo-fetch when staged priors missing (live ECR)."""
+    if explicit and os.path.isfile(explicit):
+        return explicit
+    try:
+        from drug_discovery.reinvent4_runtime import find_or_fetch_prior
+        return find_or_fetch_prior(["reinvent.prior", "reinvent_pubchem.prior"])
+    except Exception:
+        pass
+    dirs = [
+        os.environ.get("REINVENT4_PRIORS", "/opt/reinvent4/priors"),
+        "/opt/reinvent4/priors",
+        "/opt/REINVENT4/priors",
+    ]
+    names = ["reinvent.prior", "reinvent_pubchem.prior"]
+    for d in dirs:
+        for name in names:
+            path = os.path.join(d, name)
+            try:
+                if os.path.isfile(path) and os.path.getsize(path) > 1_000_000:
+                    return path
+            except OSError:
+                continue
+    url = (
+        "https://zenodo.org/api/records/20701824/files/reinvent_pubchem.prior/content"
+    )
+    cache = os.path.join(tempfile.gettempdir(), "reinvent4_priors")
+    os.makedirs(cache, exist_ok=True)
+    dest = os.path.join(cache, "reinvent.prior")
+    if not (os.path.isfile(dest) and os.path.getsize(dest) > 1_000_000):
+        print("Fetching REINVENT4 prior reinvent.prior from Zenodo…", flush=True)
+        try:
+            req = urllib.request.Request(
+                url, headers={"User-Agent": "biomate-reinvent4/1.0"}
+            )
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                data = resp.read()
+            if len(data) <= 1_000_000:
+                return None
+            tmp = dest + ".partial"
+            with open(tmp, "wb") as fh:
+                fh.write(data)
+            os.replace(tmp, dest)
+        except (urllib.error.URLError, OSError, TimeoutError) as exc:
+            print(f"WARN: Zenodo prior fetch failed: {exc}", flush=True)
+            return None
+    return dest if os.path.isfile(dest) else None
 
 
 _t = _import_trainer()
@@ -74,35 +144,67 @@ def _write_summary(payload: dict) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description="REINVENT4 fine-tuning + RL on Batch")
     ap.add_argument("--stage", choices=["transfer", "rl", "both"], default="both")
-    ap.add_argument("--train-smiles",
-                    help="partner/in-house SMILES file (one per line); "
-                         "required for --stage transfer|both")
+    ap.add_argument(
+        "--train-smiles",
+        help="partner/in-house SMILES file (one per line); "
+        "required for --stage transfer|both",
+    )
     ap.add_argument("--output-prefix", default="reinvent4")
     ap.add_argument("--epochs", type=int, default=10)
     ap.add_argument("--tl-batch-size", type=int, default=128)
     ap.add_argument("--tl-learning-rate", type=float, default=1e-4)
-    ap.add_argument("--reward", default="default",
-                    help="comma list kind[:weight] or 'default' "
-                         "(affinity-proxy x SA x safety x QED)")
+    ap.add_argument(
+        "--reward",
+        default="default",
+        help="comma list kind[:weight] or 'default' "
+        "(affinity-proxy x SA x safety x QED)",
+    )
     ap.add_argument("--rl-steps", type=int, default=300)
     ap.add_argument("--rl-batch-size", type=int, default=128)
     ap.add_argument("--sigma", type=float, default=128.0)
     ap.add_argument("--rl-learning-rate", type=float, default=1e-4)
-    ap.add_argument("--no-diversity-filter", action="store_true",
-                    help="disable the scaffold diversity filter (NOT recommended; "
-                         "the filter is the reward-hacking suppression)")
-    ap.add_argument("--prior-path", default=None,
-                    help="explicit base prior checkpoint (default: $REINVENT4_PRIORS/reinvent.prior)")
+    ap.add_argument(
+        "--no-diversity-filter",
+        action="store_true",
+        help="disable the scaffold diversity filter (NOT recommended; "
+        "the filter is the reward-hacking suppression)",
+    )
+    ap.add_argument(
+        "--prior-path",
+        default=None,
+        help="explicit base prior checkpoint "
+        "(default: $REINVENT4_PRIORS/reinvent.prior)",
+    )
     args = ap.parse_args()
 
     provenance = {"stage": args.stage, "steps": {}}
     tl_checkpoint = None
 
-    # ── Transfer learning (generator fine-tuning) ──────────────────────────
+    prior_path = _ensure_prior(args.prior_path)
+    if prior_path is None:
+        _write_summary(
+            {
+                **provenance,
+                "status": "error",
+                "reason": "prior_checkpoint_missing: staged dirs + Zenodo fetch failed",
+            }
+        )
+        sys.stderr.write(
+            "ERROR: REINVENT4 prior missing (checked staged dirs + Zenodo fetch)\n"
+        )
+        return 6
+    args.prior_path = prior_path
+    provenance["prior_path"] = prior_path
+
     if args.stage in ("transfer", "both"):
         if not args.train_smiles:
-            _write_summary({**provenance, "status": "error",
-                            "reason": "train_smiles required for transfer stage"})
+            _write_summary(
+                {
+                    **provenance,
+                    "status": "error",
+                    "reason": "train_smiles required for transfer stage",
+                }
+            )
             sys.stderr.write("ERROR: --train-smiles required for transfer stage\n")
             return 3
         tl = Reinvent4TransferLearner(prior_path=args.prior_path)
@@ -116,17 +218,21 @@ def main() -> int:
         )
         provenance["steps"]["transfer"] = res.to_dict()
         if not res.ok:
-            _write_summary({**provenance, "status": "error",
-                            "reason": f"transfer_learning: {res.reason}"})
-            sys.stderr.write(f"ERROR: transfer_learning failed: {res.reason}\n"
-                             f"{res.stderr_tail}\n")
+            _write_summary(
+                {
+                    **provenance,
+                    "status": "error",
+                    "reason": f"transfer_learning: {res.reason}",
+                }
+            )
+            sys.stderr.write(
+                f"ERROR: transfer_learning failed: {res.reason}\n{res.stderr_tail}\n"
+            )
             return 4
         tl_checkpoint = res.checkpoint
 
-    # ── Reinforcement learning (staged_learning) ───────────────────────────
     if args.stage in ("rl", "both"):
         reward = _parse_reward(args.reward)
-        # RL agent starts from the transfer-learned checkpoint when we ran one.
         sl = Reinvent4StagedLearner(prior_path=args.prior_path)
         rl_out = f"{args.output_prefix}_rl.model"
         res = sl.train(
@@ -141,15 +247,22 @@ def main() -> int:
         )
         provenance["steps"]["rl"] = res.to_dict()
         if not res.ok:
-            _write_summary({**provenance, "status": "error",
-                            "reason": f"staged_learning: {res.reason}"})
-            sys.stderr.write(f"ERROR: staged_learning failed: {res.reason}\n"
-                             f"{res.stderr_tail}\n")
+            _write_summary(
+                {
+                    **provenance,
+                    "status": "error",
+                    "reason": f"staged_learning: {res.reason}",
+                }
+            )
+            sys.stderr.write(
+                f"ERROR: staged_learning failed: {res.reason}\n{res.stderr_tail}\n"
+            )
             return 5
 
     provenance["status"] = "ok"
-    final = (provenance["steps"].get("rl") or {}).get("checkpoint") \
-        or (provenance["steps"].get("transfer") or {}).get("checkpoint")
+    final = (provenance["steps"].get("rl") or {}).get("checkpoint") or (
+        provenance["steps"].get("transfer") or {}
+    ).get("checkpoint")
     provenance["final_checkpoint"] = final
     _write_summary(provenance)
     print(json.dumps(provenance, indent=2))

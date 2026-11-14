@@ -61,38 +61,133 @@ process BIOC_MULTIGSEA_MULTI_OMICS_GSEA_ENRICHMENT {
     library(multiGSEA)
     library(magrittr)
     
-    # Helper function to read input files from the working directory
-    read_input_file <- function(base_name) {
-      csv_file <- paste0(base_name, ".csv")
-      tsv_file <- paste0(base_name, ".tsv")
-      if (file.exists(csv_file)) {
-        return(read.csv(csv_file, stringsAsFactors = FALSE))
-      } else if (file.exists(tsv_file)) {
-        return(read.delim(tsv_file, stringsAsFactors = FALSE))
-      } else {
-        stop(paste("Error: Could not find", csv_file, "or", tsv_file, "in the working directory."))
+    # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
+    for (.bm_d in list.files(".", full.names = TRUE)) {
+      if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
+        for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
+          if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
+        }
       }
     }
-    
-    # Read user input files
-        # [biomate] flatten staged inputs (stageAs '?/*' -> numbered subdirs)
-        for (.bm_d in list.files(".", full.names = TRUE)) {
-          if (dir.exists(.bm_d) && grepl("/[0-9]+\$", .bm_d)) {
-            for (.bm_e in list.files(.bm_d, full.names = TRUE)) {
-              if (!file.exists(basename(.bm_e))) try(file.copy(.bm_e, ".", recursive = TRUE), silent = TRUE)
-            }
+
+    .read_table <- function(path) {
+      if (grepl("\\\\.tsv\$|\\\\.txt\$", path, ignore.case = TRUE))
+        read.delim(path, stringsAsFactors = FALSE, check.names = FALSE)
+      else
+        read.csv(path, stringsAsFactors = FALSE, check.names = FALSE)
+    }
+    .find_layer <- function(role_patterns) {
+      # Prefer exact basename, then stem/role hints (tcga_mrna → transcriptome)
+      exact <- c(paste0(role_patterns[1], ".csv"), paste0(role_patterns[1], ".tsv"))
+      hit <- exact[file.exists(exact)][1]
+      if (!is.na(hit) && nzchar(hit)) return(hit)
+      files <- list.files(".", pattern = "(?i)\\\\.(csv|tsv|txt)\$")
+      files <- files[!grepl("(?i)metadata|design|sample", files)]
+      for (pat in role_patterns) {
+        m <- grep(pat, files, ignore.case = TRUE, value = TRUE)
+        if (length(m)) return(m[1])
+      }
+      NA_character_
+    }
+    .is_ranked_de <- function(df) {
+      cn <- tolower(colnames(df))
+      any(cn %in% c("logfc", "log2fc", "log2foldchange")) &&
+        any(cn %in% c("pvalue", "p.value", "pval", "p")) &&
+        any(cn %in% c("symbol", "gene", "genes", "hmdb", "id"))
+    }
+    .normalize_ranked <- function(df, id_prefs) {
+      cn <- colnames(df)
+      lfc <- cn[tolower(cn) %in% c("logfc", "log2fc", "log2foldchange")][1]
+      pv <- cn[tolower(gsub("[._]", "", cn)) %in% c("pvalue", "pval", "p")][1]
+      if (is.na(pv)) pv <- cn[tolower(cn) %in% c("p.value", "pvalue", "pval")][1]
+      id <- NA_character_
+      for (pref in id_prefs) {
+        hit <- grep(paste0("^", pref, "\$"), cn, ignore.case = TRUE, value = TRUE)[1]
+        if (!is.na(hit)) { id <- hit; break }
+      }
+      if (is.na(id) || is.na(lfc) || is.na(pv)) stop("Ranked DE table missing Symbol/logFC/pValue columns")
+      out <- data.frame(
+        Symbol = as.character(df[[id]]),
+        logFC = as.numeric(df[[lfc]]),
+        pValue = as.numeric(df[[pv]]),
+        stringsAsFactors = FALSE
+      )
+      if (tolower(id_prefs[1]) == "hmdb") names(out)[1] <- "HMDB"
+      out
+    }
+    # Abundance matrix (samples × features or features × samples) + optional metadata → ranked DE
+    .abundance_to_ranked <- function(path, meta_path = NA_character_) {
+      mat <- .read_table(path)
+      # First column as feature IDs when non-numeric
+      if (!is.numeric(mat[[1]])) {
+        rownames(mat) <- make.unique(as.character(mat[[1]]))
+        mat <- mat[, -1, drop = FALSE]
+      }
+      # Orient to features × samples
+      if (nrow(mat) < ncol(mat)) mat <- as.data.frame(t(mat))
+      storage.mode_num <- as.matrix(data.frame(lapply(mat, function(x) suppressWarnings(as.numeric(as.character(x))))))
+      rownames(storage.mode_num) <- rownames(mat)
+      colnames(storage.mode_num) <- colnames(mat)
+      groups <- NULL
+      if (!is.na(meta_path) && file.exists(meta_path)) {
+        meta <- .read_table(meta_path)
+        # Match sample column to matrix colnames
+        sample_col <- grep("(?i)^sample|^id\$", colnames(meta), value = TRUE)[1]
+        group_col <- grep("(?i)subtype|group|condition|class|arm|diet|genotype", colnames(meta), value = TRUE)[1]
+        if (!is.na(sample_col) && !is.na(group_col)) {
+          meta[[sample_col]] <- as.character(meta[[sample_col]])
+          common <- intersect(colnames(storage.mode_num), meta[[sample_col]])
+          if (length(common) >= 4) {
+            storage.mode_num <- storage.mode_num[, common, drop = FALSE]
+            groups <- meta[[group_col]][match(common, meta[[sample_col]])]
           }
         }
-    transcriptome <- read_input_file("transcriptome")
-    proteome <- read_input_file("proteome")
-    metabolome <- read_input_file("metabolome")
+      }
+      if (is.null(groups)) {
+        # Split samples in half as a last-resort two-group contrast
+        n <- ncol(storage.mode_num)
+        if (n < 4) stop("Abundance matrix too small to derive ranks without metadata groups")
+        groups <- c(rep("A", floor(n / 2)), rep("B", n - floor(n / 2)))
+      }
+      groups <- as.factor(as.character(groups))
+      if (nlevels(groups) < 2) stop("Need ≥2 groups to rank features from abundance")
+      g1 <- levels(groups)[1]; g2 <- levels(groups)[2]
+      idx1 <- which(groups == g1); idx2 <- which(groups == g2)
+      logfc <- pval <- numeric(nrow(storage.mode_num))
+      for (i in seq_len(nrow(storage.mode_num))) {
+        x <- storage.mode_num[i, idx1]; y <- storage.mode_num[i, idx2]
+        logfc[i] <- mean(x, na.rm = TRUE) - mean(y, na.rm = TRUE)
+        pval[i] <- tryCatch(stats::t.test(x, y)\$p.value, error = function(e) 1)
+      }
+      data.frame(
+        Symbol = rownames(storage.mode_num),
+        logFC = logfc,
+        pValue = ifelse(is.finite(pval), pval, 1),
+        stringsAsFactors = FALSE
+      )
+    }
+    .load_layer <- function(role_patterns, id_prefs, required = TRUE) {
+      path <- .find_layer(role_patterns)
+      if (is.na(path)) {
+        if (required) stop(paste("Error: Could not find", role_patterns[1], "csv/tsv in the working directory."))
+        return(NULL)
+      }
+      df <- .read_table(path)
+      if (.is_ranked_de(df)) return(.normalize_ranked(df, id_prefs))
+      meta <- list.files(".", pattern = "(?i)metadata|design|sample")[1]
+      message("Layer ", role_patterns[1], ": treating ", path, " as abundance → computing ranks")
+      .abundance_to_ranked(path, meta)
+    }
+
+    transcriptome <- .load_layer(c("transcriptome", "mrna", "rna", "transcript"), c("Symbol", "Gene", "id"))
+    proteome <- .load_layer(c("proteome", "protein", "proteomic"), c("Symbol", "Gene", "id"))
+    metabolome <- .load_layer(c("metabolome", "metabol", "hmdb", "lipid"), c("HMDB", "Symbol", "id"), required = FALSE)
+
+    .layers <- c("transcriptome", "proteome")
+    if (!is.null(metabolome)) .layers <- c(.layers, "metabolome")
     
     # 1. Initialize the multi-omics data structure
-    omics_data <- initOmicsDataStructure(layer = c(
-      "transcriptome",
-      "proteome",
-      "metabolome"
-    ))
+    omics_data <- initOmicsDataStructure(layer = .layers)
     
     # 2. Rank features for each omics layer and assign feature names
     omics_data\$transcriptome <- rankFeatures(
@@ -103,25 +198,29 @@ process BIOC_MULTIGSEA_MULTI_OMICS_GSEA_ENRICHMENT {
     
     omics_data\$proteome <- rankFeatures(proteome\$logFC, proteome\$pValue)
     names(omics_data\$proteome) <- proteome\$Symbol
-    
-    omics_data\$metabolome <- rankFeatures(metabolome\$logFC, metabolome\$pValue)
-    names(omics_data\$metabolome) <- metabolome\$HMDB
-    names(omics_data\$metabolome) <- gsub(
-      "HMDB", "HMDB00",
-      names(omics_data\$metabolome)
-    )
+
+    if (!is.null(metabolome)) {
+      .mid <- if ("HMDB" %in% colnames(metabolome)) metabolome\$HMDB else metabolome\$Symbol
+      omics_data\$metabolome <- rankFeatures(metabolome\$logFC, metabolome\$pValue)
+      names(omics_data\$metabolome) <- .mid
+      names(omics_data\$metabolome) <- gsub(
+        "HMDB", "HMDB00",
+        names(omics_data\$metabolome)
+      )
+    }
     
     # 3. Download and map pathway definitions
     databases <- c("kegg", "reactome")
     layers <- names(omics_data)
     
-    pathways <- getMultiOmicsFeatures(
+    .gmo_args <- list(
       dbs = databases, layer = layers,
       returnTranscriptome = "SYMBOL",
       returnProteome = "SYMBOL",
-      returnMetabolome = "HMDB",
       useLocal = FALSE
     )
+    if ("metabolome" %in% layers) .gmo_args\$returnMetabolome <- "HMDB"
+    pathways <- do.call(getMultiOmicsFeatures, .gmo_args)
     
     # 4. Calculate enrichment scores for all layers
     enrichment_scores <- multiGSEA(pathways, omics_data)
