@@ -17,6 +17,7 @@ import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/clien
 import { registerJobKind, type ExecutorContext } from "../executor";
 import { storage } from "../../storage";
 import { GalaxyAPIProxy } from "../../galaxy-api-proxy";
+import { runsOutputsService } from "../../services/runs-outputs-service";
 
 // One shared proxy instance is fine for handler use — mirrors the
 // `galaxyAPIBackend` singleton in routes.ts.
@@ -131,6 +132,23 @@ export interface DownloadAllZipPayload {
 export async function estimateSize(payload: DownloadAllZipPayload): Promise<number | undefined> {
   const ref = payload.invocationId || payload.runId;
   if (!ref) return undefined;
+
+  // Same canonical resolver execute() uses — size from Outputs, not empty Galaxy rows.
+  try {
+    const tryIds = [payload.runId, payload.invocationId, ref]
+      .filter((x): x is string => typeof x === "string" && x.length > 0);
+    const seen = new Set<string>();
+    for (const id of tryIds) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const canonical = await runsOutputsService.list(id).catch(() => []);
+      if (canonical.length > 0) {
+        const total = canonical.reduce((acc, o) => acc + (typeof o.size === "number" ? o.size : 0), 0);
+        if (total > 0) return total;
+      }
+    }
+  } catch { /* fall through */ }
+
   let invocation = await resolveInvocation(ref).catch(() => null);
   // Fallback: if invocationId resolved to nothing, try runId directly
   if (!invocation && payload.runId && payload.runId !== ref) {
@@ -163,6 +181,32 @@ export async function execute(
   if (!ref) {
     throw new Error("payload.invocationId is required");
   }
+
+  // Canonical path FIRST — same resolver the Outputs tab uses. Pipeline runs
+  // often resolve to a Galaxy WorkflowInvocation row with ZERO registered
+  // OutputDataset rows while S3 under nextflowOutputDir is full (live autopsy:
+  // run 727de1b4 → "No outputs found" despite metrics.json in Outputs). Falling
+  // through getInvocationOutputs first made the ZIP fail whenever an empty
+  // invocation row existed. Prefer runsOutputsService for every id the client
+  // may send (runId and/or invocationId).
+  {
+    const tryIds = [job.payload?.runId, job.payload?.invocationId, ref]
+      .filter((x): x is string => typeof x === "string" && x.length > 0);
+    const seen = new Set<string>();
+    for (const id of tryIds) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const canonical = await runsOutputsService.list(id).catch(() => []);
+      if (canonical.length > 0) {
+        const meta = await runsOutputsService.resolve(id).catch(() => null);
+        return executeCanonicalOutputs(canonical, {
+          id: meta?.runId || id,
+          workflowName: meta?.workflowName || "workflow",
+        }, ctx);
+      }
+    }
+  }
+
   let invocation = await resolveInvocation(ref);
   // Fallback: if invocationId resolved to nothing, try runId directly.
   // ADMET/Nextflow runs carry a BioMate invocationId that differs from the
@@ -182,6 +226,23 @@ export async function execute(
 
   const outputs = await storage.getInvocationOutputs(invocation.id);
   if (!outputs || outputs.length === 0) {
+    // Last chance: empty Galaxy invocation but execution_run may still have S3.
+    // resolveInvocation returned the Galaxy row first and skipped _pipelineSource.
+    const tryIds = [job.payload?.runId, invocation.id, (invocation as any).galaxyInvocationId, ref]
+      .filter((x): x is string => typeof x === "string" && x.length > 0);
+    for (const id of tryIds) {
+      const executionRun = await (storage as any).getExecutionRun?.(id)
+        || await (storage as any).getExecutionRunByGalaxyId?.(id);
+      const s3Uri = executionRun?.execution?.nextflowOutputDir;
+      if (s3Uri && typeof s3Uri === "string" && s3Uri.startsWith("s3://")) {
+        return executePipelineSource({
+          _pipelineSource: true,
+          id: executionRun.execution?.id ?? executionRun.id ?? id,
+          workflowName: executionRun.execution?.workflowName ?? executionRun.workflowName ?? invocation.workflowName ?? "workflow",
+          s3Uri,
+        }, ctx);
+      }
+    }
     throw new Error("No outputs found for this run");
   }
 
@@ -231,6 +292,59 @@ export async function execute(
     }
     done += 1;
     await ctx.setProgress(Math.round((100 * done) / total));
+  }
+
+  await archive.finalize();
+  await piped;
+  await ctx.closeArtifact();
+  await ctx.setProgress(100);
+}
+
+/** Stream a ZIP from the same CanonicalOutput[] the Outputs tab already shows. */
+async function executeCanonicalOutputs(
+  outputs: Array<{ name: string; s3Uri: string; s3Bucket?: string; s3Key?: string }>,
+  meta: { id: string; workflowName: string },
+  ctx: ExecutorContext,
+): Promise<void> {
+  const s3 = makeS3Client();
+  const zipName = `${meta.workflowName || "workflow"}_outputs_${String(meta.id).slice(0, 8)}.zip`;
+  const sink = ctx.openArtifact(zipName, "application/zip");
+  const archive = archiver("zip", { zlib: { level: 9 } });
+  const piped = new Promise<void>((resolve, reject) => {
+    archive.on("error", reject);
+    archive.on("end", () => resolve());
+    archive.pipe(sink.stream as any);
+  });
+
+  const total = outputs.length;
+  let done = 0;
+  for (const o of outputs) {
+    if (ctx.checkCancelled()) {
+      try { (archive as any).abort?.(); } catch { /* ignore */ }
+      try {
+        await new Promise<void>((resolve) => {
+          (sink.stream as any).end(() => resolve());
+        });
+      } catch { /* ignore */ }
+      return;
+    }
+    try {
+      let bucket = o.s3Bucket;
+      let key = o.s3Key;
+      if ((!bucket || !key) && o.s3Uri) {
+        const m = o.s3Uri.match(/^s3:\/\/([^/]+)\/(.+)$/);
+        if (m) { bucket = m[1]; key = m[2]; }
+      }
+      if (!bucket || !key) { done += 1; continue; }
+      const resp = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+      archive.append(resp.Body as any, { name: o.name || key.split("/").pop() || key });
+    } catch (err) {
+      console.error(`[jobs/download_all_zip] canonical S3 fetch failed for ${o.name}:`, err);
+    }
+    done += 1;
+    if (done % 5 === 0 || done === total) {
+      await ctx.setProgress(Math.round((100 * done) / total));
+    }
   }
 
   await archive.finalize();

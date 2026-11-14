@@ -134,8 +134,77 @@ describe('buildFindingsDocument — DESeq2 (csv, gene entity)', () => {
   });
 });
 
-it('registry exposes all four ported parsers (+ ADMET JSON variant) as descriptors', () => {
-  expect(DESCRIPTORS.map(d => d.id).sort()).toEqual(['admet', 'admet_report', 'deseq2', 'enrichgo', 'variant']);
+it('registry exposes domain descriptors (ADMET + omics + docking + structure)', () => {
+  expect(DESCRIPTORS.map(d => d.id).sort()).toEqual([
+    'admet', 'admet_report', 'boltz_qc', 'boltz_summary', 'deseq2', 'enrichgo', 'variant', 'vina_docking',
+  ]);
+});
+
+const VINA_FILE = {
+  name: 'docking_autodock_vina_results.json',
+  content: JSON.stringify({
+    success: true,
+    function: 'docking_autodock_vina',
+    results: [
+      { smiles: 'CCO', best_affinity_kcal_mol: -4.2, n_poses: 9 },
+      { smiles: 'CCN', best_affinity_kcal_mol: -6.1, n_poses: 9 },
+      { smiles: 'CCC', best_affinity_kcal_mol: -5.0, n_poses: 5 },
+    ],
+  }),
+};
+
+describe('buildFindingsDocument — Vina docking', () => {
+  const m = matchDescriptor('AutoDock Vina Docking', [VINA_FILE]);
+  const doc = buildFindingsDocument(m!.descriptor, m!.file);
+
+  it('matches vina_docking and ranks by affinity (most negative first)', () => {
+    expect(m?.descriptor.id).toBe('vina_docking');
+    expect(doc.entityRoster.map(e => e.label)).toEqual(['CCN', 'CCC', 'CCO']);
+  });
+
+  it('summary leads with best affinity and points at Key Results', () => {
+    expect(doc.summary).toMatch(/Best affinity -6\.1/);
+    expect(doc.summary).toMatch(/Key Results/);
+    const leg = documentToLegacy(doc);
+    expect(leg.key_results[0].metric).toBe('best affinity');
+    expect(leg.key_results[0].value).toMatch(/-6\.1/);
+  });
+});
+
+const BOLTZ_QC_FILE = {
+  name: 'qc_metrics.json',
+  content: JSON.stringify({
+    mean_plddt: 82.4,
+    confident_fraction: 0.81,
+    max_pae: 6.2,
+    structures_predicted: 1,
+    tool: 'Boltz-2',
+  }),
+};
+
+describe('buildFindingsDocument — Boltz qc_metrics', () => {
+  const m = matchDescriptor('boltz_structure_prediction', [BOLTZ_QC_FILE]);
+  const doc = buildFindingsDocument(m!.descriptor, m!.file);
+
+  it('surfaces mean pLDDT as batch Key Results (not hollow LLM prose)', () => {
+    expect(m?.descriptor.id).toBe('boltz_qc');
+    const leg = documentToLegacy(doc);
+    expect(leg.key_results.map(k => k.metric)).toEqual(
+      expect.arrayContaining(['mean pLDDT', 'confident fraction', 'max PAE', 'structures predicted']),
+    );
+    expect(doc.summary).toMatch(/mean pLDDT=82/);
+    expect(doc.summary).toMatch(/pLDDT gate pass/);
+  });
+});
+
+describe('buildFindingsDocument — DESeq2 summary names top genes', () => {
+  it('leads with padj counts and top hits (not generic Assessment completed)', () => {
+    const m = matchDescriptor('nf-core/differentialabundance', [DESEQ2_FILE]);
+    const doc = buildFindingsDocument(m!.descriptor, m!.file);
+    expect(doc.summary).toMatch(/DESeq2: 3 genes at padj/);
+    expect(doc.summary).toMatch(/BRCA1/);
+    expect(doc.summary).not.toMatch(/^Assessment completed/);
+  });
 });
 
 // ADMET structured JSON report: per_compound[] (per-entity) + toxicity{} (batch) — the real

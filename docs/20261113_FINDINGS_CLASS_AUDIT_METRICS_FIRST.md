@@ -138,7 +138,10 @@ Coverage added: sampling rank, hollow/fluff refusal (incl. source_file + empty r
 
 ## Remaining gaps (honest)
 
-1. **Docking / structure prediction** still lack deterministic score parsers (vina affinity, Boltz confidence).
-2. **Owner ≠ fixture** blocked authenticated UI/API autopsy as lifeifei; S3 + report reconstruction used instead.
-3. **Chat stream prose** from the original assistant turn is not rewritten retroactively — only After-run Findings/report.
-4. Descriptor document summaries for DESeq2 are still generic (“Assessment completed for N genes…”) — better than LLM fluff, but narrative polish is open.
+Closed in follow-up `67cb30ede2` / `docs/20261113_FINDINGS_CLASS_CASE_MATRIX.md`:
+Vina + Boltz descriptors, cryo-EM + MultiQC parsers, DESeq2 score-first summaries,
+`download_all_zip` canonical Outputs path.
+
+Still intentional:
+1. **Owner ≠ fixture** blocked authenticated UI/API autopsy as lifeifei; S3 + report reconstruction used instead.
+2. **Chat stream prose** from the original assistant turn is not rewritten retroactively — only After-run Findings/report.

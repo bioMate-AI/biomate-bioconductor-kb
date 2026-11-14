@@ -221,9 +221,8 @@ export function buildFindingsDocument(descriptor: PatternDescriptor, file: { nam
 
   const liabilities = Array.from(new Set(records.filter(r => r.assessment?.flag === 'liability').map(r => r.metric.name)));
   const entType = descriptor.entity.type;
-  const summary = entities.length === 1
-    ? `Assessment completed for 1 ${entType}. ${liabilities.length ? `Potential liabilities: ${liabilities.join(', ')}.` : 'No major liabilities flagged.'}`
-    : `Assessment completed for ${entities.length} ${entType}s against standard thresholds.${liabilities.length ? ` Liabilities flagged: ${liabilities.join(', ')}.` : ''}`;
+  const summary = summarizeFindingsDocument(descriptor, entities, records, liabilities, file.name);
+  const nextSteps = nextStepsForDescriptor(descriptor, liabilities, entities, records);
 
   return {
     status: 'ready',
@@ -231,9 +230,150 @@ export function buildFindingsDocument(descriptor: PatternDescriptor, file: { nam
     entityRoster: entities.map(e => ({ type: entType, label: e.id })),
     records,
     provenance,
-    caveats: [],
-    nextSteps: [],
+    caveats: caveatsForDescriptor(descriptor),
+    nextSteps,
   };
+}
+
+/** Domain-aware one-liner that leads with the numbers users need — never hollow prose. */
+function summarizeFindingsDocument(
+  descriptor: PatternDescriptor,
+  entities: RawEntity[],
+  records: FindingRecord[],
+  liabilities: string[],
+  sourceFile: string,
+): string {
+  const fmtNum = (v: string | number | undefined) => {
+    if (v === undefined || v === '') return null;
+    const n = typeof v === 'number' ? v : parseFloat(String(v));
+    if (!Number.isFinite(n)) return String(v);
+    const a = Math.abs(n);
+    if (a >= 100 || a === 0) return String(Math.round(n * 1000) / 1000);
+    if (a >= 1) return n.toFixed(3).replace(/\.?0+$/, '') || '0';
+    return n.toFixed(4).replace(/\.?0+$/, '') || '0';
+  };
+  const metricOf = (e: RawEntity, name: string) => {
+    const r = records.find(x => x.entity.label === e.id && x.metric.name === name);
+    return r?.metric.value;
+  };
+
+  if (descriptor.id === 'deseq2') {
+    const n = entities.length;
+    const up = entities.filter(e => {
+      const v = parseFloat(String(metricOf(e, 'log2FoldChange') ?? NaN));
+      return Number.isFinite(v) && v > 0;
+    }).length;
+    const down = n - up;
+    const top = entities.slice(0, 5).map(e => {
+      const gene = e.id.slice(0, 24);
+      const lfc = fmtNum(metricOf(e, 'log2FoldChange'));
+      const padj = fmtNum(metricOf(e, 'padj'));
+      return `${gene} (LFC=${lfc}, padj=${padj})`;
+    }).filter(Boolean);
+    return `DESeq2: ${n} genes at padj<0.05 (${up} up, ${down} down). Top hits: ${top.join('; ') || 'none'}. Read the Key Results table (from ${sourceFile}); full tables remain in Outputs.`;
+  }
+
+  if (descriptor.id === 'enrichgo') {
+    const n = entities.length;
+    const top = entities.slice(0, 5).map(e => {
+      const padj = fmtNum(metricOf(e, 'p.adjust'));
+      return `${e.id.slice(0, 48)} (padj=${padj})`;
+    });
+    return `Pathway enrichment: ${n} significant term(s) at p.adjust<0.05. Top: ${top.join('; ') || 'none'}. Key Results table sourced from ${sourceFile}.`;
+  }
+
+  if (descriptor.id === 'variant') {
+    const high = entities.filter(e => /^high$/i.test(String(e.metrics['IMPACT'] || e.metrics['impact'] || ''))).length;
+    const mod = entities.filter(e => /^moderate$/i.test(String(e.metrics['IMPACT'] || e.metrics['impact'] || ''))).length;
+    const genes = [...new Set(
+      entities.filter(e => /^high$/i.test(String(e.metrics['IMPACT'] || ''))).map(e => e.id).filter(Boolean),
+    )].slice(0, 5);
+    return `Variant annotation: ${entities.length} variants in sample (${high} HIGH, ${mod} MODERATE).${genes.length ? ` HIGH-impact genes: ${genes.join(', ')}.` : ''} Key Results from ${sourceFile}.`;
+  }
+
+  if (descriptor.id === 'vina_docking') {
+    const n = entities.length;
+    const best = entities[0];
+    const aff = best ? fmtNum(metricOf(best, 'best affinity')) : null;
+    const id = best ? (best.id.length > 36 ? `${best.id.slice(0, 36)}…` : best.id) : '';
+    return `Docking (Vina): ${n} ligand(s). Best affinity ${aff ?? 'n/a'} kcal/mol${id ? ` (${id})` : ''}. Key Results table lists top poses from ${sourceFile}; full pose files remain in Outputs.`;
+  }
+
+  if (descriptor.id === 'boltz_qc' || descriptor.id === 'boltz_summary') {
+    const batchRecords = records.filter(r => r.entity.scope === 'batch');
+    const pl = batchRecords.find(r => /plddt/i.test(r.metric.name));
+    const frac = batchRecords.find(r => /confident/i.test(r.metric.name));
+    const nStruct = batchRecords.find(r => /structures/i.test(r.metric.name));
+    const bits = [
+      pl ? `mean pLDDT=${fmtNum(pl.metric.value)}` : null,
+      frac ? `confident fraction=${fmtNum(frac.metric.value)}` : null,
+      nStruct ? `structures=${fmtNum(nStruct.metric.value)}` : null,
+    ].filter(Boolean);
+    const gate = pl?.assessment?.flag === 'liability'
+      ? 'Below docking-ready pLDDT threshold.'
+      : pl?.assessment?.flag === 'pass' ? 'pLDDT gate pass (docking-ready).' : '';
+    return `Structure prediction finished. ${bits.join('; ') || 'See Key Results'}. ${gate} Scores from ${sourceFile}.`.replace(/\s+/g, ' ').trim();
+  }
+
+  // ADMET + generic
+  if (entities.length === 0 && records.length > 0) {
+    const bits = records.slice(0, 4).map(r => `${r.metric.name}=${fmtNum(r.metric.value) ?? r.metric.value}`);
+    return `Key scores: ${bits.join('; ')}. Read the Key Results table (from ${sourceFile}); full artifacts remain in Outputs.`;
+  }
+  return entities.length === 1
+    ? `Assessment completed for 1 ${descriptor.entity.type}. ${liabilities.length ? `Potential liabilities: ${liabilities.join(', ')}.` : 'No major liabilities flagged.'} Key Results from ${sourceFile}.`
+    : `Assessment completed for ${entities.length} ${descriptor.entity.type}s against standard thresholds.${liabilities.length ? ` Liabilities flagged: ${liabilities.join(', ')}.` : ''} Key Results from ${sourceFile}.`;
+}
+
+function nextStepsForDescriptor(
+  descriptor: PatternDescriptor,
+  liabilities: string[],
+  entities: RawEntity[],
+  records: FindingRecord[],
+): string[] {
+  if (descriptor.id === 'vina_docking') {
+    return [
+      'Open the Key Results table for ranked affinities; pose PDBQT files are under Outputs.',
+      'Follow with ADMET on the top-scoring ligands before synthesis planning.',
+    ];
+  }
+  if (descriptor.id === 'boltz_qc' || descriptor.id === 'boltz_summary') {
+    const pl = records.find(r => /plddt/i.test(r.metric.name));
+    if (pl?.assessment?.flag === 'liability') {
+      return ['pLDDT is below the docking-ready threshold — inspect PAE / re-fold with longer MSA or different template before docking.'];
+    }
+    return ['Open the predicted structure in Outputs; proceed to pocket detection or docking when pLDDT gate passes.'];
+  }
+  if (descriptor.id === 'deseq2') {
+    return entities.length
+      ? ['Run pathway enrichment (enrichGO / GSEA) on the significant gene set.', 'Open the full DE table in Outputs for genome-wide results.']
+      : ['No genes passed padj<0.05 — check design contrasts and sample QC in Outputs.'];
+  }
+  if (descriptor.id === 'enrichgo') {
+    return ['Cross-check top terms against the DE gene list; export pathway plots from Outputs.'];
+  }
+  if (descriptor.id === 'variant') {
+    return liabilities.length || entities.some(e => /^high$/i.test(String(e.metrics['IMPACT'] || '')))
+      ? ['Prioritize HIGH-impact variants for clinical interpretation; open the full VCF/TSV in Outputs.']
+      : ['No HIGH-impact variants in the sampled table — broaden filters or inspect MODERATE calls in Outputs.'];
+  }
+  if (liabilities.length) {
+    return [`Review flagged liabilities (${liabilities.join(', ')}) before advancing.`];
+  }
+  return [];
+}
+
+function caveatsForDescriptor(descriptor: PatternDescriptor): string[] {
+  if (descriptor.id === 'vina_docking') {
+    return ['Vina affinities are docking scores (kcal/mol), not experimental Kd — confirm with assay when ranking candidates.'];
+  }
+  if (descriptor.id === 'boltz_qc' || descriptor.id === 'boltz_summary') {
+    return ['pLDDT / PAE are model confidences, not experimental structure quality.'];
+  }
+  if (descriptor.id === 'deseq2' || descriptor.id === 'enrichgo') {
+    return ['Significance thresholds (padj<0.05) are conventional — confirm with your study design before publication.'];
+  }
+  return [];
 }
 
 /**
