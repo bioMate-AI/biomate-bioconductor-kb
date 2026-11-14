@@ -34,6 +34,9 @@ import { type BrowserContext, type Page } from "@playwright/test";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
+import { BASE_URL } from "./_e2e-base-url";
+
+export { BASE_URL } from "./_e2e-base-url";
 
 function readPasswordFile(): string | undefined {
   try {
@@ -51,7 +54,6 @@ export const FIXTURE_EMAIL = process.env.E2E_FIXTURE_EMAIL || "lifeifei163361@16
 export const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || readPasswordFile() || "";
 export const E2E_TOKEN =
   process.env.E2E_TEST_TOKEN || "biomate-e2e-bypass-token-dev-only";
-export const BASE_URL = process.env.BIOMATE_URL || "http://localhost:5000";
 export const SESSION_COOKIE = "biomate_token";
 
 type Cookie = Awaited<ReturnType<BrowserContext["cookies"]>>[number];
