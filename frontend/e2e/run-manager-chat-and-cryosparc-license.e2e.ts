@@ -125,7 +125,30 @@ test("A: CryoSPARC license ask → provide → Confirm & Run (E2E)", async ({ pa
     expect(cryo.has_fallback, "cryosparc has no open fallback").toBeFalsy();
     console.log("[A1] cryosparc requirement:", JSON.stringify(cryo));
 
+    // Cancel in-flight cryosparc runs first — dig idempotent dedupe (120s window)
+    // can return HTTP 200 for an identical prior Confirm&Run and skip the 402 license gate.
+    const preRuns = await req
+      .get(BASE_URL + "/api/workflows/runs?limit=40", { timeout: 60_000 })
+      .then((r) => (r.ok() ? r.json() : []))
+      .catch(() => []);
+    for (const r of preRuns as Array<{ id?: string; status?: string; workflowName?: string; name?: string; executionEngine?: string; execution?: { status?: string; executionEngine?: string } }>) {
+      const st = String(r.execution?.status || r.status || "");
+      const name = String(r.workflowName || r.name || "");
+      const eng = String(r.execution?.executionEngine || r.executionEngine || "");
+      if (!/configuring|queued|running|paused/i.test(st)) continue;
+      if (!/cryo|spa/i.test(name + eng)) continue;
+      const c = await req
+        .post(BASE_URL + `/api/workflows/runs/${encodeURIComponent(String(r.id))}/cancel`, {
+          data: {},
+          timeout: 30_000,
+        })
+        .catch(() => null);
+      console.log("[A2] pre-cancel in-flight", r.id, st, "→", c ? c.status() : "n/a");
+    }
+
     // ── A2: execute without license → 402 (no silent env fallback) ──
+    // Unique e2e_nonce so fingerprint cannot collide with a UI Confirm&Run still in the dedupe window.
+    const a2Nonce = `e2e-nolic-${randomUUID()}`;
     const { execStatus, execBody } = await withGalaxyRetry(
       "execute-without-license",
       async () => {
@@ -140,6 +163,7 @@ test("A: CryoSPARC license ask → provide → Confirm & Run (E2E)", async ({ pa
                 pixel_size: 1.05,
                 voltage: 300,
                 movies_path: "s3://biomate-demo/empiar-10028/movies/",
+                e2e_nonce: a2Nonce,
               },
             },
             inputs: [],
@@ -150,6 +174,16 @@ test("A: CryoSPARC license ask → provide → Confirm & Run (E2E)", async ({ pa
         const status = exec.status();
         const body = await exec.json().catch(() => ({}));
         if (status >= 500) throw new Error(`execute HTTP ${status}: ${JSON.stringify(body).slice(0, 200)}`);
+        // Deduped in-flight twin is not a license proof — cancel and retry for a real 402.
+        if (body?.deduplicated && body?.runId) {
+          await req
+            .post(BASE_URL + `/api/workflows/runs/${encodeURIComponent(String(body.runId))}/cancel`, {
+              data: {},
+              timeout: 30_000,
+            })
+            .catch(() => null);
+          throw new Error(`execute deduplicated to ${body.runId}; cancelled and retrying for license 402`);
+        }
         return { execStatus: status, execBody: body };
       },
       { ok: (v) => v.execStatus === 402 },

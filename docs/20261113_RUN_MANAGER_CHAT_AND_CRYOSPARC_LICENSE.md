@@ -64,6 +64,9 @@ On tip `1001dec42f` (after Provide credentials):
 
 Hard-requiring panel leave-idle timed out on dig even though the license path was already proven.
 
+**A2 isolation (retest flake):** after a prior Confirm & Run left an in-flight cryosparc run, dig’s 120s idempotent dedupe returned HTTP 200 (`deduplicated: true`) for the no-license execute probe — never hitting `402`. Flow A now pre-cancels in-flight cryosparc runs and uses a unique `e2e_nonce` param so the probe reaches the license gate.
+
 ## Open
 
 - GPU warming / CryoSPARC infra 500s are orthogonal to the license gate; track separately if Confirm & Run should surface a clearer warm-up message in the panel.
+- Consider validating cryosparc license **before** execute dedupe so a no-license request cannot inherit an in-flight twin.
