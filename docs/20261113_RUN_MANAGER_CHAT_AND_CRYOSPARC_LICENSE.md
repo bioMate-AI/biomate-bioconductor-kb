@@ -68,7 +68,25 @@ Hard-requiring panel leave-idle timed out on dig even though the license path wa
 
 **A5 HTTP vs panel race:** Confirm & Run can flip the panel to `Running` while `/api/workflows/execute` is still open (GPU warm-up). A 120s `waitForResponse` alone timed out even though license was cleared. Flow A now races HTTP (240s) vs panel leave-idle, accepts either non-license execute body or panel non-idle, and cancels via response `runId` or the in-flight runs list.
 
+### Live dig green — Confirm & Run past license (2026-11-13 evening)
+
+Tip under test: product `1001dec42f` (LicenseGate `isBlocked` / `data-blocked` fix); E2E race fix `558ddc77af`.
+
+| Step | Result |
+|------|--------|
+| A1 | delete cryosparc credential → `source=none` |
+| A2 | execute without license → **402** `cryosparc_license_required` |
+| A3 | LicenseGate visible; Confirm disabled; shot `A3_license_gate_blocks_confirm.png` |
+| A4 | Provide credentials → `(your credentials)`; `data-blocked=false`; Confirm enabled; `source=user` |
+| A5 | Confirm & Run → panel badge **Running** (HTTP still open / raced); **not** license 402 — past gate |
+| A6 | cancel in-flight cryosparc runs (e.g. `0d3be651-…`, `91c3fb33-…`) → **200**; credential cleared in `finally` |
+
+Playwright: Flow A `1 passed` (~2.4m); full A+B `2 passed` (~1.9m). No full SPA GPU wait.
+
+Shots A3–A5 audited: blocked Confirm → enabled Confirm with user key → Running + Pause/Stop. A6 API cancel succeeded; panel shot still showed Running (UI lag vs cancel).
+
 ## Open
 
 - GPU warming / CryoSPARC infra 500s are orthogonal to the license gate; track separately if Confirm & Run should surface a clearer warm-up message in the panel.
 - Consider validating cryosparc license **before** execute dedupe so a no-license request cannot inherit an in-flight twin.
+- A6 screenshot timing: cancel via API returns 200 before panel leaves Running — optional short wait before A6 shot.
