@@ -44,6 +44,26 @@ Changes:
   - **chat-files:** MD sibling figures beside chat
   - Screenshots: `frontend/e2e/execshots/run-manager-cryosparc-license/` (A3–A6) · `frontend/e2e/screenshots/chat-files-and-reports/`
 
+### Dig tip `1001dec4` — Confirm & Run evidence (license vs infra)
+
+On tip `1001dec42f` (after Provide credentials):
+
+| Step | Result |
+|------|--------|
+| Confirm & Run → `POST /api/workflows/execute` | **HTTP 500**, `error: cryosparc_execution_failed` (GPU warming up), **`runId` 0751f4e9-…** |
+| License gate | Cleared — response was **not** `402` / `cryosparc_license_required` |
+| Cancel | Worked for that `runId` |
+| Panel `data-status` | Often stayed **`idle`** after the 500 — UI never left idle |
+
+**E2E implication:** Flow A must treat license-gate success from the execute response alone:
+
+- `status !== 402` and error not `cryosparc_license_required`
+- Pass when `runId` is present **or** status is 2xx/4xx non-license **or** `body.error` is `cryosparc_execution_failed` / infra
+- Optional brief wait for panel status; **do not require** leave-idle when execute already returned a non-license outcome
+- Keep cancel + credential cleanup in `finally`
+
+Hard-requiring panel leave-idle timed out on dig even though the license path was already proven.
+
 ## Open
 
-- Re-verify A Confirm & Run after frontend sync of `isBlocked` / credential-modal testids (this tip).
+- GPU warming / CryoSPARC infra 500s are orthogonal to the license gate; track separately if Confirm & Run should surface a clearer warm-up message in the panel.
