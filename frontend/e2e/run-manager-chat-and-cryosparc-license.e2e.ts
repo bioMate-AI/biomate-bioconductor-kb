@@ -287,24 +287,16 @@ test("A: CryoSPARC license ask → provide → Confirm & Run (E2E)", async ({ pa
     await saveBtn.click();
     await expect(modal).toBeHidden({ timeout: 30_000 });
 
-    // Gate must clear; Confirm enabled. Prefer row status + Confirm (authoritative
-    // onBlockedChange); data-blocked must agree once dig has the hardPath attribute fix.
+    // Gate must clear; Confirm enabled. data-blocked must clear after user key
+    // (hardPath || … bug fixed in 1001dec42f — already on dig; no soft-pass).
     await expect(page.getByTestId("license-row-cryosparc")).toHaveAttribute(
       "data-status",
       "resolved",
       { timeout: 45_000 },
     );
     await expect(confirm).toBeEnabled({ timeout: 15_000 });
-    const blockedAttr = await gate.getAttribute("data-blocked");
-    console.log("[A4] data-blocked after save:", blockedAttr);
-    // Soft check: when dig serves the fixed LicenseGate, attribute must clear too.
-    if (blockedAttr === "true") {
-      console.warn(
-        "[A4] data-blocked still true (dig may lack hardPath attribute fix) — Confirm enabled is the run gate",
-      );
-    } else {
-      expect(blockedAttr).toBe("false");
-    }
+    await expect(gate).toHaveAttribute("data-blocked", "false", { timeout: 15_000 });
+    console.log("[A4] data-blocked after save: false");
     await shot(page, "A4_license_saved_confirm_enabled");
     console.log("[A4] user license saved → Confirm enabled — pass");
 
@@ -348,7 +340,9 @@ test("A: CryoSPARC license ask → provide → Confirm & Run (E2E)", async ({ pa
 
     await confirm.click();
 
-    // Panel "Running" / "queued" is enough proof the license gate did not block.
+    // Panel badge/bar non-idle proves THIS workflow left the license gate.
+    // Do NOT match /\bRunning\b/ in document.body — Run Manager / sidebar can
+    // show "Running" for unrelated in-flight runs (false green).
     const panelNonIdle = page
       .waitForFunction(
         () => {
@@ -356,11 +350,7 @@ test("A: CryoSPARC license ask → provide → Confirm & Run (E2E)", async ({ pa
           const st = el?.getAttribute("data-status") || "";
           const bar = document.querySelector('[data-testid="panel-action-bar"]');
           const barSt = bar?.getAttribute("data-status") || "";
-          const text = document.body?.innerText || "";
-          return (
-            /running|queued|configuring|failed|completed/i.test(st || barSt) ||
-            /\bRunning\b/.test(text)
-          );
+          return /running|queued|configuring|failed|completed/i.test(st || barSt);
         },
         undefined,
         { timeout: 90_000 },
@@ -412,6 +402,7 @@ test("A: CryoSPARC license ask → provide → Confirm & Run (E2E)", async ({ pa
       execCode,
       JSON.stringify(execJson).slice(0, 400),
     );
+    // HTTP 402 always fails — even if the panel looked non-idle from a stale state.
     if (execCode) {
       expect(execCode, "must not be cryosparc_license_required 402").not.toBe(402);
       expect(String(execJson.error || execJson.message || "")).not.toMatch(
@@ -429,14 +420,14 @@ test("A: CryoSPARC license ask → provide → Confirm & Run (E2E)", async ({ pa
     const badgeSt =
       (await badge.getAttribute("data-status").catch(() => null)) ||
       (await page.getByTestId("panel-action-bar").getAttribute("data-status").catch(() => null));
-    const sawRunning =
+    const sawPanelNonIdle =
       via === "panel" ||
       via === "http-after-panel" ||
-      /running|queued|configuring|failed/i.test(String(badgeSt || ""));
+      /running|queued|configuring|failed|completed/i.test(String(badgeSt || ""));
     const execErr = String(execJson.error || execJson.message || "");
     expect(
       !!launchedRunId ||
-        sawRunning ||
+        sawPanelNonIdle ||
         /cryosparc_execution_failed|warming|infra/i.test(execErr) ||
         (execCode >= 200 && execCode < 300),
       `expected run past license (via=${via}, HTTP ${execCode}, badge=${badgeSt}, err=${execErr.slice(0, 100)})`,
@@ -474,7 +465,21 @@ test("A: CryoSPARC license ask → provide → Confirm & Run (E2E)", async ({ pa
         .catch(() => null);
       console.log("[A6] cancel run", id, "→", cancel ? cancel.status() : "n/a");
     }
-    if (cancelIds.size) await shot(page, "A6_run_cancelled").catch(() => {});
+    // Brief settle so the panel can leave Running before the A6 audit shot.
+    if (cancelIds.size) {
+      await page
+        .waitForFunction(
+          () => {
+            const el = document.querySelector('[data-testid="workflow-overall-status-badge"]');
+            const st = el?.getAttribute("data-status") || "";
+            return !/running|queued|configuring/i.test(st);
+          },
+          undefined,
+          { timeout: 15_000 },
+        )
+        .catch(() => null);
+      await shot(page, "A6_run_cancelled").catch(() => {});
+    }
     await req.delete(BASE_URL + "/api/users/credentials/cryosparc").catch(() => null);
     console.log("[A6] cryosparc credential cleared");
   }

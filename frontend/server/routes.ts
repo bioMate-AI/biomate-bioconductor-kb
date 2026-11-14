@@ -11883,6 +11883,47 @@ ${paramLines || '(none recorded)'}`;
             return !!runFp && runFp === incomingFp;
           });
           if (inFlightDup) {
+            // CryoSPARC BYOL: license checks live later on Direct/Nextflow paths.
+            // Never return a deduped twin to a caller with no user license — that
+            // yields HTTP 200 and silently skips cryosparc_license_required (402).
+            const _dedupeWf = request.workflowDefinition || {};
+            const _dedupeBlob = `${_dedupeWf.nextflow_path || ""} ${_dedupeWf.name || ""} ${_dedupeWf.workflow_type || ""} ${_dedupeWf.execution_engine || ""}`.toLowerCase();
+            const _dedupeNeedsCryo =
+              _dedupeWf.workflow_type === "cryosparc" ||
+              _dedupeWf.execution_engine === "cryosparc" ||
+              _dedupeBlob.includes("cryosparc");
+            if (
+              _dedupeNeedsCryo &&
+              !/^(1|true|yes)$/i.test(process.env.BIOMATE_ALLOW_SHARED_CRYOSPARC_LICENSE || "")
+            ) {
+              let _dedupeHasLic = !!(
+                _dedupeWf.parameters &&
+                (_dedupeWf.parameters as any).cryosparc_license
+              );
+              if (!_dedupeHasLic) {
+                try {
+                  const credResp = await userProxy(req).client.get(
+                    "/api/users/credentials/cryosparc/value",
+                  );
+                  _dedupeHasLic = !!(credResp.data?.data?.license_key);
+                } catch (_credErr: any) {
+                  console.warn(
+                    "[execute] cryosparc license check before dedupe failed:",
+                    _credErr?.response?.status || _credErr?.message,
+                  );
+                }
+              }
+              if (!_dedupeHasLic) {
+                console.log(
+                  `[execute] refuse cryosparc dedupe → no user license (would have returned in-flight ${inFlightDup.id})`,
+                );
+                return res.status(402).json({
+                  error: "cryosparc_license_required",
+                  message:
+                    "A CryoSPARC license key is required. Add yours at Settings → Credentials → CryoSPARC.",
+                });
+              }
+            }
             const dupEx: any = inFlightDup.execution || {};
             console.log(
               `[execute] idempotent dedupe → identical workflow already in flight (run ${inFlightDup.id}); returning it instead of launching a duplicate Batch job`
