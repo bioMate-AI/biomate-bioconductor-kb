@@ -95,8 +95,8 @@ import { getContextCompressor } from "./context-compressor";
 import { WorkflowPrerequisitesValidator } from "./workflow-prerequisites-validator";
 import multer from "multer";
 import { promises as fs, createReadStream, createWriteStream, existsSync, readdirSync, readFileSync } from "fs";
-import { pipeline } from "stream/promises";
 import path from "path";
+import { pipeline } from "stream/promises";
 import { v4 as uuidv4 } from "uuid";
 import archiver from "archiver";
 import { createHash, randomBytes } from "crypto";
@@ -108,10 +108,6 @@ import { decideRunAccess } from "./run-access";
 import { decideOutputAccess, decideInvocationAccess } from "./output-access";
 import { assembleReproducibilityRecord, enrichOutputsWithChecksums } from "./reproducibility-record";
 import { buildReproducibilityPackMembers } from "./reproducibility-pack";
-import {
-  collectCandidateDatasetIds,
-  ensureDeferredDatasetsMaterialized,
-} from "./deferred-materialize";
 import { reportVersionStore } from "./report-version-store";
 import BetterSqlite3 from "better-sqlite3";
 import type { RegisterData, LoginData } from "./auth-service";
@@ -144,6 +140,10 @@ import {
   evaluateHardwareGate,
 } from "./execution-env-policy";
 import { buildNextflowLaunchParameters } from "./nextflow-launch-params";
+import {
+  collectCandidateDatasetIds,
+  ensureDeferredDatasetsMaterialized,
+} from "./deferred-materialize";
 import { unboundClinicHardDataFromParams } from "../shared/workflow-data-inputs";
 import * as mfaService from "./mfa-service";
 import toolsManifest from "./tools_manifest.json";
@@ -1470,6 +1470,8 @@ async function stageLocalFilesForBatch(
     });
   }
 
+  const _UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
   const staged = { ...params };
   for (const [key, val] of Object.entries(params)) {
     if (typeof val !== 'string') continue;
@@ -1485,10 +1487,8 @@ async function stageLocalFilesForBatch(
       if (!stat.isFile()) continue;
       localPath = val;
       filename = path.basename(val);
-    } else if (uuidFilePaths?.[val]) {
-      // Resolved Galaxy dataset id (UUID *or* encoded hex) → local file.
-      // Hex HDAs are common for deferred URL imports; UUID-only matching
-      // silently left Batch params as bare ids after materialize-on-Confirm&Run.
+    } else if (_UUID_RE.test(val) && uuidFilePaths?.[val]) {
+      // Galaxy dataset UUID — look up the local file path from session registry
       const entry = uuidFilePaths[val];
       let stat: any;
       try { stat = await fs.stat(entry.filePath); } catch { continue; }
@@ -18388,12 +18388,12 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
   // Create deferred dataset from URL (no immediate download)
   app.post("/api/datasets/deferred", authenticateToken, checkBillingQuota('Deferred URL import'), async (req, res) => {
     try {
-      const { url, name, filename, file_type } = req.body;
+      const { url, name, file_type } = req.body;
 
       const validated = validateRemoteFileUrl(url);
       if (!validated.ok) return res.status(400).json({ error: validated.error });
       const remoteUrl = validated.url.toString();
-      const remoteName = name || filename || validated.filename;
+      const remoteName = name || validated.filename;
 
       // Get or create Galaxy history
       let historyId = req.session?.galaxyHistoryId as string | undefined;
@@ -18412,29 +18412,6 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
         file_type
       );
 
-      // Session hint so Confirm & Run can find deferred ids even if params only
-      // carry the Galaxy HDA id (no local file_path yet).
-      if (req.session) {
-        if (!req.session.uploadedDatasets) req.session.uploadedDatasets = [];
-        const existing = (req.session.uploadedDatasets as any[]).find(
-          (d: any) => d.galaxy_dataset_id === dataset.id || d.dataset_id === dataset.id,
-        );
-        if (!existing) {
-          (req.session.uploadedDatasets as any[]).push({
-            dataset_id: dataset.id,
-            galaxy_dataset_id: dataset.id,
-            name: remoteName,
-            deferred: true,
-            source_url: remoteUrl,
-            file_path: null,
-          });
-        } else {
-          existing.deferred = true;
-          existing.source_url = remoteUrl;
-          existing.name = existing.name || remoteName;
-        }
-      }
-
       res.json({
         ...dataset,
         galaxy_history_id: historyId,
@@ -18450,13 +18427,12 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
     }
   });
 
-  // Materialize a deferred dataset (trigger actual download).
-  // Prefer execute-path auto-materialize; this route remains for explicit UX / smoke.
-  app.post("/api/datasets/:id/materialize", authenticateToken, async (req, res) => {
+  // Materialize a deferred dataset (trigger actual download)
+  app.post("/api/datasets/:id/materialize", async (req, res) => {
     try {
       const { id } = req.params;
 
-      const result = await userProxy(req).materializeDeferredDataset(id);
+      const result = await galaxyAPIProxy.materializeDeferredDataset(id);
 
       res.json({
         ...result,

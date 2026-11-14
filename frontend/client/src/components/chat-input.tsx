@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Send, Paperclip, X, FileText, Square, Database, FolderInput, SlidersHorizontal, ChevronDown, ChevronRight } from "lucide-react"
 import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser"
-import { SkillsSelector, type SkillPack } from "./skills-selector"
+import { SkillsSelector, DEFAULT_SKILL_ID, type SkillPack } from "./skills-selector"
 import { LanePreview, type LaneKind } from "./lane-preview"
 import { useDebounce } from "@/hooks/useDebounce"
 import { filesFromDataTransfer } from "@/lib/folder-drop"
@@ -347,15 +347,21 @@ export function ChatInput({
     }
   }, [onRegisterSetDraft])
 
+  // Cold-start / example runners inject File[] through this setter. Keep the
+  // latest applicator in a ref so a parent re-render (new callback identity)
+  // during an in-flight prepareColdStartSelection cannot leave the parent
+  // holding a stale setter that never paints chips + preview.
+  const applyExampleFilesRef = useRef<(files: File[]) => void>(() => {})
   const demoFileIds = useRef(new Set<string>())
+  applyExampleFilesRef.current = (files: File[]) => {
+    const previousIds = demoFileIds.current
+    const prefix = `demo-${Date.now()}-`
+    const next = files.map((file, i) => ({ id: `${prefix}${i}`, name: file.name, size: file.size, file }))
+    demoFileIds.current = new Set(next.map(f => f.id))
+    setAttachedFiles(prev => [...prev.filter(f => !previousIds.has(f.id)), ...next])
+  }
   useEffect(() => {
-    onRegisterExampleFiles?.((files: File[]) => {
-      const previousIds = demoFileIds.current
-      const prefix = `demo-${Date.now()}-`
-      const next = files.map((file, i) => ({ id: `${prefix}${i}`, name: file.name, size: file.size, file }))
-      demoFileIds.current = new Set(next.map(f => f.id))
-      setAttachedFiles(prev => [...prev.filter(f => !previousIds.has(f.id)), ...next])
-    })
+    onRegisterExampleFiles?.((files: File[]) => applyExampleFilesRef.current(files))
   }, [onRegisterExampleFiles])
 
   // Register a file adder so parent can programmatically inject files
@@ -406,8 +412,15 @@ export function ChatInput({
       }))
       // Expert/skill packs toggled on for this request (spec 06 §6.5). Ride
       // as `skillPackIds` on the SAME context path so a run records which
-      // experts were applied; empty selection adds nothing (honest-empty).
-      const skillPackIds = selectedSkillIds
+      // experts were applied. The locked default (`biomate-universe`) is UI-only
+      // here: alone it must NOT be sent — otherwise the server treats the request
+      // as an explicit selection and skips auto-detect. Only toggleable (non-default)
+      // picks make the selection explicit; when sending those, include the default
+      // so always-on still appears in the recorded pack list.
+      const explicitSkillIds = selectedSkillIds.filter((id) => id !== DEFAULT_SKILL_ID)
+      const skillPackIds = explicitSkillIds.length
+        ? [DEFAULT_SKILL_ID, ...explicitSkillIds]
+        : []
       const contextOverride: Record<string, unknown> | undefined =
         laneOverride || trimmedInstructions || datasetReferences.length > 0 || skillPackIds.length > 0 || activeProjectId
           ? {
@@ -419,7 +432,10 @@ export function ChatInput({
               // filters the broader session pool to this set and reports any
               // missing reference instead of silently choosing another file.
               ...(datasetReferences.length ? { datasetReferences } : {}),
-              ...((activeProjectId || skillPackIds.length) ? { skillPackIds } : {}),
+              // Omit when empty so the server auto-detects skills from the message
+              // (including with an active project). Sending [] marks explicit=true and
+              // applies no skills.
+              ...(skillPackIds.length ? { skillPackIds } : {}),
             }
           : undefined
       onSend(fullMessage, files.length > 0 ? files : undefined, contextOverride)
@@ -500,7 +516,9 @@ export function ChatInput({
     setPreviewContent([])
     setPreviewLoading(true)
     const ext = af.name.split('.').pop()?.toLowerCase() ?? ''
-    const textExts = ['csv','tsv','txt','fasta','fa','fna','fastq','fq','vcf','bed','gff','gtf','json','xml','yaml','yml','md']
+    // Include cold-start demo formats (SMILES, PDB/mmCIF, peptide FASTA) so
+    // example attachments open the same content preview as user uploads.
+    const textExts = ['csv','tsv','txt','fasta','fa','fna','faa','fastq','fq','vcf','bed','gff','gtf','json','xml','yaml','yml','md','smi','pdb','cif','mmcif']
     if (!textExts.includes(ext)) {
       setPreviewLoading(false)
       setPreviewContent([]) // binary — metadata only
@@ -623,9 +641,10 @@ export function ChatInput({
               className="flex items-center gap-1.5 px-2 py-1 bg-muted rounded-md text-sm group"
               data-testid="composer-attached-file"
               data-filename={file.name}
+              data-demo={demoFileIds.current.has(file.id) ? 'true' : undefined}
             >
               <FileText className="w-3.5 h-3.5 text-muted-foreground" />
-              <button type="button" onClick={() => openPreview(file)} title={`Preview ${file.name}`} className="max-w-[220px] truncate text-left hover:underline focus-visible:underline">{file.name}</button>
+              <button type="button" onClick={() => openPreview(file)} title={`Preview ${file.name}`} data-testid="composer-attached-file-preview" className="max-w-[220px] truncate text-left hover:underline focus-visible:underline">{file.name}</button>
               <span className="text-xs text-muted-foreground">
                 ({formatFileSize(file.size)})
               </span>

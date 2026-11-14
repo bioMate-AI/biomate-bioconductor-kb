@@ -27,7 +27,6 @@
  *      E2E_TEST_TOKEN (default biomate-e2e-bypass-token-dev-only).
  */
 import { test, expect, request as pwRequest, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test';
-import { resolveE2eBaseUrl } from "./_e2e-base-url";
 import { readFileSync, mkdirSync, writeFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -35,7 +34,7 @@ import { STATE_FILE } from './live-journeys.global';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
-const BASE = resolveE2eBaseUrl('https://dev-public.biomate.ai').replace(/\/$/, '');
+const BASE = (process.env.BIOMATE_URL || 'https://dev-public.biomate.ai').replace(/\/$/, '');
 const E2E_TOKEN = process.env.E2E_TEST_TOKEN || 'biomate-e2e-bypass-token-dev-only';
 const FIXTURE = path.join(HERE, 'fixtures', 'epar_sample.jsonl');
 const SHOTS = path.join(HERE, 'screenshots', 'live-journeys');

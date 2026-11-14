@@ -1957,6 +1957,17 @@ const GALAXY_URL = process.env.GALAXY_URL || 'http://localhost:8081';
  * set skill_ids via context.activeSkillIds.
  * Auto-detection is best-effort; explicit activation fails visibly when unavailable.
  */
+/** Always-on platform skill — capability map / honest boundaries. Locked in the
+ *  composer UI; merged here so auto-detect and explicit paths both carry it. */
+export const DEFAULT_SKILL_ID = 'biomate-universe';
+
+/** Ensure the locked default skill is first in the id list (deduped). */
+export function withDefaultSkill(ids: string[] | undefined | null): string[] {
+  const list = Array.isArray(ids) ? ids.filter((id) => typeof id === 'string' && id.length > 0) : [];
+  const rest = list.filter((id) => id !== DEFAULT_SKILL_ID);
+  return [DEFAULT_SKILL_ID, ...rest];
+}
+
 export async function buildSkillBlock(
   message: string,
   preferredDomains: string[],
@@ -1964,7 +1975,9 @@ export async function buildSkillBlock(
 ): Promise<string> {
   const selected = context.skillPackIds ?? context.activeSkillIds;
   const explicit = Array.isArray(selected);
-  if (explicit && selected.length === 0) return "";
+  // Empty explicit list used to mean "apply none" — that fought the locked default
+  // and the product rule that BioMate auto-leverages skills when the user picks
+  // nothing. Fall through to auto-detect instead.
   try {
     const privateAccess = context.skillPrivateAccess === true;
     const post = async (path: string, body: object): Promise<any> => {
@@ -1985,15 +1998,17 @@ export async function buildSkillBlock(
       if (data.success !== true) throw new Error('Skill service unavailable');
       return data;
     };
-    const ids = explicit ? selected : (await post('/api/skills/detect', {
-      query: message, preferred_domains: preferredDomains,
-    })).detected?.map((s: { id: string }) => s.id);
-    if (!ids?.length) return '';
+    const detected = (!explicit || selected.length === 0)
+      ? (await post('/api/skills/detect', {
+          query: message, preferred_domains: preferredDomains,
+        })).detected?.map((s: { id: string }) => s.id) ?? []
+      : selected;
+    const ids = withDefaultSkill(detected);
     const data = await post('/api/skills/block', { skill_ids: ids });
     if (typeof data.block !== 'string' || !data.block.trim()) throw new Error('Skill instructions unavailable');
     return data.block;
   } catch {
-    if (explicit) throw new Error('The selected expert skills could not be loaded. Please reselect the skills or try again.');
+    if (explicit && selected!.length > 0) throw new Error('The selected expert skills could not be loaded. Please reselect the skills or try again.');
     return '';
   }
 }

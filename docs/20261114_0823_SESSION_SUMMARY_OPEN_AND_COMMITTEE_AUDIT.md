@@ -70,6 +70,10 @@ Worktree: `/Users/kky/biomate-nextphase-ci-fix` · branch `sync/pr398-onto-dev`
 6. **Sync from Cursor sandbox** often blocked (SSM / proxy CONNECT 403). Operator sync when lease FREE.
 7. **Hell-clinic live re-run** after this pass’s assertion tighten (needs live Playwright).
 
+### Progress note (2026-11-14 ~09:00 — next batch)
+
+Chose **REINVENT4 container fail** + **Cryo movies_path demo bind** as highest-value open product work. See `docs/20261114_0900_NEXT_REINVENT_CRYO.md`. Still need sync + ECR rebuild for clean REINVENT image; UI autopsy / chat prose / voice prefs remain deferred.
+
 ---
 
 ## 3. Committee audit (5 perspectives + Bugbot)

@@ -15,9 +15,10 @@ import { loginAsFixture, BASE_URL } from "./_fixture-login";
 
 // S3 is available when running against the dev server (which has S3 configured server-side)
 // even without local AWS credentials, or when local credentials are explicitly set.
+const BIOMATE_URL = process.env.BIOMATE_URL || '';
 const S3_AVAILABLE = !!(process.env.AWS_ACCESS_KEY_ID && process.env.S3_BUCKET_NAME)
-  || BASE_URL.includes('dev-public.biomate.ai')
-  || BASE_URL.includes('biomate.ai');
+  || BIOMATE_URL.includes('dev-public.biomate.ai')
+  || BIOMATE_URL.includes('biomate.ai');
 
 const NF_STUB = [
   "nextflow.enable.dsl=2",

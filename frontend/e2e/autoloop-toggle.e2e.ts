@@ -16,7 +16,6 @@
  *     before Run is clicked.
  */
 import { test, expect, Page, APIRequestContext, Browser } from "@playwright/test";
-import { resolveE2eBaseUrl } from "./_e2e-base-url";
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
@@ -26,7 +25,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const SS_DIR = path.join(__dirname, "screenshots", "autoloop-toggle");
 
-const BASE_URL = resolveE2eBaseUrl("http://localhost:5000");
+const BASE_URL = process.env.BIOMATE_URL || "http://localhost:5000";
 const E2E_TOKEN = process.env.E2E_TEST_TOKEN || "biomate-e2e-bypass-token-dev-only";
 const FIXTURE_EMAIL = "lifeifei163361@163.com";
 const FIXTURE_PASSWORD = process.env.E2E_FIXTURE_PASSWORD || "WpmFixture!2026";
