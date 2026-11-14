@@ -20,6 +20,7 @@
  * without going through the runner.
  */
 import { test, expect, type Page } from "@playwright/test";
+import { createHash } from "crypto";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -132,8 +133,12 @@ const ALL_CASES: Case[] = [
 
 const FILTER = process.env.BIOMATE_DEEP_FILTER ? new RegExp(process.env.BIOMATE_DEEP_FILTER) : null;
 const CASES = FILTER ? ALL_CASES.filter((c) => FILTER.test(c.id)) : ALL_CASES;
+// Keep catalog filename short — long BIOMATE_DEEP_FILTER regexes hit ENAMETOOLONG on macOS.
+const catalogTag = FILTER
+  ? createHash("sha1").update(FILTER.source).digest("hex").slice(0, 10)
+  : "";
 fs.writeFileSync(
-  path.join(OUT, `catalog${FILTER ? `-${FILTER.source.replace(/[^a-z0-9]+/gi, "_")}` : ""}.json`),
+  path.join(OUT, `catalog${catalogTag ? `-${catalogTag}` : ""}.json`),
   JSON.stringify({ total: CASES.length, filter: FILTER?.source ?? null, cases: CASES.map((c) => c.id) }, null, 2),
 );
 
