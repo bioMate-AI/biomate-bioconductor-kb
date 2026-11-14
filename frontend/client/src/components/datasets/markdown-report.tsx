@@ -54,8 +54,14 @@ export function MarkdownReport({ text, projectId, reportName }: { text: string; 
   useEffect(() => {
     if (!projectId) return
     let alive = true
-    fetch(`/api/projects/${encodeURIComponent(projectId)}/files`, { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : null))
+    // Promise.resolve: unit tests often exhaust one-shot fetch mocks; a bare
+    // undefined return must not throw in the effect (dataset-file-preview U11).
+    Promise.resolve(
+      typeof fetch === "function"
+        ? fetch(`/api/projects/${encodeURIComponent(projectId)}/files`, { credentials: "include" })
+        : undefined,
+    )
+      .then((r: any) => (r && r.ok ? r.json() : null))
       .then((j) => {
         const list = Array.isArray(j) ? j : Array.isArray(j?.files) ? j.files : []
         if (alive) setFiles(list.map((f: any) => ({ id: String(f.id), name: String(f.name) })))

@@ -9,8 +9,11 @@ function mockFile(text: string | Uint8Array) {
   const value = typeof text === "string" ? new TextEncoder().encode(text) : text
   const read = vi.fn().mockResolvedValueOnce({ value, done: false }).mockResolvedValue({ done: true })
   const cancel = vi.fn().mockResolvedValue(undefined)
+  // After url + body, further calls (MarkdownReport sibling-files list) must
+  // still be thenable — mockResolvedValueOnce alone returns undefined next.
   const fetch = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ url: "https://files.example/test" }) })
     .mockResolvedValueOnce({ ok: true, body: { getReader: () => ({ read, cancel, releaseLock: vi.fn() }) } })
+    .mockResolvedValue({ ok: true, json: async () => ({ files: [] }) })
   vi.stubGlobal("fetch", fetch)
   return { fetch, cancel }
 }
