@@ -18,3 +18,8 @@
 
 - Unit: `genomics-index.test.ts`, view-model BAM → `viewer`
 - Live: open a run output `.bam` with sibling `.bai` → IGV host; DevTools shows Range/206 on BAM
+
+## Deploy note (2026-11-14)
+
+- Ancestry: merged live tip `4867407ddb` then pre-sync fix `f3f6802b00` (also restores CN LLM Settings wiring dropped by the Voice tab rewrite).
+- Pre-sync: `tsc` clean; vitest 3949 passed. `OPEN_IN_AVAILABLE` still false.
