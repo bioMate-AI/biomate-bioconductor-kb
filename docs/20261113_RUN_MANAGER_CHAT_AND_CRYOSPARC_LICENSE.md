@@ -66,6 +66,8 @@ Hard-requiring panel leave-idle timed out on dig even though the license path wa
 
 **A2 isolation (retest flake):** after a prior Confirm & Run left an in-flight cryosparc run, dig’s 120s idempotent dedupe returned HTTP 200 (`deduplicated: true`) for the no-license execute probe — never hitting `402`. Flow A now pre-cancels in-flight cryosparc runs and uses a unique `e2e_nonce` param so the probe reaches the license gate.
 
+**A5 HTTP vs panel race:** Confirm & Run can flip the panel to `Running` while `/api/workflows/execute` is still open (GPU warm-up). A 120s `waitForResponse` alone timed out even though license was cleared. Flow A now races HTTP (240s) vs panel leave-idle, accepts either non-license execute body or panel non-idle, and cancels via response `runId` or the in-flight runs list.
+
 ## Open
 
 - GPU warming / CryoSPARC infra 500s are orthogonal to the license gate; track separately if Confirm & Run should surface a clearer warm-up message in the panel.
