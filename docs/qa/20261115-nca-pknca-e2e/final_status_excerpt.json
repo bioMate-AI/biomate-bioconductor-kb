@@ -1,0 +1,39 @@
+{
+  "runId": "35e0b532-2c63-432c-a2e4-9f941d73bc7a",
+  "status": "failed",
+  "errorMessage": "Process NCA_REPORT_HTML (nca_report) failed: No such variable: set -- Check script '[path]' at line: 389",
+  "progress": {
+    "totalSteps": 3,
+    "completedSteps": 0,
+    "percentComplete": 0
+  },
+  "metrics": {
+    "runtime": {
+      "totalSeconds": 129,
+      "perStepSeconds": {},
+      "startedAt": "2026-11-15T12:01:19.432Z",
+      "completedAt": "2026-11-15T12:03:28.437Z"
+    },
+    "resources": {
+      "peakMemoryGB": 0,
+      "avgCpuPercent": 0,
+      "diskUsedGB": 0
+    },
+    "quality": {},
+    "outputs": {
+      "fileCount": 7,
+      "totalSizeBytes": 3251,
+      "byType": {
+        "csv": 2,
+        "json": 3,
+        "yml": 2
+      },
+      "bySize": {
+        "csv": 715,
+        "json": 2324,
+        "yml": 212
+      }
+    },
+    "perStepLlmCost": {}
+  }
+}

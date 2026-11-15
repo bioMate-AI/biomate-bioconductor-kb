@@ -1,0 +1,58 @@
+[
+  {
+    "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/9cd8b24a/01_validation/validated_conc_time.csv",
+    "name": "validated_conc_time.csv",
+    "size": 494,
+    "extension": "csv",
+    "download_url": "/api/runs/35e0b532-2c63-432c-a2e4-9f941d73bc7a/output/validated_conc_time.csv",
+    "download_endpoint": "/api/runs/35e0b532-2c63-432c-a2e4-9f941d73bc7a/output/validated_conc_time.csv"
+  },
+  {
+    "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/9cd8b24a/01_validation/validation_report.json",
+    "name": "validation_report.json",
+    "size": 359,
+    "extension": "json",
+    "download_url": "/api/runs/35e0b532-2c63-432c-a2e4-9f941d73bc7a/output/validation_report.json",
+    "download_endpoint": "/api/runs/35e0b532-2c63-432c-a2e4-9f941d73bc7a/output/validation_report.json"
+  },
+  {
+    "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/9cd8b24a/01_validation/versions.yml",
+    "name": "versions.yml",
+    "size": 96,
+    "extension": "yml",
+    "download_url": "/api/runs/35e0b532-2c63-432c-a2e4-9f941d73bc7a/output/versions.yml",
+    "download_endpoint": "/api/runs/35e0b532-2c63-432c-a2e4-9f941d73bc7a/output/versions.yml"
+  },
+  {
+    "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/9cd8b24a/02_nca_analysis/nca_results.csv",
+    "name": "nca_results.csv",
+    "size": 221,
+    "extension": "csv",
+    "download_url": "/api/runs/35e0b532-2c63-432c-a2e4-9f941d73bc7a/output/nca_results.csv",
+    "download_endpoint": "/api/runs/35e0b532-2c63-432c-a2e4-9f941d73bc7a/output/nca_results.csv"
+  },
+  {
+    "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/9cd8b24a/02_nca_analysis/nca_summary.json",
+    "name": "nca_summary.json",
+    "size": 1508,
+    "extension": "json",
+    "download_url": "/api/runs/35e0b532-2c63-432c-a2e4-9f941d73bc7a/output/nca_summary.json",
+    "download_endpoint": "/api/runs/35e0b532-2c63-432c-a2e4-9f941d73bc7a/output/nca_summary.json"
+  },
+  {
+    "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/9cd8b24a/02_nca_analysis/qc_metrics.json",
+    "name": "qc_metrics.json",
+    "size": 457,
+    "extension": "json",
+    "download_url": "/api/runs/35e0b532-2c63-432c-a2e4-9f941d73bc7a/output/qc_metrics.json",
+    "download_endpoint": "/api/runs/35e0b532-2c63-432c-a2e4-9f941d73bc7a/output/qc_metrics.json"
+  },
+  {
+    "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/9cd8b24a/02_nca_analysis/versions.yml",
+    "name": "versions.yml",
+    "size": 116,
+    "extension": "yml",
+    "download_url": "/api/runs/35e0b532-2c63-432c-a2e4-9f941d73bc7a/output/versions.yml",
+    "download_endpoint": "/api/runs/35e0b532-2c63-432c-a2e4-9f941d73bc7a/output/versions.yml"
+  }
+]

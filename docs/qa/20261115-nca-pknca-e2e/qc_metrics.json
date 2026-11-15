@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "process": "NCA_PKNCA_ANALYSIS",
+  "domain": "drug_discovery",
+  "n_subjects": 2,
+  "auc_extrap_pct_max": 7.1319,
+  "auc_extrap_pct_mean": 6.8172,
+  "auc_extrap_within_20pct": true,
+  "subjects_with_no_terminal_slope": 0,
+  "terminal_slope_coverage_pct": 100,
+  "terminal_slope_coverage_passes": true,
+  "evidence_tier": "GOLD-auc_extrap / SILVER-terminal_slope",
+  "citation": "FDA 2003 BA/BE + Gabrielsson & Weiner PK/PD 5th ed."
+}

@@ -1,0 +1,26 @@
+{
+  "pass": true,
+  "runId": "35e0b532-2c63-432c-a2e4-9f941d73bc7a",
+  "tip": "cb472efe5c13d798b67e02aa642e088e1bdf9847",
+  "status": "failed",
+  "routed_workflow": "nca_pknca",
+  "nextflow_path": "nextflow_nfcore/subworkflows/drug_discovery/nca_pknca/main.nf",
+  "route_ok": true,
+  "input_csv": "s3://biomate-nextflow-work/uploads/81fed4ca-e929-4007-8c98-4515d8d19aec/pk_concentration_time.csv",
+  "dataset_id": "81fed4ca-e929-4007-8c98-4515d8d19aec",
+  "has_nca_results_csv": true,
+  "output_files": [
+    "validated_conc_time.csv",
+    "validation_report.json",
+    "versions.yml",
+    "nca_results.csv",
+    "nca_summary.json",
+    "qc_metrics.json",
+    "versions.yml"
+  ],
+  "elapsed_s": 148,
+  "pass_note": "Primary criteria met (route+launch+nca_results.csv). Overall NF status failed on NCA_REPORT_HTML GString $ interpolation.",
+  "overall_run_status": "failed",
+  "errorMessage": "Process NCA_REPORT_HTML (nca_report) failed: No such variable: set",
+  "doc": "docs/20261115_NCA_PKNCA_INDEXED_WORKFLOW_E2E.md"
+}
