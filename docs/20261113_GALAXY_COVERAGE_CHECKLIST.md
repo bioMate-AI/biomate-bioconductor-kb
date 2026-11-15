@@ -51,7 +51,7 @@ Have / Partial rows cite at least one file path or route verified in-tree (not d
 | Post-run cost on Runs / panel strip | **Partial** | Billing ledger + panel vCPU meter; admin compare table on `/admin` CostPanel (estimate snapshot vs actual). No end-user Runs-row strip |
 | Reproducibility pack (one zip) | **Have** | `GET /api/runs/:id/reproducibility-pack` (`reproducibility-pack.ts` + `routes.ts`); AfterRun + panel `button-download-repro-pack` — methods snapshot + software + citations + run-record + run RO-Crate (2026-11-13). Not Galaxy `/tmp` bundle; not download-all |
 | Perception → Confirm & Run datatype gate | **Have** | `perceptionMismatch` in `input-mapping-status.ts` → `isPrereqBlocked` (2026-11-13); strong kinds only. Bare `input` samplesheet-gated only with schema hints (2026-11-15 Wave 0) |
-| Native Galaxy `.ga` invoke | **Skip (import)** / **Partial (proxy)** | Import UI + `POST /api/workflows/upload-file` reject `.ga` (2026-11-15 — Nextflow-only; not honest Galaxy-engine execute). Proxy `invokeWorkflow` still exists unused by product import |
+| Native Galaxy `.ga` invoke | **Skip (import, temporary)** / **Partial (proxy)** | `GA_IMPORT_ENABLED=false` (2026-11-15) — Import UI + upload-file reject `.ga` until execution supported; one-flip re-enable. Proxy `invokeWorkflow` still unused by product import |
 | Galaxy invoke API (proxy) | **Partial** | `invokeWorkflow` + `/api/galaxy/workflows/...` exist; product default engine is Nextflow |
 | Subworkflow extract | **Partial** | `POST /api/workflows/:id/extract-subworkflow`; `extractSubworkflow` in proxy; no product UI |
 | Interactive Tools (Jupyter/RStudio/cellxgene) | **Partial** | Routes `/api/interactive/*`, open-in handlers exist; `OPEN_IN_AVAILABLE = false` (`dataset-view-model.ts`); `INTERACTIVE_TOOLS_ENABLED` gate in `routes.ts` — buttons hidden |
@@ -104,7 +104,7 @@ Cap for chat summary; full Missing rows remain in the table.
 6. ~~Workflow landing / shareable pre-filled run links~~ → **Have** BioMate-native `/run/:token` (2026-11-15 Wave 4)  
 7. Storage archive/purge for abandoned S3 data  
 8. In-app run-complete / QC notifications  
-9. ~~Honest `.ga` → Galaxy-engine (or clear “Nextflow only”) labeling~~ → **Import closed** (2026-11-15): `.ga` removed from Import Workflow UI + API reject 415; full engine labeling elsewhere still optional  
+9. ~~Honest `.ga` → Galaxy-engine (or clear “Nextflow only”) labeling~~ → **Import gated off** (2026-11-15): `GA_IMPORT_ENABLED=false` — UI + API 415; flip flag to restore after execution support 
 
 Shipped from this list on 2026-11-13 (deep session): remote browse → project_files; FASTQ samplesheet-as-one Analysis input; perception Confirm & Run datatype gate; deferred import in primary chat/Data Hub UX; materialize-on-Confirm&Run; reproducibility pack zip.
 
