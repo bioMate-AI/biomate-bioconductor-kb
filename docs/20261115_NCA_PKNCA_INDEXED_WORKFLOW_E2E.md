@@ -112,6 +112,10 @@ Escaped all eight R `$` literals inside the report process `"""…"""` block (sa
 
 Did **not** skip or gate the report step.
 
+### Prediction (deploy)
+
+After this tip lands on live, a re-run of the indexed `nca_pknca` path should get past `NCA_REPORT_HTML` template evaluation: Nextflow will emit literal R `$` into `nca_report.Rmd` (no `No such variable: set`), and the report process will proceed to container/Batch `rmarkdown::render` like the other NCA steps. PKNCA CSV/JSON behavior is unchanged; residual risk is only R/image/runtime for render, not GString.
+
 ---
 
 ## Scorecard vs success criteria
