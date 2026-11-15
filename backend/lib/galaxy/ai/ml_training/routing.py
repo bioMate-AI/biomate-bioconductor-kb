@@ -193,6 +193,23 @@ def _infer_tabular_target(text: str) -> str:
     return "label"
 
 
+# Cold-start / chat scaffolding the UI appends after the user's real ask. These
+# blocks often said "For protein backbone design / diffusion train set dataset=…"
+# so a bare design prompt would otherwise re-arm training intent via the
+# incidental "train" token (remeasure 2026-11-15: design-generate-bio-1/2).
+_SCAFFOLD_BLOCKS_RE = re.compile(
+    r"\[(?:Prepared inputs|Attached files|Uploaded datasets|Routing hint)[^\]]*\]",
+    re.I | re.S,
+)
+
+
+def _intent_text(text: str) -> str:
+    """User-authored ask only — drop UI scaffolding before intent detection."""
+    if not text:
+        return ""
+    return _SCAFFOLD_BLOCKS_RE.sub(" ", text)
+
+
 def detect_training_intent(text: str) -> bool:
     """True when the text asks to train/build a model (rule-based).
 
@@ -203,7 +220,11 @@ def detect_training_intent(text: str) -> bool:
     verb co-occurs with a diffusion hint (coldstart 2026-11-14: bare design
     prompts were hijacked into TRAIN → NotImplementedError without the
     diffusion-training GPU image).
+
+    UI `[Prepared inputs: …]` / `[Attached files: …]` blocks are stripped first so
+    binding hints that mention "diffusion train" cannot re-arm this gate.
     """
+    text = _intent_text(text)
     if not text:
         return False
     # Single-cell diffusion phrasings ("generate cells", "augment single-cell

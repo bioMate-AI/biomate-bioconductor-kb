@@ -177,6 +177,19 @@ def test_design_without_train_falls_through_to_catalog():
     assert route_ml_training("optimise this peptide structure for solubility") is None
 
 
+def test_prepared_inputs_diffusion_train_note_does_not_hijack():
+    # Cold-start Prepared notes used to say "diffusion train set dataset=…"
+    # which re-armed detect_training_intent via the incidental "train" token.
+    text = (
+        "Graft these CDRs onto a stable human framework. (protein design)\n"
+        "[Prepared inputs: For protein backbone design / diffusion train "
+        "set dataset=6Z43.pdb (never nanobody_constraints.json).]\n"
+        "[Attached files: 6Z43.pdb, nanobody_constraints.json]"
+    )
+    assert detect_training_intent(text) is False
+    assert route_ml_training(text) is None
+
+
 def test_routing_diffusion_intent():
     cfg = extract_training_config("fine-tune a protein diffusion model for FcRn binders")
     assert cfg.model_type == "protein_diffusion"
