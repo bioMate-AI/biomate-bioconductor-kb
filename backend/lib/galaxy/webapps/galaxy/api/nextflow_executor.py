@@ -12891,76 +12891,164 @@ _BATCH_INSTANCE_COST_PER_HOUR: Dict[str, float] = {
     "g4dn.4xlarge": 1.204,
 }
 
-# Rough domain → typical instance + hours range mapping
+# Rough domain → typical instance + wall-clock hours (prior only; labeled as such)
 _DOMAIN_RUNTIME_HINTS: Dict[str, Dict[str, Any]] = {
-    "rnaseq":     {"instance": "c5.4xlarge",  "min_h": 0.5, "max_h": 2.0},
-    "chipseq":    {"instance": "c5.4xlarge",  "min_h": 1.0, "max_h": 4.0},
-    "atacseq":    {"instance": "c5.2xlarge",  "min_h": 0.5, "max_h": 3.0},
-    "sarek":      {"instance": "c5.9xlarge",  "min_h": 4.0, "max_h": 12.0},
-    "scrnaseq":   {"instance": "r5.4xlarge",  "min_h": 1.0, "max_h": 6.0},
-    "methylseq":  {"instance": "c5.9xlarge",  "min_h": 2.0, "max_h": 8.0},
-    "cryoem":     {"instance": "g4dn.4xlarge","min_h": 2.0, "max_h": 8.0},
-    "cryosparc":  {"instance": "g4dn.4xlarge","min_h": 1.0, "max_h": 6.0},
-    "proteomics": {"instance": "c5.4xlarge",  "min_h": 0.5, "max_h": 2.0},
-    "metagenomics":{"instance": "r5.4xlarge", "min_h": 2.0, "max_h": 10.0},
-    "alphafold":  {"instance": "g4dn.4xlarge","min_h": 4.0, "max_h": 24.0},
-    "default":    {"instance": "c5.2xlarge",  "min_h": 0.5, "max_h": 3.0},
+    "rnaseq":     {"instance": "c5.4xlarge",  "min_h": 0.5, "max_h": 2.0, "vcpus": 16},
+    "chipseq":    {"instance": "c5.4xlarge",  "min_h": 1.0, "max_h": 4.0, "vcpus": 16},
+    "atacseq":    {"instance": "c5.2xlarge",  "min_h": 0.5, "max_h": 3.0, "vcpus": 8},
+    "sarek":      {"instance": "c5.9xlarge",  "min_h": 4.0, "max_h": 12.0, "vcpus": 36},
+    "scrnaseq":   {"instance": "r5.4xlarge",  "min_h": 1.0, "max_h": 6.0, "vcpus": 16},
+    "methylseq":  {"instance": "c5.9xlarge",  "min_h": 2.0, "max_h": 8.0, "vcpus": 36},
+    "cryoem":     {"instance": "g4dn.4xlarge","min_h": 2.0, "max_h": 8.0, "vcpus": 16},
+    "cryosparc":  {"instance": "g4dn.4xlarge","min_h": 1.0, "max_h": 6.0, "vcpus": 16},
+    "proteomics": {"instance": "c5.4xlarge",  "min_h": 0.5, "max_h": 2.0, "vcpus": 16},
+    "metagenomics":{"instance": "r5.4xlarge", "min_h": 2.0, "max_h": 10.0, "vcpus": 16},
+    "alphafold":  {"instance": "g4dn.4xlarge","min_h": 4.0, "max_h": 24.0, "vcpus": 16},
+    "admet":      {"instance": "c5.xlarge",   "min_h": 0.05, "max_h": 0.5, "vcpus": 4},
+    "default":    {"instance": "c5.2xlarge",  "min_h": 0.5, "max_h": 3.0, "vcpus": 8},
 }
+
+
+def _pick_domain_hint(path: str, domain: Optional[str] = None) -> Tuple[str, Dict[str, Any]]:
+    """Return (domain_key, hint) — prefer explicit domain, else longest keyword in path."""
+    if domain:
+        d = domain.lower().strip()
+        if d in _DOMAIN_RUNTIME_HINTS and d != "default":
+            return d, _DOMAIN_RUNTIME_HINTS[d]
+    path_l = (path or "").lower()
+    hint = _DOMAIN_RUNTIME_HINTS["default"]
+    best = "default"
+    best_len = 0
+    for key, h in _DOMAIN_RUNTIME_HINTS.items():
+        if key != "default" and key in path_l and len(key) > best_len:
+            hint = h
+            best = key
+            best_len = len(key)
+    return best, hint
+
+
+def build_honest_cost_estimate(
+    *,
+    nextflow_path: Optional[str] = None,
+    workflow_name: Optional[str] = None,
+    domain: Optional[str] = None,
+    sample_count: Optional[int] = None,
+    historical: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Honest pre-run estimate for admin/ops — never invents confidence.
+
+    Shape:
+      confidence: historical | prior | unavailable
+      range: { min_vcpu_hrs, max_vcpu_hrs }
+      usd_range?: only when instance rates are known (labeled rough)
+    """
+    path = (nextflow_path or workflow_name or "").strip()
+    samples = int(sample_count) if sample_count and sample_count > 0 else None
+
+    # Prefer caller-supplied historical medians (Node admin queries DB/ledger).
+    if historical and isinstance(historical, dict):
+        try:
+            min_vh = float(historical.get("min_vcpu_hrs"))
+            max_vh = float(historical.get("max_vcpu_hrs"))
+            if min_vh >= 0 and max_vh >= min_vh:
+                out: Dict[str, Any] = {
+                    "confidence": "historical",
+                    "basis": str(historical.get("basis") or "median of completed runs"),
+                    "assumptions": list(historical.get("assumptions") or [
+                        "Derived from completed-run billing / runtime ledger",
+                        "Not a quote — capacity planning only",
+                    ]),
+                    "nextflow_path": path or None,
+                    "domain": historical.get("domain") or domain,
+                    "sample_count": samples,
+                    "range": {
+                        "min_vcpu_hrs": round(min_vh, 3),
+                        "max_vcpu_hrs": round(max_vh, 3),
+                    },
+                }
+                if historical.get("usd_range"):
+                    out["usd_range"] = historical["usd_range"]
+                return out
+        except (TypeError, ValueError):
+            pass
+
+    if not path and not domain:
+        return {
+            "confidence": "unavailable",
+            "basis": "no workflow identity supplied",
+            "assumptions": ["Provide nextflow_path or domain for a prior estimate"],
+            "nextflow_path": None,
+            "domain": domain,
+            "sample_count": samples,
+            "range": {"min_vcpu_hrs": 0.0, "max_vcpu_hrs": 0.0},
+        }
+
+    matched, hint = _pick_domain_hint(path, domain)
+    instance = hint["instance"]
+    vcpus = float(hint.get("vcpus") or 8)
+    min_h = float(hint["min_h"])
+    max_h = float(hint["max_h"])
+    # Optional sample scaling for priors that are per-sample-ish (GET legacy)
+    if samples and matched in ("rnaseq", "sarek", "chipseq", "methylseq", "admet"):
+        scale = max(1.0, samples / 10.0)
+        min_h *= scale
+        max_h *= scale
+    min_vh = round(min_h * vcpus, 3)
+    max_vh = round(max_h * vcpus, 3)
+    cost_per_hour = _BATCH_INSTANCE_COST_PER_HOUR.get(instance)
+    assumptions = [
+        f"Domain prior for '{matched}' (not measured for this run)",
+        f"Assumed instance class: {instance} (~{int(vcpus)} vCPU)",
+        f"Assumed wall-clock: {min_h:.2f}–{max_h:.2f} hours → vCPU-hrs = hours × vCPUs",
+        "Does not include S3 egress or LLM token cost",
+        "Admin/ops capacity planning only — not shown to end users",
+    ]
+    if samples:
+        assumptions.append(f"sample_count={samples} applied as a coarse scale factor")
+    out = {
+        "confidence": "prior",
+        "basis": f"domain prior ({matched})",
+        "assumptions": assumptions,
+        "nextflow_path": path or None,
+        "domain": matched if matched != "default" else (domain or "default"),
+        "sample_count": samples,
+        "instance_type": instance,
+        "range": {"min_vcpu_hrs": min_vh, "max_vcpu_hrs": max_vh},
+    }
+    if cost_per_hour is not None:
+        out["usd_range"] = {
+            "min_usd": round(min_h * cost_per_hour, 2),
+            "max_usd": round(max_h * cost_per_hour * 1.15, 2),
+            "label": "rough on-demand instance-hour band (not a quote)",
+        }
+        out["assumptions"].append(
+            f"USD band uses on-demand {instance} @ ${cost_per_hour:.3f}/hr × wall-clock (rough)"
+        )
+    return out
 
 
 class CostEstimateRequest(BaseModel):
     nextflow_path: Optional[str] = None
     workflow_name: Optional[str] = None
+    domain: Optional[str] = None
+    sample_count: Optional[int] = None
     params: Optional[Dict[str, Any]] = None
+    historical: Optional[Dict[str, Any]] = None
 
 
-@router.post("/api/workflows/estimate_cost", summary="Estimate AWS Batch run cost before execution")
+@router.post("/api/workflows/estimate_cost", summary="Honest pre-run cost estimate (ops)")
 def estimate_workflow_cost(request: CostEstimateRequest) -> Dict[str, Any]:
-    """Static pre-run cost estimate based on workflow domain and typical runtimes.
+    """Honest estimator: historical (if provided) | domain prior | unavailable.
 
-    Returns min/max USD range and assumptions used.
+    Never invents a fake USD quote. Primary consumers are admin/ops routes.
     """
-    path = (request.nextflow_path or request.workflow_name or "").lower()
-
-    # Pick domain hint by longest keyword match on path/name (more specific wins)
-    hint = _DOMAIN_RUNTIME_HINTS["default"]
-    best_len = 0
-    for domain, h in _DOMAIN_RUNTIME_HINTS.items():
-        if domain != "default" and domain in path and len(domain) > best_len:
-            hint = h
-            best_len = len(domain)
-
-    instance = hint["instance"]
-    cost_per_hour = _BATCH_INSTANCE_COST_PER_HOUR.get(instance, 0.34)
-    min_cost = round(hint["min_h"] * cost_per_hour, 2)
-    max_cost = round(hint["max_h"] * cost_per_hour * 1.15, 2)  # 15% buffer
-
-    # Try to pull runtime_estimate from pilot_analysis registry for known tools
-    try:
-        from galaxy.ai.pilot_analysis.registry import PILOT_ANALYZERS
-        relevant = [
-            a for a in PILOT_ANALYZERS.values()
-            if a.get("category", "") in path or path in a.get("category", "")
-        ]
-        if relevant:
-            max_analyzer_s = max(a.get("max_runtime_seconds", 60) for a in relevant)
-            if max_analyzer_s > 300:
-                max_cost = round(max_cost * 1.3, 2)
-    except Exception:
-        pass
-
-    return {
-        "min_usd": min_cost,
-        "max_usd": max_cost,
-        "instance_type": instance,
-        "cost_per_hour_usd": cost_per_hour,
-        "assumptions": [
-            f"Instance type: {instance} (${cost_per_hour:.3f}/hr on-demand)",
-            f"Estimated runtime: {hint['min_h']:.1f}–{hint['max_h']:.1f} hours",
-            "Does not include S3 data transfer costs (~$0.09/GB egress)",
-            "AWS Spot pricing may reduce cost by 60–80%",
-        ],
-    }
+    return build_honest_cost_estimate(
+        nextflow_path=request.nextflow_path,
+        workflow_name=request.workflow_name,
+        domain=request.domain,
+        sample_count=request.sample_count,
+        historical=request.historical,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -13454,60 +13542,17 @@ output JSON with:
 # ---------------------------------------------------------------------------
 
 @router.get("/api/nextflow/estimate_cost")
-async def estimate_workflow_cost_get(nextflow_path: str = "", sample_count: int = 10):
-    """
-    Static cost estimate for a Nextflow workflow before running (GET variant).
-    Used by the CostEstimateBadge component.
-    """
-    import os as _os
-
-    INSTANCE_COSTS = {
-        "optimal":        0.10,
-        "c5.xlarge":      0.17,
-        "c5.2xlarge":     0.34,
-        "r5.xlarge":      0.252,
-        "m5.xlarge":      0.192,
-        "g4dn.xlarge":    0.526,
-    }
-    RUNTIME_PER_SAMPLE = {
-        "rnaseq":             0.25,
-        "sarek":              1.5,
-        "chipseq":            0.33,
-        "methylseq":          0.5,
-        "admet":              0.03,
-        "cryosparc":          4.0,
-        "gromacs":            2.0,
-        "default":            0.3,
-    }
-
-    instance_type = "optimal"
-    cost_per_hour = INSTANCE_COSTS.get(instance_type, 0.10)
-
-    path_lower = (nextflow_path or "").lower()
-    runtime_hrs = RUNTIME_PER_SAMPLE["default"]
-    matched_wf = "default"
-    for wf_key, hrs in RUNTIME_PER_SAMPLE.items():
-        if wf_key in path_lower:
-            runtime_hrs = hrs
-            matched_wf = wf_key
-            break
-
-    total_runtime_hrs = runtime_hrs * max(1, sample_count) * 1.2
-
-    return {
-        "nextflow_path": nextflow_path,
-        "sample_count": sample_count,
-        "instance_type": instance_type,
-        "matched_workflow": matched_wf,
-        "estimated_runtime_hours": round(total_runtime_hrs, 2),
-        "cost_min_usd": round(total_runtime_hrs * cost_per_hour * 0.7, 2),
-        "cost_max_usd": round(total_runtime_hrs * cost_per_hour * 1.5, 2),
-        "assumptions": [
-            f"Instance type: {instance_type} (${cost_per_hour}/hr)",
-            f"Runtime model: {runtime_hrs}h/sample x {sample_count} samples x 1.2 overhead",
-            "Min = spot pricing (70%); Max = on-demand (150%)",
-        ],
-    }
+async def estimate_workflow_cost_get(
+    nextflow_path: str = "",
+    sample_count: int = 10,
+    domain: str = "",
+):
+    """Honest GET estimate (same shape as POST). Admin/ops consumers; badge stays removed."""
+    return build_honest_cost_estimate(
+        nextflow_path=nextflow_path or None,
+        domain=domain or None,
+        sample_count=sample_count if sample_count and sample_count > 0 else None,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -13664,7 +13709,16 @@ class FetchPublicDataRequest(BaseModel):
     source_id: Optional[str] = None     # file source id from file_sources_conf.yml, e.g. "ebi_ftp"
     remote_path: Optional[str] = None   # path within the source, e.g. "/pub/databases/uniprot/..."
     url: Optional[str] = None           # direct HTTP/HTTPS/FTP URL (alternative to source_id+remote_path)
-    destination_key: Optional[str] = None  # S3 key prefix; defaults to "public-data/<filename>"
+    destination_key: Optional[str] = None  # S3 key; defaults to users/{user}/remote/{project|inbox}/{uuid}-{filename}
+    user_id: Optional[str] = None       # caller identity — used when destination_key omitted
+    project_id: Optional[str] = None    # optional project scope for the default key
+
+
+def _safe_s3_path_segment(value: Optional[str], fallback: str) -> str:
+    """Sanitize a user/project id for use as a single S3 key segment."""
+    raw = (value or "").strip() or fallback
+    cleaned = re.sub(r"[^A-Za-z0-9._-]+", "_", raw)
+    return (cleaned[:128] or fallback)
 
 
 @router.post("/api/nextflow/fetch_public_data", summary="Stage a public file into BioMate S3")
@@ -13676,6 +13730,9 @@ async def fetch_public_data(body: FetchPublicDataRequest):
     Accepts either:
     - `source_id` + `remote_path` (file source plugin + relative path)
     - `url` (any HTTP/HTTPS/FTP URL)
+
+    Default destination keys are unique per user/project so two callers
+    fetching the same public filename never clobber each other.
 
     Returns the S3 URI and presigned download URL of the staged file.
     """
@@ -13706,10 +13763,18 @@ async def fetch_public_data(body: FetchPublicDataRequest):
             path = body.remote_path.lstrip("/")
             download_url = f"{host}/{path}"
 
-    # Derive destination S3 key
+    # Derive destination S3 key — never share public-data/{filename} across users
     parsed = urllib.parse.urlparse(download_url)
     filename = Path(parsed.path).name or "data.bin"
-    dest_key = body.destination_key or f"public-data/{filename}"
+    # Strip path traversal from explicit destination_key overrides
+    if body.destination_key:
+        dest_key = body.destination_key.lstrip("/").replace("..", "_")
+    else:
+        user_seg = _safe_s3_path_segment(body.user_id, "anonymous")
+        project_seg = _safe_s3_path_segment(body.project_id, "inbox")
+        unique = uuid.uuid4().hex[:12]
+        safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", filename) or "data.bin"
+        dest_key = f"users/{user_seg}/remote/{project_seg}/{unique}-{safe_name}"
 
     # On-prem MinIO: only the S3_BUCKET_NAME bucket is created by docker-compose
     # init — biomate-nextflow-work doesn't exist in MinIO. Use S3_BUCKET_NAME.

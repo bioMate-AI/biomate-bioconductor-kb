@@ -49,11 +49,57 @@ describe('perceptionMismatch / expectedViewKindsForParam', () => {
     expect(expectedViewKindsForParam('samplesheet')!.has('table')).toBe(true);
     expect(expectedViewKindsForParam('genome')).toBeNull();
   });
+  it('bare input is NOT samplesheet-gated without schema hints (FASTA ok)', () => {
+    expect(expectedViewKindsForParam('input')).toBeNull();
+    expect(expectedViewKindsForParam('input', { description: 'Input FASTA sequence' })).toBeNull();
+    expect(
+      perceptionMismatch('input', { id: '1', name: 'ref.fa', viewKind: 'sequences' }),
+    ).toBeNull();
+  });
+  it('input + samplesheet/csv schema hint still gates as table kinds', () => {
+    const hint = { description: 'Path to samplesheet CSV' };
+    expect(expectedViewKindsForParam('input', hint)!.has('table')).toBe(true);
+    expect(
+      perceptionMismatch('input', { id: '1', name: 'ref.fa', viewKind: 'sequences' }, undefined, hint),
+    ).toMatch(/table/);
+    expect(
+      perceptionMismatch('input', { id: '1', name: 'sheet.csv', viewKind: 'table' }, undefined, hint),
+    ).toBeNull();
+  });
   it('flags CSV on reads; accepts FASTQ; skips blocked quality', () => {
     expect(perceptionMismatch('reads', { id: '1', name: 'x.csv' })).toMatch(/table/);
     expect(perceptionMismatch('reads', { id: '1', name: 'x.fastq.gz', viewKind: 'reads' })).toBeNull();
     expect(perceptionMismatch('bam', { id: '1', name: 'x.bam', viewKind: 'reads' })).toMatch(/alignment/);
     expect(perceptionMismatch('reads', { id: '1', name: 'x.csv', quality: 'blocked' })).toBeNull();
+  });
+});
+
+describe('deriveInputMappingRows — generic input + FASTA must not hard-block', () => {
+  it('does not block input bound to FASTA when schema has no samplesheet hint', () => {
+    const fastaDs: SessionDataset[] = [
+      { id: 'fa-1', name: 'genome.fa', file_path: 's3://b/genome.fa', viewKind: 'sequences' },
+    ];
+    const rows = deriveInputMappingRows(
+      [{ id: 'input', name: 'input', type: 'file', required: true, value: 'fa-1' }],
+      fastaDs,
+      [{ name: 'input', type: 'file', description: 'Input sequence file' }],
+    );
+    expect(rows[0].status).toBe('resolved');
+    expect(rows[0].mismatch).toBeNull();
+    expect(runIsBlockedByInputs(rows)).toBe(false);
+  });
+  it('still blocks input+FASTA when schema describes a samplesheet CSV', () => {
+    const fastaDs: SessionDataset[] = [
+      { id: 'fa-1', name: 'genome.fa', file_path: 's3://b/genome.fa', viewKind: 'sequences' },
+    ];
+    const rows = deriveInputMappingRows(
+      [{ id: 'input', name: 'input', type: 'string', required: true, value: 'fa-1' }],
+      fastaDs,
+      [{ name: 'input', type: 'string', description: 'Samplesheet CSV' }],
+    );
+    expect(rows[0].status).toBe('needs-mapping');
+    expect(rows[0].mismatch).toMatch(/table/);
+    expect(runIsBlockedByInputs(rows)).toBe(true);
   });
 });
 

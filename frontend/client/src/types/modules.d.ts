@@ -1,6 +1,15 @@
 // Type declarations for npm modules that may not be installed yet
 // These allow TypeScript to compile even if the modules are missing at runtime
 
+declare module 'igv' {
+  const igv: {
+    createBrowser?: (el: HTMLElement, config: Record<string, unknown>) => Promise<any>;
+    default?: { createBrowser?: (el: HTMLElement, config: Record<string, unknown>) => Promise<any> };
+  };
+  export default igv;
+  export function createBrowser(el: HTMLElement, config: Record<string, unknown>): Promise<any>;
+}
+
 declare module 'react-markdown' {
   import { ComponentType, ReactNode } from 'react';
 
