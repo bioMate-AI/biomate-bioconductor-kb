@@ -1731,6 +1731,36 @@
   confusable_with: structural_biology
   notes: VHH-VHH fusion + albumin half-life extension → bispecific format=nanobody_fusion;
     not single scFv design
+- id: dd_109
+  query: Compute the relative binding free energy for a single-residue change in this
+    peptide binder
+  difficulty: adversarial
+  domain: drug_discovery
+  correct_workflow: gromacs_pmx_fep
+  acceptable_alts:
+  - GROMACS Protein-Ligand MD + MM-GBSA
+  disqualified:
+  - cyclic_peptide_design
+  - openfe_rbfe
+  confusable_with: cyclic_peptide_design
+  notes: 'Residue/peptide ΔΔG (FEP) → gromacs_pmx_fep (id 14652). NOT openfe_rbfe
+    (two-ligand congeneric RBFE) and NOT cyclic_peptide_design (enumerative peptide
+    design, not an affinity engine). Coldstart design-predict-filter-pep-3; routing
+    hint added in ai_assistant.py (_FEP_MUTATION_PAT).'
+- id: dd_110
+  query: Propose enzyme variants with a redesigned active-site pocket (protein design)
+  difficulty: adversarial
+  domain: drug_discovery
+  correct_workflow: bionemo_structure_design
+  acceptable_alts: []
+  disqualified:
+  - profam
+  - profam_fitness_prediction
+  confusable_with: profam
+  notes: 'Generative protein/enzyme design (backbone + sequence) → bionemo_structure_design
+    (id 14449, RFdiffusion + ProteinMPNN). NOT profam (variant-fitness SCORER — ranks
+    SUPPLIED variants, cannot propose new ones). Coldstart design-generate-bio-2;
+    routing hint added in ai_assistant.py (_PROTEIN_DESIGN_PAT).'
 - id: sc2_001
   query: 'End-to-end 10X single-cell RNA-seq: raw FASTQ to annotated cell types with
     UMAP'

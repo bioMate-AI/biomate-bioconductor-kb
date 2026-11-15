@@ -5725,6 +5725,74 @@ Query: "run on fixture:empiar-10028-movies pixel_size=0.885 voltage=300 symmetry
                 user_intent = user_intent + _hint
                 log.info("[UnifiedWorkflowGeneration] AutoDock Vina pattern detected — injected docking_autodock_vina routing hint")
 
+            # Relative binding free energy (ΔΔG) for a RESIDUE / PEPTIDE mutation → gromacs_pmx_fep.
+            # gromacs_pmx_fep (id 14652) was registered after the routing hints were written, so with
+            # no hint the LLM-browse pass pulls "peptide binder" to cyclic_peptide_design (enumerative
+            # design, not an affinity engine). The mutation/residue/peptide gate keeps a generic
+            # two-ligand congeneric-series RBFE on openfe_rbfe and an MD MM-GBSA ask on gromacs_protein_md.
+            _FEP_MUTATION_PAT = re.compile(
+                r'\b(relative\s+binding\s+free\s+energy|binding\s+free\s+energy|'
+                r'free\s+energy\s+perturbation|\bFEP\b|\bRBFE\b|ΔΔG|'
+                r'delta[\s-]*delta[\s-]*g|\bddg\b)\b',
+                re.IGNORECASE,
+            )
+            _FEP_MUTATION_CTX = re.compile(
+                r'\b(single[- ]residue|residue\s+mutation|point\s+mutation|mutate\w*|mutant|'
+                r'amino[- ]acid\s+(?:change|substitution)|peptide|cyclic)\b',
+                re.IGNORECASE,
+            )
+            # An explicit MM-GBSA / MM-PBSA ask is an MD endpoint-free-energy workflow
+            # (gromacs_protein_md), not a pmx alchemical ΔΔG — leave those on their own route.
+            _FEP_MMGBSA_EXCLUDE = re.compile(r'\b(mm[- ]?gbsa|mm[- ]?pbsa|mmpbsa)\b', re.IGNORECASE)
+            if (_FEP_MUTATION_PAT.search(user_intent) and _FEP_MUTATION_CTX.search(user_intent)
+                    and not _FEP_MMGBSA_EXCLUDE.search(user_intent)):
+                _hint = (
+                    "\n[Routing hint: relative binding free energy (ΔΔG / FEP) for a RESIDUE or "
+                    "PEPTIDE mutation — use gromacs_pmx_fep (registry id 14652), NOT openfe_rbfe "
+                    "(two-ligand congeneric-series RBFE) and NOT cyclic_peptide_design "
+                    "(enumerative peptide design, not an affinity engine)]"
+                )
+                user_intent = user_intent + _hint
+                log.info("[UnifiedWorkflowGeneration] FEP residue/peptide-mutation pattern detected — injected gromacs_pmx_fep routing hint")
+
+            # De novo / redesign of a PROTEIN or ENZYME (backbone + sequence) → bionemo_structure_design.
+            # profam (id 14474) is a variant-fitness SCORER (ranks supplied variants); it cannot propose
+            # new ones, but it lexically dominates "enzyme variants / protein engineering" and wins when
+            # no hint names a generative protein-design workflow. Excludes antibody/nanobody (own
+            # workflows), peptide/macrocycle (cyclic_peptide_design) and small-molecule (reinvent4).
+            # Design-SPECIFIC nouns only: a bare "protein" + generic verb over-fires on
+            # non-design asks (primer design for a protein-coding gene, strain engineering,
+            # contact maps, purification/plasmid protocols). Require a protein-DESIGN noun
+            # (active-site/pocket redesign, enzyme variant, protein backbone/binder/scaffold,
+            # de novo protein/enzyme). Small-molecule-for-a-protein asks (inhibitor/substrate/
+            # ligand) are excluded — those are reinvent4 / docking, not protein design.
+            _PROTEIN_DESIGN_PAT = re.compile(
+                r'(?:'
+                r'\b(?:design|redesign|propose|engineer|generate|create)\b[^.\n]{0,60}?\b(?:'
+                r'active[- ]site|binding\s+pocket|enzyme\s+(?:variant|design|redesign|engineer\w*)|'
+                r'protein\s+(?:backbone|binder|scaffold|sequence|fold|design)|'
+                r'(?:de\s+novo|novel|new)\s+(?:protein|enzyme|binder|backbone)|'
+                r'backbone\s+(?:\+|and)\s+sequence)\b'
+                r'|\bde\s+novo\s+(?:protein|enzyme|binder|backbone)\b'
+                r'|\bprotein\s+(?:backbone|binder|scaffold|sequence|fold)\s+design\b'
+                r')',
+                re.IGNORECASE,
+            )
+            _PROTEIN_DESIGN_EXCLUDE = re.compile(
+                r'\b(antibod\w*|nanobod\w*|vhh|scfv|bispecific|peptide|macrocycl\w*|cyclic|stapled|'
+                r'small[- ]molecule|compound|ligand|smiles|inhibitor\w*|substrate)\b',
+                re.IGNORECASE,
+            )
+            if _PROTEIN_DESIGN_PAT.search(user_intent) and not _PROTEIN_DESIGN_EXCLUDE.search(user_intent):
+                _hint = (
+                    "\n[Routing hint: de novo design or active-site redesign of a PROTEIN or ENZYME "
+                    "(backbone + sequence) — use bionemo_structure_design (registry id 14449, "
+                    "RFdiffusion + ProteinMPNN), NOT profam (a variant-fitness SCORER that ranks "
+                    "SUPPLIED variants and cannot propose new sequences)]"
+                )
+                user_intent = user_intent + _hint
+                log.info("[UnifiedWorkflowGeneration] Protein/enzyme design pattern detected — injected bionemo_structure_design routing hint")
+
             # Generative/optimisation task: retrieval otherwise ranks on the property words that
             # come with it ("drug-like properties", hERG/MW cut-offs in the context) and returns
             # a property PREDICTOR. Measured 2026-11-03 (dev logs): "Generate candidates ... with
