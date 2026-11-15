@@ -231,7 +231,7 @@ def _fetch_remote_wsi(uri):
         except Exception as _e_boto:
             import subprocess, shutil
             # The executor bind-mounts the aws CLI at /opt/aws-cli (see Dockerfile.pathology),
-            # so resolve it robustly rather than assuming it is on $PATH.
+            # so resolve it robustly rather than assuming it is on \$PATH.
             aws_bin = shutil.which("aws") or next(
                 (p for p in ("/opt/aws-cli/aws", "/opt/aws-cli/bin/aws", "/usr/local/bin/aws") if os.path.exists(p)),
                 None)

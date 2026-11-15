@@ -50,9 +50,11 @@ params.outdir            = './results/gromacs_pmx_fep'
 params.publish_dir_mode  = 'copy'
 
 // 1 · define_edge
-params.receptor          = null                 // protein PDB (target)
-params.edge_kind         = 'residue_mutation'   // residue_mutation | peptide_pair
-params.edge_spec         = null                 // e.g. 'P:1 TYR->PHE,P:7 TYR->PHE' | 'ligandA|ligandB'
+// Default receptor = vendored BCL-XL demo (1BXL) so coldstart peptide FEP can
+// launch when Prepared inputs only named `1BXL.pdb` and staging lagged.
+params.receptor          = "${projectDir}/../../sample_data/peptides/1BXL.pdb"
+params.edge_kind         = 'peptide_pair'       // residue_mutation | peptide_pair
+params.edge_spec         = 'GQVGRQLAIIGDDINR|AQVGRQLAIIGDDINR'  // BAK BH3 vs G1A
 params.modality          = 'peptide'            // peptide | cyclic_peptide
 params.metal_model       = 'none'               // none | cada:<Mn|Zn|Ca|Mg>
 
@@ -78,12 +80,19 @@ params.mode              = 'setup'              // setup | smoke | production
 params.gates_cleared     = ''                   // space/comma list, e.g. 'equilibrate fep_production'
 
 // ============================================================================
-// Container — ECR (AWS Batch AMD64) vs local dev
+// Containers — ECR (AWS Batch AMD64) vs local dev
+// DEFINE_EDGE / knowledge gates are pure Python. The GROMACS CUDA image often
+// has no python3 → DEFINE_EDGE "Essential container exited" (coldstart
+// design-predict-filter-pep-3). Use workflow-tools for Python steps; GMX only
+// for MD legs that need gmx/pmx.
 // ============================================================================
 def _useAws = System.getenv('NEXTFLOW_USE_AWS') == 'true' || params.use_aws
 def GMX_CONTAINER = _useAws
     ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/gromacs-cuda:2024-cu12'
     : 'gromacs/gromacs:2024.3'
+def PY_CONTAINER = _useAws
+    ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86'
+    : 'biomate/workflow-tools:latest'
 params.use_aws = false
 
 def _entry() { return Channel.fromPath("${projectDir}/bin/run_gromacs_pmx_fep.py") }
@@ -94,7 +103,7 @@ def _gates() { return (params.gates_cleared ?: '').replaceAll(',', ' ').trim() }
 // ============================================================================
 process DEFINE_EDGE {
     tag 'define_edge'
-    container GMX_CONTAINER
+    container PY_CONTAINER
     publishDir "${params.outdir}/01_define_edge", mode: params.publish_dir_mode
 
     input:
@@ -119,7 +128,7 @@ process DEFINE_EDGE {
 
 process PREPARE {
     tag 'prepare'
-    container GMX_CONTAINER
+    container PY_CONTAINER
     publishDir "${params.outdir}/02_prepare", mode: params.publish_dir_mode
     cpus 8
     memory '32.GB'
@@ -211,7 +220,7 @@ process ANALYZE {
     // QC GATE (cycle_closure). Emits qc_metrics.json keyed (process=ANALYZE) so the QC
     // trace monitor picks up the gate, mirroring openfe_rbfe's OPENFE_ANALYSIS gate.
     tag 'analyze'
-    container GMX_CONTAINER
+    container PY_CONTAINER
     publishDir "${params.outdir}/05_analyze", mode: params.publish_dir_mode
     cpus 4
     memory '16.GB'

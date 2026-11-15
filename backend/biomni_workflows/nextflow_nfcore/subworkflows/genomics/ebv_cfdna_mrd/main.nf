@@ -56,7 +56,8 @@
 
 nextflow.enable.dsl = 2
 
-import groovy.json.JsonSlurper
+// Note: do NOT add `import groovy.json.JsonSlurper` here — unused and rejected as a
+// script compile error on some Batch Nextflow heads (same class as antibody_antigen_complex).
 
 // ---- Demo defaults so the workflow runs with NO inputs --------------------
 // Synthetic NPC serial-timepoint EBV cfDNA dataset (illustrative, NOT patient

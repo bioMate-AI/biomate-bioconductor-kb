@@ -44,7 +44,7 @@ process TRIMGALORE {
     trim_galore \
         ${params.paired_end ? '--paired' : ''} \
         --length ${params.min_trimmed_reads} \
-        ${params.read_length ? "--clip_r1 $((${params.read_length} / 10))" : ''} \
+        ${params.read_length ? "--clip_r1 \$((${params.read_length} / 10))" : ''} \
         --outdir ${params.outdir}
     """
 }

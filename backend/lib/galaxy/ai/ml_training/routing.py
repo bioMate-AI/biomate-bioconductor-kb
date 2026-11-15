@@ -196,15 +196,23 @@ def _infer_tabular_target(text: str) -> str:
 def detect_training_intent(text: str) -> bool:
     """True when the text asks to train/build a model (rule-based).
 
-    Includes structure-diffusion design requests ("design a de novo binder"),
-    which don't use the "train … model" phrasing but are training/generation jobs.
+    Structure-diffusion *design* phrasings ("design a de novo binder", "peptide
+    structure design") are NOT training intents on their own — those must fall
+    through to the indexed design/fold workflows (antibody co-fold, cyclic
+    peptide, ProteinMPNN, …). Only escalate to ml_training when a train/fine-tune
+    verb co-occurs with a diffusion hint (coldstart 2026-11-14: bare design
+    prompts were hijacked into TRAIN → NotImplementedError without the
+    diffusion-training GPU image).
     """
     if not text:
         return False
     # Single-cell diffusion phrasings ("generate cells", "augment single-cell
     # data") are training intents even without a "model" noun.
-    return bool(_TRAIN_RE.search(text) or _DIFFUSION_HINTS.search(text)
-                or _SC_DIFFUSION_HINTS.search(text))
+    if _TRAIN_RE.search(text) or _SC_DIFFUSION_HINTS.search(text):
+        return True
+    if _DIFFUSION_HINTS.search(text) and re.search(rf"\b{_TRAIN_VERBS}\b", text, re.I):
+        return True
+    return False
 
 
 def _match_dataset(text: str) -> Optional[tuple[str, str, str]]:

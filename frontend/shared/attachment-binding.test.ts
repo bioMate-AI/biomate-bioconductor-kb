@@ -257,6 +257,19 @@ describe('structure-set pointer — Batch F (constraints.json must not bind as d
     const bindings = bindAttachmentsToParams(attached, [structureDataset]);
     expect(bindings.map((b) => b.file.name)).toEqual(['1LYZ.pdb']);
   });
+
+  it('spec-less rebind still remaps dataset=*_constraints.json → co-attached PDB', () => {
+    // Residual Batch F: groundInlineParameters sometimes passes bare {name}
+    // specs (or none). Kind safety must not depend on the structure-set label.
+    const attached = parseAttachedFiles(nanobodyMsg);
+    const r = rebindFilenameValues(
+      { dataset: 'nanobody_constraints.json' },
+      attached,
+      [],
+    );
+    expect(r.params.dataset).toBe('s3://b/a1/6Z43.pdb');
+    expect(r.rebound).toEqual(['dataset']);
+  });
 });
 
 describe('multi-file inputs — hospital multi-omics bundle (dev d303eca6)', () => {

@@ -54,7 +54,8 @@
 
 nextflow.enable.dsl = 2
 
-import groovy.json.JsonSlurper
+// Note: do NOT add `import groovy.json.JsonSlurper` here — unused and rejected as a
+// script compile error on some Batch Nextflow heads (same class as antibody_antigen_complex).
 
 // Demo defaults (overridden by BioMate's executor at launch). The variant set
 // intentionally includes TP53 R175H, which has NO entry in the demo table, to

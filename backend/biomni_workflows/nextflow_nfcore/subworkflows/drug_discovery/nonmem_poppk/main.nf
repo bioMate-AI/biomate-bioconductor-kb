@@ -1290,7 +1290,7 @@ def assign_bin(t):
     return bins[-1]
 
 # Simulate VPC using 1-CMT oral as a universal approximation
-# Full mechanistic simulation would require rxode2 / NONMEM $SIM
+# Full mechanistic simulation would require rxode2 / NONMEM \$SIM
 CL  = theta[0] if len(theta) > 0 else 5.0
 V   = theta[1] if len(theta) > 1 else 50.0
 KA  = theta[2] if len(theta) > 2 else 1.0

@@ -39,7 +39,6 @@
 
 nextflow.enable.dsl = 2
 
-import groovy.json.JsonSlurper
 
 // Demo defaults (overridden by BioMate's executor at launch).
 params.peptides        = '[{"id": "pep1", "seq": "GCWGDRGPFDTCG"}]'
@@ -191,7 +190,7 @@ workflow {
     // makes each peptide its own channel emission → its own COFOLD task → AWS
     // Batch schedules them in parallel. This is the parallelism the module exists for.
     def peptides = params.peptides instanceof String
-        ? new JsonSlurper().parseText(params.peptides)
+        ? new groovy.json.JsonSlurper().parseText(params.peptides)
         : params.peptides
 
     ch_peptides = Channel

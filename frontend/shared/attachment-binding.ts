@@ -557,6 +557,23 @@ export function rebindFilenameValues<T extends Record<string, any>>(
       }
       continue;
     }
+    // Spec-less / weakly typed fallback (Batch F residual): when the extractor
+    // wrote dataset=*_constraints.json but schema rows lacked the structure-set
+    // label, the block above never fired and rebind promoted the JSON. Never
+    // promote a constraints sidecar for dataset/structure/receptor-like keys —
+    // remap to a co-attached PDB/CIF or drop so bindAttachmentsToParams can fill.
+    const looksConstraints = /_constraints\.json$/i.test(file.name);
+    const structureKey = /^(dataset|structure|structures|structure_set|receptor|pdb|input_structure)$/i.test(k);
+    if (looksConstraints && (!spec || structureKey)) {
+      const structureFile = files.find((f) => /\.(pdb|cif|mmcif|ent)$/i.test(f.name) && attachmentRefValue(f));
+      if (structureFile) {
+        out[k] = attachmentRefValue(structureFile)!;
+        rebound.push(k);
+      } else {
+        dropped.push(k);
+      }
+      continue;
+    }
     const ref = attachmentRefValue(file);
     if (ref) {
       out[k] = ref;
