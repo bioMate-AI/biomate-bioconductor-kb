@@ -43,20 +43,34 @@ _DEFAULT_SC_DIFFUSION_IMAGE = "399683337364.dkr.ecr.us-west-2.amazonaws.com/biom
 _DEFAULT_TABULAR_DIFFUSION_IMAGE = "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/tabular-diffusion-training:latest"
 
 
-def _resolve_container(cfg: TrainingConfig) -> str:
+def resolve_ml_training_container(model_type: str = "", nextflow_path: str = "") -> str:
+    """Pick the ECR image for an ml_training run from model_type and/or .nf path.
+
+    Single source of truth for executor_payload, Models-panel plan, and the
+    nextflow_executor fallback (chat Confirm & Run often omits compute_config.container).
+    Path heuristics cover diffusion wrappers when model_type is missing from params.
+    """
+    mt = (model_type or "").strip()
+    nf = (nextflow_path or "").replace("\\", "/")
     from .config import TRL_MODEL_TYPES
-    if cfg.model_type == "protein_diffusion":
+    if mt == "protein_diffusion" or (
+        "ml_training/diffusion_train.nf" in nf and "scrna_diffusion" not in nf
+    ):
         return os.environ.get("DIFFUSION_TRAINING_IMAGE", _DEFAULT_DIFFUSION_IMAGE)
-    if cfg.model_type == "scrna_diffusion":
+    if mt == "scrna_diffusion" or "ml_training/scrna_diffusion_train.nf" in nf:
         return os.environ.get("SC_DIFFUSION_TRAINING_IMAGE", _DEFAULT_SC_DIFFUSION_IMAGE)
-    if cfg.model_type == "tabular_diffusion":
+    if mt == "tabular_diffusion" or "ml_training/tabular_diffusion_train.nf" in nf:
         return os.environ.get("TABULAR_DIFFUSION_TRAINING_IMAGE", _DEFAULT_TABULAR_DIFFUSION_IMAGE)
-    if cfg.model_type in TRL_MODEL_TYPES:
+    if mt in TRL_MODEL_TYPES:
         return os.environ.get("TRL_TRAINING_IMAGE", _DEFAULT_TRL_IMAGE)
-    if cfg.model_type == "chemprop_gnn":
+    if mt == "chemprop_gnn":
         return os.environ.get("ML_TRAINING_GPU_IMAGE") \
             or os.environ.get("ML_TRAINING_IMAGE", _DEFAULT_CPU_IMAGE)
     return os.environ.get("ML_TRAINING_IMAGE", _DEFAULT_CPU_IMAGE)
+
+
+def _resolve_container(cfg: TrainingConfig) -> str:
+    return resolve_ml_training_container(cfg.model_type)
 
 
 def resolve_dataset_param(cfg: TrainingConfig, s3_dataset_uri: Optional[str] = None) -> str:

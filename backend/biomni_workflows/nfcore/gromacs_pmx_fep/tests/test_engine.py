@@ -153,7 +153,22 @@ def test_fto_gate_novelty_and_claim():
     assert rows2[0]["occupied"] is True and "INSIDE" in rows2[0]["verdict"]
 
 
+
+def test_pep3_receptor_bundled_under_project_dir():
+    """Guard: coldstart pep-3 must resolve receptor without sibling sample_data.
+    Bare receptor=1BXL.pdb (catalog seed) maps via _resolveReceptor → assets/.
+    """
+    wf = os.path.join(HERE, "..")
+    asset = os.path.join(wf, "assets", "1BXL.pdb")
+    assert os.path.isfile(asset) and os.path.getsize(asset) > 1000, asset
+    nf = open(os.path.join(wf, "main.nf"), encoding="utf-8").read()
+    assert "_resolveReceptor" in nf
+    assert 'projectDir}/assets/1BXL.pdb' in nf
+    assert "equalsIgnoreCase('1BXL.pdb')" in nf
+
+
 def main():
+
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     passed = 0
     for t in tests:

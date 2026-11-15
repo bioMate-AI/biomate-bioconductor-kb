@@ -10,7 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-// Demo: Accuri C6 flow cytometer FCS file from Galaxy test data
+// Demo: Accuri C6 FCS. Must be staged via Nextflow `path` input — a bare host
+// projectDir string is NOT mounted into the AWS Batch container (root cause of
+// analysis-try-sample-data-3 "Essential container exited").
 params.fcs_file_path = "${projectDir}/../../../../sample_data/flow_cytometry/Accuri_C6_A01_H2O.fcs"
 // Demo gating strategy for basic immunophenotyping - format: {"pop_name": [["marker", "operator", threshold], ...]}
 params.gating_strategy = '{"lymphocytes": [["FSC-A", "between", [50000, 150000]], ["SSC-A", "between", [10000, 80000]]]}'
@@ -26,7 +28,8 @@ process ANALYZE_FLOW_CYTOMETRY_IMMUNOPHENOTYPING {
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/workflow-tools:x86' : 'biomate/workflow-tools:latest'
 
     input:
-    val(meta)  // Meta information for this run
+    // Stage FCS into the task work dir so Batch containers see a real file.
+    tuple val(meta), path(fcs_file, stageAs: 'input.fcs')
 
     output:
     tuple val(meta), path("analyze_flow_cytometry_immunophenotyping_results.json"), emit: results
@@ -37,10 +40,20 @@ process ANALYZE_FLOW_CYTOMETRY_IMMUNOPHENOTYPING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     # Export parameters as environment variables
-    export PARAM_FCS_FILE_PATH="${params.fcs_file_path?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_FCS_FILE_PATH="\$(pwd)/input.fcs"
     export PARAM_GATING_STRATEGY="${params.gating_strategy?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_COMPENSATION_MATRIX="${params.compensation_matrix?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_OUTPUT_DIR="${params.output_dir?.toString()?.replace('"', '\\"') ?: 'null'}"
+
+    # flowio required for FCS; bootstrap into task workdir if image lacks it.
+    python3 -c 'import flowio' 2>/dev/null || {
+      echo "[flow-cytometry] flowio missing in image — pip install --target .pydeps flowio==1.4.0" >&2
+      python3 -m pip install --target .pydeps --quiet flowio==1.4.0 || {
+        echo "ERROR: could not install flowio. Rebuild biomate/workflow-tools with flowio." >&2
+        exit 1
+      }
+      export PYTHONPATH="\$(pwd)/.pydeps:\${PYTHONPATH:-}"
+    }
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -240,18 +253,33 @@ def analyze_flow_cytometry_immunophenotyping(
 
 # Execute the function
 try:
+    fcs_path = auto_convert(os.environ.get("PARAM_FCS_FILE_PATH", ""))
+    if not fcs_path or not os.path.isfile(str(fcs_path)):
+        raise FileNotFoundError(
+            f"Staged FCS not found at {fcs_path!r}. "
+            "The process must receive the FCS as a Nextflow path input "
+            "(not a bare host projectDir string)."
+        )
+    comp = auto_convert(os.environ.get("PARAM_COMPENSATION_MATRIX", ""))
+    if isinstance(comp, str) and (
+        "Spillover" in comp or "compensation matrix" in comp.lower() or "description" in comp.lower()
+    ):
+        comp = None
     result = analyze_flow_cytometry_immunophenotyping(
-        fcs_file_path=auto_convert(os.environ.get("PARAM_FCS_FILE_PATH", "")),
+        fcs_file_path=fcs_path,
         gating_strategy=auto_convert(os.environ.get("PARAM_GATING_STRATEGY", "")),
-        compensation_matrix=auto_convert(os.environ.get("PARAM_COMPENSATION_MATRIX", "")),
-        output_dir=auto_convert(os.environ.get("PARAM_OUTPUT_DIR", "./results")),
+        compensation_matrix=comp,
+        output_dir=auto_convert(os.environ.get("PARAM_OUTPUT_DIR", "./results")) or "./results",
     )
     success = True
     error_msg = None
 except Exception as e:
+    import traceback
     result = None
     success = False
     error_msg = str(e)
+    traceback.print_exc()
+    print(f"[flow-cytometry] ERROR: {error_msg}", flush=True)
 
 # Save results
 output_data = {
@@ -301,7 +329,7 @@ PYEOF
 
 workflow ANALYZE_FLOW_CYTOMETRY_IMMUNOPHENOTYPING_WORKFLOW {
     take:
-    ch_input  // channel: [ val(meta), path(input) ] or just val(meta)
+    ch_input  // channel: tuple val(meta), path(fcs_file)
 
     main:
     ANALYZE_FLOW_CYTOMETRY_IMMUNOPHENOTYPING(ch_input)
@@ -312,10 +340,20 @@ workflow ANALYZE_FLOW_CYTOMETRY_IMMUNOPHENOTYPING_WORKFLOW {
     versions = ANALYZE_FLOW_CYTOMETRY_IMMUNOPHENOTYPING.out.versions
 }
 
-// Entry workflow for standalone execution
+// Entry workflow for standalone execution.
+// Stages the FCS (default: vendored Accuri blank) into the task work dir so AWS
+// Batch containers can read it — unlike a bare projectDir string env var.
 workflow {
-    // Create channel with meta map
-    ch_input = Channel.of([id: 'run'])
+    def fcs_src = params.fcs_file_path
+    if( !fcs_src ) {
+        error "Please provide --fcs_file_path (or rely on the vendored Accuri demo default)"
+    }
+    ch_input = Channel.of(
+        tuple(
+            [ id: 'run' ],
+            file(fcs_src, checkIfExists: true)
+        )
+    )
 
     ANALYZE_FLOW_CYTOMETRY_IMMUNOPHENOTYPING_WORKFLOW(ch_input)
 

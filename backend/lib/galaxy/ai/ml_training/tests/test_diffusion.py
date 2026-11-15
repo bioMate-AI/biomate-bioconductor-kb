@@ -1,9 +1,12 @@
 """Dep-free unit tests for the protein/peptide structure-diffusion path.
 
 These exercise config validation, the DiffusionSpec, the structure-set loader,
-conditioning assembly, routing, CLI arg mapping, param-form, and executor image
-selection WITHOUT importing rfdiffusion/torch (the real fine-tune/sample loop runs
-in the separate diffusion-training GPU image — deferred, see the design doc)."""
+conditioning assembly, routing, CLI arg mapping, param-form, weight staging,
+and executor image selection WITHOUT importing rfdiffusion/torch (the real
+design loop runs in the diffusion-training GPU image)."""
+from pathlib import Path
+from unittest.mock import patch
+
 import pytest
 
 from galaxy.ai.ml_training.config import (
@@ -16,7 +19,7 @@ from galaxy.ai.ml_training.routing import (
 )
 from galaxy.ai.ml_training.cli import _build_parser, build_config_from_args
 from galaxy.ai.ml_training.executor_payload import (
-    _resolve_container, build_execute_request,
+    _resolve_container, build_execute_request, resolve_ml_training_container,
 )
 
 
@@ -144,19 +147,104 @@ def test_conditioning_assembly_maps_spec_to_rfdiffusion():
     assert cond["inference.input_pdb"] == "target.pdb"
     assert cond["diffuser.T"] == 25
     assert cond["inference.num_designs"] == 4
-    assert cond["diffuser.noise_schedule"] == "cosine"
+    assert cond["diffuser.schedule_type"] == "cosine"
 
 
-def test_train_diffusion_defers_without_framework(tmp_path):
+def test_train_diffusion_defers_without_framework(tmp_path, monkeypatch):
     """HONESTY: absent rfdiffusion+weights, the trainer raises an informative
     NotImplementedError — it does NOT fabricate a trained checkpoint/metrics."""
+    import builtins
     from galaxy.ai.ml_training.diffusion_trainer import train_diffusion
     from galaxy.ai.ml_training.datasets import LoadedDataset
+    # Host may have a broken torch that aborts on import; force ImportError so
+    # this unit test exercises the lazy-import deferral path only.
+    real_import = builtins.__import__
+
+    def _deny_gpu_stack(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "torch" or name == "rfdiffusion" or name.startswith(
+            ("torch.", "rfdiffusion.")
+        ):
+            raise ImportError(f"blocked {name} for deferral unit test")
+        return real_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", _deny_gpu_stack)
     cfg = _diff_cfg(dataset=DatasetSpec(name="fixture:structures", split="random"))
     ph = LoadedDataset([], "structure", "none", source="ph")
     with pytest.raises(NotImplementedError) as ei:
         train_diffusion(cfg, ph, str(tmp_path))
     assert "diffusion-training" in str(ei.value)
+
+
+def test_ensure_weights_uses_existing_file(tmp_path, monkeypatch):
+    from galaxy.ai.ml_training import diffusion_trainer as dt
+    monkeypatch.setenv("DIFFUSION_WEIGHTS_DIR", str(tmp_path))
+    ckpt = tmp_path / "Base_ckpt.pt"
+    ckpt.write_bytes(b"fake-ckpt-bytes")
+    assert dt.ensure_rfdiffusion_weights("Base_ckpt.pt") == ckpt.resolve()
+
+
+def test_ensure_weights_downloads_when_missing(tmp_path, monkeypatch):
+    from galaxy.ai.ml_training import diffusion_trainer as dt
+    monkeypatch.setenv("DIFFUSION_WEIGHTS_DIR", str(tmp_path))
+
+    def fake_retrieve(url, dest):
+        Path(dest).write_bytes(b"downloaded")
+
+    with patch.object(dt.urllib.request, "urlretrieve", side_effect=fake_retrieve):
+        got = dt.ensure_rfdiffusion_weights("Base_ckpt.pt")
+    assert got.is_file() and got.read_bytes() == b"downloaded"
+
+
+def test_from_scratch_raises_even_with_rfdiffusion(tmp_path, monkeypatch):
+    """Open RFdiffusion has no from-scratch trainer — must not invent metrics."""
+    from galaxy.ai.ml_training import diffusion_trainer as dt
+    from galaxy.ai.ml_training.datasets import LoadedDataset
+    cfg = _diff_cfg(
+        dataset=DatasetSpec(name="fixture:structures", split="random"),
+        diffusion=DiffusionSpec(finetune=False, base_checkpoint=""),
+    )
+    ph = LoadedDataset([], "structure", "none", source="ph")
+    import sys
+    import types
+    monkeypatch.setitem(sys.modules, "torch", types.ModuleType("torch"))
+    monkeypatch.setitem(sys.modules, "rfdiffusion", types.ModuleType("rfdiffusion"))
+    with pytest.raises(NotImplementedError) as ei:
+        dt.train_diffusion(cfg, ph, str(tmp_path))
+    assert "from-scratch" in str(ei.value).lower() or "open" in str(ei.value).lower()
+
+
+def test_finetune_runs_when_deps_present(tmp_path, monkeypatch):
+    """When torch+rfdiffusion import, finetune path stages ckpt + calls inference."""
+    from galaxy.ai.ml_training import diffusion_trainer as dt
+    from galaxy.ai.ml_training.datasets import LoadedDataset
+    import sys
+    import types
+    monkeypatch.setitem(sys.modules, "torch", types.ModuleType("torch"))
+    monkeypatch.setitem(sys.modules, "rfdiffusion", types.ModuleType("rfdiffusion"))
+    monkeypatch.setenv("DIFFUSION_WEIGHTS_DIR", str(tmp_path / "weights"))
+    (tmp_path / "weights").mkdir()
+    ckpt = tmp_path / "weights" / "Base_ckpt.pt"
+    ckpt.write_bytes(b"ckpt")
+
+    design = tmp_path / "out_design.pdb"
+    design.write_text("ATOM      1  CA  ALA A   1       0.000   0.000   0.000  1.00  0.00           C\nEND\n")
+
+    def fake_infer(cfg, structures, conditioning, checkpoint, designs_dir):
+        dest = Path(designs_dir) / "design_0.pdb"
+        dest.write_text(design.read_text())
+        return [dest], {"mean_plddt": 0.71, "ca_rmsd_to_ref": 2.5}
+
+    monkeypatch.setattr(dt, "run_rfdiffusion_inference", fake_infer)
+    cfg = _diff_cfg(dataset=DatasetSpec(name="fixture:structures", split="random"))
+    ph = LoadedDataset([], "structure", "none", source="ph")
+    result = dt.train_diffusion(cfg, ph, str(tmp_path / "art"))
+    assert result.metrics["n_designs"] == 1.0
+    assert result.metrics["mean_plddt"] == 0.71
+    assert result.metrics["scrmsd"] == 2.5
+    assert result.extra["weight_update"] is False
+    assert "train_loss" not in result.metrics  # never fabricate
+    assert (tmp_path / "art" / "conditioning.json").is_file()
+    assert (tmp_path / "art" / "rfdiffusion_model" / "Base_ckpt.pt").is_file()
 
 
 # --- routing --------------------------------------------------------------
@@ -232,6 +320,17 @@ def test_route_ml_training_diffusion_ga():
     assert ga["domain"] == "ml_training"
     assert ga["nextflow_path"] == "ml_training/diffusion_train.nf"
     assert "protein_diffusion" in ga["scientific_rationale"]
+    assert "diffusion-training" in ga["compute_config"]["container"]
+
+
+def test_resolve_container_by_nf_path():
+    assert "diffusion-training" in resolve_ml_training_container(
+        nextflow_path="ml_training/diffusion_train.nf")
+    assert "sc-diffusion-training" in resolve_ml_training_container(
+        nextflow_path="ml_training/scrna_diffusion_train.nf")
+    assert "trl-training" in resolve_ml_training_container(model_type="trl_dpo")
+    assert resolve_ml_training_container(model_type="sklearn_tabular").endswith(
+        "/biomate/ml-training:latest")
 
 
 # --- cli ------------------------------------------------------------------

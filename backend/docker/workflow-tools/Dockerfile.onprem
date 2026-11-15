@@ -98,7 +98,8 @@ RUN pip install --no-cache-dir \
     statsmodels \
     scikit-image \
     opencv-python-headless \
-    PyPDF2
+    PyPDF2 \
+    flowio
 
 RUN pip install --no-cache-dir \
     "git+https://github.com/bp-kelley/descriptastorus" \
@@ -128,6 +129,7 @@ import meeko; print('Meeko OK')" && \
     python3 -c "import skimage; print('scikit-image OK')" && \
     python3 -c "import cv2; print('OpenCV OK')" && \
     python3 -c "import PyPDF2; print('PyPDF2 OK')" && \
+    python3 -c "import flowio; print('flowio OK')" && \
     echo "All workflow-tools (on-prem) checks passed."
 
 WORKDIR /data

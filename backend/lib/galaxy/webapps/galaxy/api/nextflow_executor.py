@@ -4043,18 +4043,29 @@ process {{
         # (no ludwig) and the TRAIN process fails. API callers that already set
         # compute.container (executor_payload) keep their value.
         if not container and "ml_training/" in (nf_path or ""):
-            # TRL preference/RL methods (DPO/GRPO) need newer torch/transformers
-            # than Ludwig's pins allow, so they ship in a separate image.
-            if model_type in ("trl_dpo", "trl_grpo"):
-                container = os.environ.get(
-                    "TRL_TRAINING_IMAGE",
-                    "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/trl-training:latest",
+            # Per-model-type images (protein/sc/tabular diffusion, TRL, Ludwig).
+            # Chat Confirm & Run often omits compute_config.container; without this
+            # protein_diffusion landed on biomate/ml-training (no rfdiffusion) and
+            # TRAIN raised NotImplementedError even though diffusion-training:latest
+            # exists in ECR. Path+model_type resolution lives in executor_payload.
+            try:
+                from galaxy.ai.ml_training.executor_payload import (
+                    resolve_ml_training_container,
                 )
-            else:
-                container = os.environ.get(
-                    "ML_TRAINING_IMAGE",
-                    "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ml-training:latest",
+                container = resolve_ml_training_container(
+                    model_type=model_type or "", nextflow_path=nf_path or "",
                 )
+            except Exception:
+                if model_type in ("trl_dpo", "trl_grpo"):
+                    container = os.environ.get(
+                        "TRL_TRAINING_IMAGE",
+                        "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/trl-training:latest",
+                    )
+                else:
+                    container = os.environ.get(
+                        "ML_TRAINING_IMAGE",
+                        "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ml-training:latest",
+                    )
         container = container or os.environ.get(
             "NEXTFLOW_BATCH_CONTAINER", "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest"
         )

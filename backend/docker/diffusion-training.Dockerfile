@@ -15,10 +15,9 @@
 # nextflow_executor.py container auto-select). The .nf wrapper carries
 # `label 'process_gpu'`, so it lands on the GPU Batch queue.
 #
-# Build context = repo root (so the COPY path resolves). This is a SPEC — the
-# actual build/push is a CI/ops step (see .github/workflows; a
-# diffusion-training-image.yml mirrors trl-training-image.yml). It is NOT built in
-# this session (no speculative GPU/Batch spend — CLAUDE.md).
+# Build context = repo root (so the COPY path resolves). Build/push via
+# .github/workflows/diffusion-training-image.yml (tag diffusion-training-v** or
+# workflow_dispatch). ECR: biomate/diffusion-training:latest.
 #
 # --- Base: CUDA + Python ---------------------------------------------------
 # RFdiffusion targets CUDA 11.x. Use the runtime CUDA base (devel only if a
@@ -55,13 +54,23 @@ RUN python -m pip install --upgrade pip \
          biotite biopython numpy scipy mlflow
 
 # RFdiffusion from source (RosettaCommons/RFdiffusion, BSD-2). The SE3Transformer
-# submodule is installed as an editable package. Weights (Base_ckpt.pt, etc.) are
-# provided at run time via DIFFUSION_WEIGHTS_DIR / an S3 data layer — see the
-# design doc §deferred; they are large and license-gated so are NOT baked here.
+# submodule is installed as an editable package. Released weights are fetched at
+# build time into /opt/RFdiffusion/models so Batch workers do not depend on
+# files.ipd.uw.edu at run time (diffusion_trainer.ensure_rfdiffusion_weights
+# still downloads as a fallback if DIFFUSION_WEIGHTS_DIR is empty).
 RUN git clone --depth 1 https://github.com/RosettaCommons/RFdiffusion.git /opt/RFdiffusion \
     && pip install /opt/RFdiffusion/env/SE3Transformer \
-    && pip install --no-deps -e /opt/RFdiffusion
+    && pip install --no-deps -e /opt/RFdiffusion \
+    && mkdir -p /opt/RFdiffusion/models \
+    && curl -fsSL -o /opt/RFdiffusion/models/Base_ckpt.pt \
+         http://files.ipd.uw.edu/pub/RFdiffusion/6f5902ac237024bdd0c176cb93063dc4/Base_ckpt.pt \
+    && curl -fsSL -o /opt/RFdiffusion/models/Complex_base_ckpt.pt \
+         http://files.ipd.uw.edu/pub/RFdiffusion/e29311f6f1bf1af907f9ef9f44b8328b/Complex_base_ckpt.pt \
+    && test -s /opt/RFdiffusion/models/Base_ckpt.pt \
+    && test -s /opt/RFdiffusion/models/Complex_base_ckpt.pt
 ENV PYTHONPATH=/opt/RFdiffusion:/app
+ENV DIFFUSION_WEIGHTS_DIR=/opt/RFdiffusion/models
+ENV RFDIFFUSION_ROOT=/opt/RFdiffusion
 
 # The ml_training package at top-level → `python -m ml_training.cli`.
 COPY backend/lib/galaxy/ai/ml_training /app/ml_training

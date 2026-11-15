@@ -123,6 +123,9 @@ tool-data/**/*.fa
 assets/
 # vendored nf_encyclopedia ships its own assets/ (email template + NO_FILE placeholder)
 !nf-core-modules/nf_encyclopedia/assets/
+# pep-3 / gromacs_pmx_fep demo receptor must ship with the workflow dir (Batch staging)
+!biomni_workflows/nfcore/gromacs_pmx_fep/assets/
+!biomni_workflows/nfcore/gromacs_pmx_fep/assets/**
 test-data-cache
 run_api_tests.html
 run_cwl_tests.html

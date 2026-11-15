@@ -100,12 +100,16 @@ RUN pip install --no-cache-dir \
     statsmodels \
     scikit-image \
     opencv-python-headless \
-    PyPDF2
+    PyPDF2 \
+    flowio
 # opencv (cv2, headless — no GUI libs): several image-analysis workflows
 # (aortic geometry, mitochondrial morphology, cell morphology/cytoskeleton) import
 # cv2. It was MISSING, so those workflows failed at `import cv2` — previously hidden
 # by their dishonest-success bug, now an honest failure. Adding it makes them
 # runnable. Rebuild + push workflow-tools:x86 for this to take effect on Batch.
+# flowio: FCS file reader for flow-cytometry / FACS / CFSE immunophenotyping
+# workflows (analyze_flow_cytometry_immunophenotyping and siblings). Missing
+# flowio → ModuleNotFoundError → "Essential container in task exited".
 
 # descriptastorus must be installed from GitHub — the PyPI package is stale.
 # Canonical pharmacology functions require this dependency through DeepPurpose.
@@ -143,6 +147,7 @@ import meeko; print('Meeko OK')" && \
     python3 -c "import skimage; print('scikit-image OK')" && \
     python3 -c "import cv2; print('OpenCV OK  version={}'.format(cv2.__version__))" && \
     python3 -c "import PyPDF2; print('PyPDF2 OK')" && \
+    python3 -c "import flowio; print('flowio OK  version={}'.format(getattr(flowio, '__version__', '?')))" && \
     aws --version && \
     echo "All workflow-tools checks passed."
 

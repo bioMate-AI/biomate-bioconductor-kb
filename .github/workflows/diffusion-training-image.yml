@@ -34,6 +34,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # This branch carries ~1.2GB of committed data (galaxy_ai_tools.db,
+          # docs/*.npz, figures). A full checkout stalls the runner before the
+          # disk-cleanup step. The Docker build only needs the ml_training source
+          # (one COPY) + this Dockerfile; weights are fetched inside the image.
+          sparse-checkout: |
+            backend/lib/galaxy/ai/ml_training
+            backend/docker/diffusion-training.Dockerfile
+          sparse-checkout-cone-mode: false
+          filter: blob:none
 
       - name: Compute build tags
         id: tags
@@ -71,8 +81,16 @@ jobs:
           cache-from: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:buildcache
           cache-to: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:buildcache,mode=max
 
-      - name: Smoke — CLI runs in the pushed image
+      - name: Smoke — CLI + weights + rfdiffusion in the pushed image
         run: |
-          docker run --rm ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
-            python -m ml_training.cli --help >/dev/null
+          IMG=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}
+          docker run --rm "$IMG" python -m ml_training.cli --help >/dev/null
+          docker run --rm "$IMG" python -c "
+          import torch, rfdiffusion
+          from pathlib import Path
+          w = Path('/opt/RFdiffusion/models/Base_ckpt.pt')
+          assert w.is_file() and w.stat().st_size > 0, w
+          assert Path('/opt/RFdiffusion/scripts/run_inference.py').is_file()
+          print('diffusion-training image smoke OK', torch.__version__, w.stat().st_size)
+          "
           echo "diffusion-training image smoke OK"

@@ -18,7 +18,8 @@
         "receptor": {
           "type": "string",
           "format": "file-path",
-          "description": "Target protein PDB (dataset chip)."
+          "default": "1BXL.pdb",
+          "description": "Target protein PDB (dataset chip, s3://, or bare 1BXL.pdb → workflow assets demo)."
         },
         "edge_kind": {
           "type": "string",
@@ -26,11 +27,12 @@
             "peptide_pair",
             "residue_mutation"
           ],
-          "default": "residue_mutation",
+          "default": "peptide_pair",
           "description": "residue_mutation (A->B point mutations) or peptide_pair (two peptides)."
         },
         "edge_spec": {
           "type": "string",
+          "default": "GQVGRQLAIIGDDINR|AQVGRQLAIIGDDINR",
           "description": "e.g. 'P:1 TYR->PHE,P:7 TYR->PHE' or 'ligandA|ligandB'."
         },
         "modality": {

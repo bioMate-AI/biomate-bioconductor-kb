@@ -392,7 +392,7 @@ def extract_training_config(
         dataset = DatasetSpec(name=ds_name, target_col=filled.get("target_col", "y"))
         task_type = filled.get("task_type", task_type)
 
-    name = default_name or _derive_name(text, alias)
+    name = default_name or _derive_name(text, alias, own_data=bool(dataset_s3_uri))
     return TrainingConfig(
         name=name, task_type=task_type, model_type=model_type,
         dataset=dataset, hyperparams=Hyperparams(), metric=metric,
@@ -440,12 +440,20 @@ def route_ml_training(
         cfg = extract_training_config(text, dataset_s3_uri=dataset_s3_uri, llm_fill=llm_fill)
     except ValueError:
         return None  # ambiguous → let the normal router try
-    ga = cfg.to_workflow_ga(nextflow_path=nextflow_path_for(cfg.model_type))
+    nf_path = nextflow_path_for(cfg.model_type)
+    ga = cfg.to_workflow_ga(nextflow_path=nf_path)
     ga["scientific_rationale"] = (
         f"Detected a model-training request; routing to the ml_training pipeline "
         f"({cfg.model_type}, {cfg.task_type}) on dataset "
         f"{cfg.dataset.name or cfg.dataset.s3_uri}."
     )
+    # Attach compute_config so Confirm & Run can forward the right GPU image
+    # without relying solely on nextflow_executor's path fallback.
+    from .executor_payload import resolve_ml_training_container
+    ga["compute_config"] = {
+        "executor": "awsbatch",
+        "container": resolve_ml_training_container(cfg.model_type, nf_path),
+    }
     return ga
 
 
@@ -490,13 +498,21 @@ _MODEL_NAME_RE = re.compile(
     r"\b(?:a|an|the)?\s*([a-z0-9][\w+-]{2,30})\s+(predictor|classifier|regressor|model)\b", re.I)
 
 
-def _derive_name(text: str, alias: Optional[tuple[str, str, str]]) -> str:
-    if alias:
-        kind = "classifier" if alias[1] == "classification" else "regressor"
-        return f"{alias[0]} {kind}"
+def _derive_name(
+    text: str,
+    alias: Optional[tuple[str, str, str]],
+    *,
+    own_data: bool = False,
+) -> str:
+    """Card title. Prefer the user's wording ("solubility model") when they attached
+    their own table; only use TDC-style alias names (Solubility_AqSolDB) when the
+    job actually trains on that public alias."""
     m = _MODEL_NAME_RE.search(text or "")
     if m and m.group(1).lower() not in ("a", "an", "the", "new", "our", "my", "this", "that"):
         return f"{m.group(1)} {m.group(2).lower()}"
+    if alias and not own_data:
+        kind = "classifier" if alias[1] == "classification" else "regressor"
+        return f"{alias[0]} {kind}"
     return "molecular model"
 
 

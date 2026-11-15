@@ -39,6 +39,36 @@ def test_flow_cytometry_fcs_fixture_present():
     assert fcs.stat().st_size > 1000
 
 
+def test_flow_cytometry_stages_fcs_as_path_input():
+    """analysis-try-sample-data-3: bare projectDir string is not mounted on Batch.
+
+    The process must declare `path(... stageAs: 'input.fcs')` and the entry
+    workflow must `file(..., checkIfExists: true)` so Nextflow stages the Accuri
+    blank into the task work dir. Regression: .command.sh showed
+    PARAM_FCS_FILE_PATH=/app/biomni_workflows/.../Accuri_....fcs with exit 1 and
+    empty .command.err ("Essential container in task exited").
+    """
+    nf = (
+        REPO
+        / "biomni_workflows/nextflow_nfcore/subworkflows/cell_biology"
+        / "analyze_flow_cytometry_immunophenotyping/main.nf"
+    ).read_text()
+    assert "stageAs: 'input.fcs'" in nf
+    assert "file(fcs_src, checkIfExists: true)" in nf
+    assert "tuple val(meta), path(fcs_file" in nf
+    # Must not export the host projectDir path as the only FCS handle.
+    assert 'PARAM_FCS_FILE_PATH="${params.fcs_file_path' not in nf
+    assert "input.fcs" in nf and "PARAM_FCS_FILE_PATH=" in nf
+
+
+def test_workflow_tools_dockerfile_installs_flowio():
+    """FCS workflows import flowio inside biomate/workflow-tools."""
+    df = (REPO / "docker/workflow-tools/Dockerfile").read_text()
+    assert "flowio" in df
+    smoke = (REPO / "docker/workflow-tools/smoke.py").read_text()
+    assert "import flowio" in smoke
+
+
 def test_chipseq_entry_uses_vendored_sample_data_not_github_raw():
     nf = (
         REPO

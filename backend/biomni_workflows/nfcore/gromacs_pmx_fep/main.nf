@@ -50,9 +50,12 @@ params.outdir            = './results/gromacs_pmx_fep'
 params.publish_dir_mode  = 'copy'
 
 // 1 · define_edge
-// Default receptor = vendored BCL-XL demo (1BXL) so coldstart peptide FEP can
-// launch when Prepared inputs only named `1BXL.pdb` and staging lagged.
-params.receptor          = "${projectDir}/../../sample_data/peptides/1BXL.pdb"
+// Default receptor = PDB vendored UNDER this workflow (assets/), not
+// ../../sample_data — Batch / Galaxy staging copies the workflow dir; sibling
+// sample_data is often absent → Channel.fromPath No such file (.nextflow.log).
+// Catalog Prepared seeds still set receptor=1BXL.pdb (bare); _resolveReceptor
+// maps that basename onto assets/ so Confirm can launch without force-override.
+params.receptor          = "${projectDir}/assets/1BXL.pdb"
 params.edge_kind         = 'peptide_pair'       // residue_mutation | peptide_pair
 params.edge_spec         = 'GQVGRQLAIIGDDINR|AQVGRQLAIIGDDINR'  // BAK BH3 vs G1A
 params.modality          = 'peptide'            // peptide | cyclic_peptide
@@ -97,6 +100,30 @@ params.use_aws = false
 
 def _entry() { return Channel.fromPath("${projectDir}/bin/run_gromacs_pmx_fep.py") }
 def _gates() { return (params.gates_cleared ?: '').replaceAll(',', ' ').trim() }
+
+// Resolve receptor to a path that exists next to main.nf (or pass through
+// s3:// / absolute / already-staged paths). Bare "1BXL.pdb" from coldstart
+// Prepared inputs must NOT win as a CWD-relative miss.
+def _resolveReceptor(raw) {
+    def bundled = "${projectDir}/assets/1BXL.pdb"
+    def s = (raw == null) ? '' : raw.toString().trim()
+    if (!s || s.equalsIgnoreCase('null') || s.equalsIgnoreCase('none')) {
+        return bundled
+    }
+    // Literal unexpanded CLI echo of an old default / GString
+    if (s.contains('${projectDir}') || s.contains('sample_data/peptides/1BXL')) {
+        return bundled
+    }
+    if (s.equalsIgnoreCase('1BXL.pdb') || s.equalsIgnoreCase('1BXL')) {
+        return bundled
+    }
+    // Bare basename.pdb → workflow assets when present
+    if (!s.contains('/') && !s.contains('\') && s.toLowerCase().endsWith('.pdb')) {
+        def cand = file("${projectDir}/assets/${s}")
+        if (cand.exists()) return cand.toString()
+    }
+    return s
+}
 
 // ============================================================================
 // Processes (one per step = one phase card)
@@ -252,10 +279,11 @@ process ANALYZE {
 // Workflow — the transparent step chain (auto-advance; gates enforced in the panel/engine)
 // ============================================================================
 workflow {
-    if (!params.receptor)  error "params.receptor is required (protein PDB)"
     if (!params.edge_spec) error "params.edge_spec is required (mutation list or peptide pair)"
 
-    ch_receptor = Channel.fromPath(params.receptor, checkIfExists: true)
+    def receptor_path = _resolveReceptor(params.receptor)
+    if (!receptor_path) error "params.receptor is required (protein PDB)"
+    ch_receptor = Channel.fromPath(receptor_path, checkIfExists: true)
 
     DEFINE_EDGE(ch_receptor, _entry())
     PREPARE(ch_receptor, DEFINE_EDGE.out.edge_spec, _entry())

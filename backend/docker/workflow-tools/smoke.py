@@ -20,6 +20,7 @@ import Bio  # noqa: F401
 import meeko  # noqa: F401
 import cv2  # noqa: F401
 import PyPDF2  # noqa: F401
+import flowio  # noqa: F401  # FCS reader for flow-cytometry workflows
 from DeepPurpose import DTI, utils  # noqa: F401
 
 

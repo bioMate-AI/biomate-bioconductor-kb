@@ -18,9 +18,10 @@
  * separate biomate/diffusion-training image (torch-cuda + rfdiffusion), set per
  * run by the executor from compute_config.container (executor_payload).
  *
- * Skeleton note: the concrete RFdiffusion fine-tune/sample loop runs inside that
- * GPU image (which has rfdiffusion + weights installed); this file is validated
- * for routing/param wiring, not executed in the sandbox.
+ * The TRAIN process runs `python -m ml_training.cli` inside the diffusion-training
+ * image (rfdiffusion + Base/Complex ckpts under /opt/RFdiffusion/models). Executor
+ * injects compute_config.container; chat Confirm & Run falls back via
+ * resolve_ml_training_container(model_type / this .nf path).
  */
 nextflow.enable.dsl = 2
 
