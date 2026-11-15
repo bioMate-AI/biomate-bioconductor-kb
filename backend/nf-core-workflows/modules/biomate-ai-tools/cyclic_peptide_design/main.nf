@@ -296,8 +296,9 @@ rows.sort(key=lambda r: (-r['score'], r['id']))
 
 with open('cyclic_peptides.fasta', 'w') as fh:
     for r in rows:
-        # Escape \$ for Nextflow GString (pep-3: f-string unmatched '[').
-        fh.write(f\">{r["id"]} len={r["length"]} score={r["score"]}\\n{r["seq"]}\\n")
+        # Single-quote dict keys: nested " in an f-string is a SyntaxError on
+        # Python <3.12 (pep-3: f-string unmatched '['). \$ escaped for GString.
+        fh.write(f\">{r['id']} len={r['length']} score={r['score']}\\n{r['seq']}\\n")
 
 with open('cyclic_peptides.csv', 'w', newline='') as fh:
     w = csv.DictWriter(fh, fieldnames=['id', 'seq', 'length', 'mw_da', 'charge',
