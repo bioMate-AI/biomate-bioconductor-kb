@@ -668,7 +668,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
               <Info style={{ width: 14, height: 14, flexShrink: 0, marginTop: 1, color: 'oklch(0.50 0.12 240)' }} />
               <p style={{ fontSize: 'var(--fs-sm)', lineHeight: 1.6, color: 'oklch(0.42 0.04 240)', margin: 0 }}>
                 {tOr('workflows_library.import_tip',
-                  'Upload your own Nextflow workflow (.nf, .yml, or .yaml). Once imported it appears under My workflows and can be launched from any chat. Galaxy .ga files are not supported.')}
+                  'Upload your own Nextflow workflow (.nf, .yml, or .yaml). Once imported it appears under My workflows and can be launched from any chat. Galaxy .ga import is temporarily disabled.')}
               </p>
             </div>
 

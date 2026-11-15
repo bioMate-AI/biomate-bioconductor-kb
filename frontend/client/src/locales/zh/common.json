@@ -2268,7 +2268,7 @@
     "seed_prompt": "运行 {{name}} 工作流。",
     "title_short": "工作流",
     "tab_import": "导入工作流",
-    "import_tip": "支持上传你自己的 Nextflow 工作流（.nf、.yml 或 .yaml）。导入后将显示在「我的工作流」中，可在任意对话中直接调用。不支持 Galaxy .ga 文件。",
+    "import_tip": "支持上传你自己的 Nextflow 工作流（.nf、.yml 或 .yaml）。导入后将显示在「我的工作流」中，可在任意对话中直接调用。Galaxy .ga 导入暂时关闭。",
     "import_file_label": "工作流文件",
     "import_choose_file": "选择文件",
     "import_no_file": "未选择文件",
@@ -2777,12 +2777,12 @@
     "settings": {
       "api_keys": "用于把聊天应用和 MCP 客户端连接到 BioMate 的个人密钥，以及对话所用的语言模型。",
       "connectors": "公共数据源、你的私有数据库、MCP 服务器和仪器连接。",
-      "import": "添加你自己的 Nextflow 工作流（.nf、.yml 或 .yaml），之后可在任意对话中运行。不支持 Galaxy .ga。"
+      "import": "添加你自己的 Nextflow 工作流（.nf、.yml 或 .yaml），之后可在任意对话中运行。Galaxy .ga 导入暂时关闭。"
     },
     "workflows_library": {
       "browse": "按任务、方法或数据类型搜索精选工作流目录。",
       "my": "你导入的工作流，可在任意对话中启动。",
-      "import": "上传你自己的 Nextflow 工作流（.nf、.yml 或 .yaml）。不支持 Galaxy .ga。"
+      "import": "上传你自己的 Nextflow 工作流（.nf、.yml 或 .yaml）。Galaxy .ga 导入暂时关闭。"
     },
     "dataset": {
       "preview": "查看文件内容：以表格、图片或文本形式显示。",

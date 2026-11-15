@@ -1,27 +1,36 @@
-# Remove Galaxy `.ga` from Import Workflow (2026-11-15)
+# Temporarily disable Galaxy `.ga` Import Workflow (2026-11-15)
 
 ## Intent
 
-BioMate personal imports execute as Nextflow (`file_content` → Batch). Offering `.ga` (Galaxy workflow JSON) on the Import Workflow path was dishonest — files could be stored in `personal_workflows` but were not runnable as Nextflow / Galaxy-engine invoke.
+BioMate personal imports execute as Nextflow (`file_content` → Batch). Offering `.ga` on Import was dishonest until Galaxy-engine invoke (or conversion) exists. **Not a permanent hard delete** — gated / commented so it can be re-enabled after testing.
 
 ## Change
 
-Fail-closed: strip `.ga` from the import surface and reject at the API.
+Temporary fail-closed behind one flip:
+
+```ts
+// frontend/shared/personal-workflow-import.ts
+export const GA_IMPORT_ENABLED = false; // TODO: re-enable when .ga execution is supported
+```
 
 | Layer | Change |
 |-------|--------|
-| Shared allowlist | `frontend/shared/personal-workflow-import.ts` — `.nf`, `.yml`, `.yaml` only |
-| UI | `workflow-history-dialog.tsx` — `accept=`, labels, tip copy, client-side reject |
-| i18n | en/zh `workflows_library.import_tip` + hint strings |
-| API | `POST /api/workflows/upload-file` multer filter → 415 with clear `.ga` message |
-| Tests | shared unit + routes wiring + dialog accept/reject; e2e `.ga` expects reject |
-| Checklist | `docs/20261113_GALAXY_COVERAGE_CHECKLIST.md` Wave-7-ish row → import closed |
+| Shared | `GA_IMPORT_ENABLED` drives allowlist; `.ga` commented with TODO |
+| UI | `accept=` / labels omit `.ga`; client reject stays fail-closed |
+| i18n | tip/hints say “temporarily disabled” |
+| API | multer uses shared allowlist → 415 while gated off |
+| Tests | assert `GA_IMPORT_ENABLED === false` + reject `.ga` |
+| Checklist | import closed for now; re-open via flag |
 
-## Out of scope
+## Re-enable
 
-- Full Galaxy-engine labeling everywhere (Wave 7 remainder)
-- Deleting already-imported `file_type=ga` rows (legacy open path unchanged)
-- Waves 5–6
+1. Set `GA_IMPORT_ENABLED = true`
+2. Update tip copy if needed
+3. Flip e2e/unit expectations that assert the gate is off
+
+## Pre-sync prediction
+
+With `GA_IMPORT_ENABLED=false`: Import file picker `accept` is `.nf,.yml,.yaml`; selecting `.ga` shows unsupported message and submit stays disabled; `POST /api/workflows/upload-file` with `.ga` returns **415**. Smoke should not claim `.ga` import success.
 
 ## Verify
 
