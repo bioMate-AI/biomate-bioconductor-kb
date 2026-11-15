@@ -78,6 +78,6 @@ No `undefined` card names; no `s3://` in card title/message. Remasure with expli
 
 ## Commits
 
-Focused Models coldstart wiring + REINVENT TL logfile fix committed this session (see git log).  
+Focused Models coldstart wiring + REINVENT TL logfile fix: `3536d04b05`.  
 Related already on branch: `8493c1d891` / `2435bab3d2` (scaffold “diffusion train” re-arm).  
 **Not synced to DEV yet** — remasure Train attach-S3 after PRE_SYNC + `scripts/sync_to_dev.sh`.
