@@ -21,6 +21,12 @@ import { tOr } from '@/lib/i18n';
 import { useLocalizedLabels } from '@/lib/use-localized-labels';
 import { HintTip } from '@/components/ui/hint-tip';
 import type { WorkflowSelection } from '@/lib/workflow-selection';
+import {
+  PERSONAL_WORKFLOW_ACCEPT_ATTR,
+  PERSONAL_WORKFLOW_ACCEPT_LABEL,
+  PERSONAL_WORKFLOW_UNSUPPORTED_MESSAGE,
+  isAllowedPersonalWorkflowName,
+} from '@shared/personal-workflow-import';
 
 /** One ranked catalog match returned by POST /api/ai_assistant/search_ranked. */
 interface RankedResult {
@@ -662,7 +668,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
               <Info style={{ width: 14, height: 14, flexShrink: 0, marginTop: 1, color: 'oklch(0.50 0.12 240)' }} />
               <p style={{ fontSize: 'var(--fs-sm)', lineHeight: 1.6, color: 'oklch(0.42 0.04 240)', margin: 0 }}>
                 {tOr('workflows_library.import_tip',
-                  'Upload your own workflow — Nextflow (.nf), or a .ga / .yml workflow file. Once imported it appears under My workflows and can be launched from any chat.')}
+                  'Upload your own Nextflow workflow (.nf, .yml, or .yaml). Once imported it appears under My workflows and can be launched from any chat. Galaxy .ga files are not supported.')}
               </p>
             </div>
 
@@ -682,7 +688,8 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
               <>
                 <div className="space-y-1.5">
                   <Label htmlFor="dlg-wf-file" className="text-sm">
-                    {tOr('workflows_library.import_file_label', 'Workflow file')} <span className="text-muted-foreground text-xs">(.nf, .ga, .yml)</span>
+                    {tOr('workflows_library.import_file_label', 'Workflow file')}{' '}
+                    <span className="text-muted-foreground text-xs">({PERSONAL_WORKFLOW_ACCEPT_LABEL})</span>
                   </Label>
                   <div className="flex items-center gap-2">
                     <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => uploadFileRef.current?.click()}>
@@ -690,11 +697,17 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                     </Button>
                     <span className="text-xs text-muted-foreground truncate">{uploadFile ? uploadFile.name : tOr('workflows_library.import_no_file', 'No file chosen')}</span>
                   </div>
-                  <input ref={uploadFileRef} type="file" accept=".nf,.ga,.yml,.yaml" className="hidden" data-testid="workflow-file-input"
+                  <input ref={uploadFileRef} type="file" accept={PERSONAL_WORKFLOW_ACCEPT_ATTR} className="hidden" data-testid="workflow-file-input"
                     onChange={(e) => {
                       const f = e.target.files?.[0] ?? null;
                       if (f && f.size > 10 * 1024 * 1024) {
                         setUploadError('File too large — maximum 10 MB for workflow files.');
+                        setUploadFile(null);
+                        e.target.value = '';
+                        return;
+                      }
+                      if (f && !isAllowedPersonalWorkflowName(f.name)) {
+                        setUploadError(PERSONAL_WORKFLOW_UNSUPPORTED_MESSAGE);
                         setUploadFile(null);
                         e.target.value = '';
                         return;
@@ -750,7 +763,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
               <div className="text-sm text-muted-foreground py-12 text-center">
                 <Upload className="w-8 h-8 mx-auto mb-3 opacity-30" />
                 <p>No imported workflows yet.</p>
-                <p className="mt-1 text-xs">Use the "Import Workflow" tab above to upload a .nf or .ga file.</p>
+                <p className="mt-1 text-xs">Use the "Import Workflow" tab above to upload a Nextflow (.nf / .yml) file.</p>
               </div>
             )}
             {!importsLoading && imports.length > 0 && (

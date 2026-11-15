@@ -86,7 +86,7 @@ Legend: **Wired** = proxy/route exists and is called in a real product path. **H
 | Deferred URL datasets | **Half** (API + quota check); little UX | rare | — | — | — | — |
 | Interactive Tools (Jupyter/RStudio/cellxgene) | **Half / Conflict** — routes + Open-in exist; `INTERACTIVE_TOOLS_ENABLED` off on typical deploys (no docker socket); UI buttons intentionally hidden | — | Open-in disabled | — | AfterRun IT row gated | — |
 | `run_code` sandbox | **Wired** (deliberate GIT substitute) | primary ad-hoc compute | generated files | Models sandbox | — | — |
-| Native Galaxy workflows (`.ga` invoke) | **Half** — invoke path exists; default engine is Nextflow; personal upload accepts `.ga` into Postgres, not Galaxy Shed | rare | — | — | library import | — |
+| Native Galaxy workflows (`.ga` invoke) | **Closed on import** (2026-11-15) — UI + `upload-file` reject `.ga`; proxy invoke path still unused; Nextflow-only personal import | rare | — | — | library import (nf/yml only) | — |
 | Workflow reports (Galaxy invocation report) | **Half** — proxy `getWorkflowReport`; product uses BioMate methods-report / findings / AfterRun | — | — | — | Findings / methods-report | IND narrative separate |
 | Lineage / provenance | **Wired (BioMate)** via `datasets_object`; Galaxy HDA provenance **Unused** | — | DatasetObject tabs | model lineage | reproducibility endpoints | compliance package |
 | Visualizations (Galaxy viz plugins) | **Unused** | markdown/plots via run_code | file preview | — | step preview | — |
@@ -94,7 +94,7 @@ Legend: **Wired** = proxy/route exists and is called in a real product path. **H
 | Data Libraries (LDDA trees) | **Unused** | — | project tree ≠ libraries | — | — | institutional share gap |
 | Tags / annotations | **Unused** (tags hit in health checks) | — | project notes separate | — | — | — |
 | Forms / Pages | **Unused** | — | — | — | — | — |
-| Tool Shed / TRS / Dockstore | **Unused** (install APIs in proxy; catalog is `galaxy_ai_tools.db`) | — | — | — | personal .nf/.ga upload | — |
+| Tool Shed / TRS / Dockstore | **Unused** (install APIs in proxy; catalog is `galaxy_ai_tools.db`) | — | — | — | personal .nf/.yml upload | — |
 | Data managers / tool_data tables | **Unused** as admin UI; igenomes auto-resolve on execute | — | — | — | genome params | — |
 | Job metrics (Galaxy) | **Unused**; BioMate has cost estimate + billing Redis | — | — | — | estimate_cost, billing | — |
 | Quotas (Galaxy disk) | **Conflict / Unused** — BioMate uses Stripe + internal quota | — | — | — | quota_enforcer | — |
@@ -189,11 +189,10 @@ Ranking ≈ **user value × feasibility** under Nextflow/Batch. Scores are relat
 **BioMate today:** step preview for tables/images/text; binary genomics formats are download-ish.  
 **Smallest step:** Prefer lightweight BioMate viewers (e.g. IGV.js for small BAM/VCF slices, cellxgene-style only if IT enabled) over embedding Galaxy viz iframes.
 
-### 11. Personal `.ga` → runnable Nextflow or honest “Galaxy-only” — **L × M**
+### 11. Personal `.ga` → runnable Nextflow or honest “Galaxy-only” — **Done (import closed)**
 
 **Galaxy offers:** import `.ga`, invoke on Galaxy jobs.  
-**BioMate today:** upload stores in Postgres; users expect Batch-like runs.  
-**Smallest step:** On `.ga` import, label engine=galaxy and use `invokeWorkflow`; refuse silent Nextflow conversion.
+**BioMate (2026-11-15):** Import Workflow UI + `POST /api/workflows/upload-file` reject `.ga` (415) — Nextflow-only (`.nf` / `.yml` / `.yaml`). No silent conversion; no misleading import path. Full Galaxy-engine invoke UX remains out of scope unless product prioritizes it.
 
 ### 12. Data Libraries for institutional reference sets — **L × L**
 

@@ -87,35 +87,32 @@ test.describe("workflow-upload", () => {
     expect(uploaded.file_type).toBe("nf");
   });
 
-  test("upload .ga Galaxy workflow succeeds and appears in personal list", async ({ page }) => {
+  test("upload .ga Galaxy workflow is rejected (Nextflow-only import)", async ({ page }) => {
     await loginAsFixture(page);
     await openUploadTab(page);
 
-    await page.getByTestId("workflow-name-input").fill("E2E Galaxy Stub");
-    await page.getByTestId("workflow-description-input").fill("Imported via E2E test");
-
+    // accept= omits .ga; setInputFiles still assigns — UI client-side guard must reject.
     await page.getByTestId("workflow-file-input").setInputFiles({
       name: "e2e_stub.ga",
       mimeType: "application/json",
       buffer: Buffer.from(GA_STUB),
     });
 
-    await expect(page.getByTestId("workflow-upload-submit")).toBeEnabled({ timeout: 2000 });
-    await page.getByTestId("workflow-upload-submit").click();
+    await expect(page.getByTestId("workflow-upload-modal")).toContainText(/cannot be imported|\.ga/i, {
+      timeout: 5000,
+    });
+    await expect(page.getByTestId("workflow-upload-submit")).toBeDisabled();
 
-    await expect(
-      page.locator(
-        '[data-testid="workflow-upload-modal"] .text-green-700,' +
-        '[data-testid="workflow-upload-modal"] .text-green-400'
-      )
-    ).toBeVisible({ timeout: 10000 });
-
-    const listResp = await page.request.get(`${BASE_URL}/api/workflows/personal`);
-    expect(listResp.ok()).toBeTruthy();
-    const workflows: any[] = await listResp.json();
-    const uploaded = workflows.find((w: any) => w.workflow_name === "E2E Galaxy Stub");
-    expect(uploaded).toBeDefined();
-    expect(uploaded.file_type).toBe("ga");
+    // Defense in depth: API also rejects even if the UI were bypassed.
+    const apiResp = await page.request.post(`${BASE_URL}/api/workflows/upload-file`, {
+      multipart: {
+        file: { name: "e2e_stub.ga", mimeType: "application/json", buffer: Buffer.from(GA_STUB) },
+        workflowName: "E2E Galaxy Stub Reject",
+      },
+    });
+    expect(apiResp.status()).toBe(415);
+    const body = await apiResp.json();
+    expect(String(body.error || "")).toMatch(/\.ga|Nextflow/i);
   });
 
   test("GET /api/workflows/personal returns 401 when not authenticated", async ({ request }) => {
