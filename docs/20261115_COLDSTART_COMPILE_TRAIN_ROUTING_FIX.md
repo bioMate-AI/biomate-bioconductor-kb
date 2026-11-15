@@ -26,6 +26,20 @@
 
 - Synced merge tip `aaaf2a6b59` (DEV absorb `104915eedd` + `$` escapes + TRAIN verb gate + gromacs pep-3) → healthy, `BIOMATE_SYNC_DB=0`. Live tip later `cb472efe5c` (ancestor includes `aaaf`).
 - Remasure vs `cb472`: Module-compile class closed for seqvartools path; domain-gen-2 now `example_sub.vcf` missing (runtime). TRAIN class still HONEST_FAIL until scaffold-strip + catalog rewrite sync.
+- TRAIN residual synced on tip `cd5ba35a` (frontend catalog + forced backend routing strip, `BIOMATE_SYNC_DB=0`). Post-strip remasure (tip drifted `ab7e911`→`a5ace834`):
+
+| Case | Prior | Post-strip |
+|------|-------|------------|
+| generate-bio-0 | Script compilation | **REAL_PASS** Antibody Antigen Complex |
+| generate-bio-1 | TRAIN NotImplemented | Antibody Antigen Complex — HONEST_FAIL (NF FileHelper FS) |
+| generate-bio-2 | TRAIN NotImplemented | scfv_antibody_design — HONEST_FAIL (container) |
+| fold-complex-bio-2 | TRAIN | **REAL_PASS** Antibody Antigen Complex |
+| predict-filter-bio-2 | structure-set/TRAIN | **REAL_PASS** Antibody Antigen Complex |
+| pep-1 | TRAIN | cyclic_peptide_design — HONEST_FAIL (VALIDATE_CONSTRAINTS) |
+| pep-3 | gromacs path | cyclic_peptide_design — HONEST_FAIL (RANK_CANDIDATES) |
+| domain-gen-2 | Module/seqsqc VCF | seqvartools — HONEST_FAIL (R plot xy.coords) |
+
+TRAIN hijack class closed (no ml_training TRAIN on design/fold prompts). Next root causes: seqvartools plot, cyclic_peptide RANK/VALIDATE, scfv container, NF FileHelper.
 
 ## Verify
 

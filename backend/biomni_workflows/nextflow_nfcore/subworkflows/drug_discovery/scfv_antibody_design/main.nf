@@ -47,12 +47,14 @@ process SCFV_DESIGN {
 
     script:
     """
+    # CLI uses underscored flags (argparse --output_fasta); kebab-case is ignored
+    # and leaves --output_fasta required → container exit (coldstart generate-bio-2).
     python /opt/scfv-pmpnn/run_design.py \\
         --input ${antibody_pdb} \\
-        --num-designs ${params.num_designs} \\
+        --num_designs ${params.num_designs} \\
         --temperature ${params.temperature} \\
-        --output-fasta designed_sequences.fasta \\
-        --output-scores design_scores.csv
+        --output_fasta designed_sequences.fasta \\
+        --output_scores design_scores.csv
     """
 }
 

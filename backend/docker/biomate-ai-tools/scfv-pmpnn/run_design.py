@@ -25,13 +25,15 @@ def parse_args():
     )
     parser.add_argument("--target", "--input", dest="target", required=True,
                         help="Input PDB file (target structure) or directory of PDBs")
-    parser.add_argument("--output_fasta", required=True,
+    # Accept underscore and kebab forms — Nextflow script historically used
+    # --output-fasta which argparse treated as an unknown option.
+    parser.add_argument("--output_fasta", "--output-fasta", required=True,
                         help="Output FASTA file for designed sequences")
-    parser.add_argument("--output_scores", default=None,
+    parser.add_argument("--output_scores", "--output-scores", default=None,
                         help="Output CSV file for sequence scores")
-    parser.add_argument("--output_structures", default=None,
+    parser.add_argument("--output_structures", "--output-structures", default=None,
                         help="Output directory for predicted structures (requires AF2)")
-    parser.add_argument("--num_designs", type=int, default=100,
+    parser.add_argument("--num_designs", "--num-designs", type=int, default=100,
                         help="Number of sequences to design per structure (default: 100)")
     parser.add_argument("--temperature", type=float, default=0.1,
                         help="Sampling temperature for ProteinMPNN (default: 0.1)")

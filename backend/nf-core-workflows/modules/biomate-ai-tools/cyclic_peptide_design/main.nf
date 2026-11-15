@@ -61,9 +61,17 @@ if lo < 5 or hi > 24 or lo > hi:
     sys.exit(1)
 n = max(1, min(int(${params.n_candidates}), 200))
 motif = '${params.seed_motif}'.upper().strip()
-if motif and (not set(motif).issubset(aminos) or len(motif) > hi):
-    print('ERROR: seed_motif incompatible with alphabet/ring size', file=sys.stderr)
+# Coldstart often binds the full BAK BH3 helix (16 aa) into seed_motif while
+# defaults keep ring_size_max=14 — widen the ring to fit the motif rather than
+# hard-fail VALIDATE (remeasure pep-1).
+if motif and not set(motif).issubset(aminos):
+    print('ERROR: seed_motif contains residues outside allowed_residues', file=sys.stderr)
     sys.exit(1)
+if motif and len(motif) > hi:
+    hi = len(motif)
+    if lo > hi:
+        lo = hi
+    print(f'NOTE: raised ring_size_max to {hi} to fit seed_motif', file=sys.stderr)
 out = {
     'ring_size_min': lo,
     'ring_size_max': hi,
@@ -288,7 +296,9 @@ rows.sort(key=lambda r: (-r['score'], r['id']))
 
 with open('cyclic_peptides.fasta', 'w') as fh:
     for r in rows:
-        fh.write(f">{r["id"]} len={r["length"]} score={r["score"]}\\n{r["seq"]}\\n")
+        // Escape \$ so Nextflow GString does not eat the Python f-string
+        // (coldstart pep-3: SyntaxError f-string unmatched '[').
+        fh.write(f\">{r["id"]} len={r["length"]} score={r["score"]}\\n{r["seq"]}\\n")
 
 with open('cyclic_peptides.csv', 'w', newline='') as fh:
     w = csv.DictWriter(fh, fieldnames=['id', 'seq', 'length', 'mw_da', 'charge',
