@@ -1,7 +1,7 @@
 {
   "config": {
-    "configFile": "/Users/kky/biomate-review/frontend/playwright.config.ts",
-    "rootDir": "/Users/kky/biomate-review/frontend/e2e",
+    "configFile": "/Users/kky/biomate-nextphase-ci-fix/frontend/playwright.config.ts",
+    "rootDir": "/Users/kky/biomate-nextphase-ci-fix/frontend/e2e",
     "forbidOnly": false,
     "fullyParallel": false,
     "globalSetup": null,
@@ -10,7 +10,9 @@
     "grep": {},
     "grepInvert": null,
     "maxFailures": 0,
-    "metadata": {},
+    "metadata": {
+      "actualWorkers": 1
+    },
     "preserveOutput": "always",
     "reporter": [
       [
@@ -37,13 +39,15 @@
     "quiet": false,
     "projects": [
       {
-        "outputDir": "/Users/kky/biomate-review/frontend/e2e/test-results",
+        "outputDir": "/Users/kky/biomate-nextphase-ci-fix/frontend/e2e/test-results",
         "repeatEach": 1,
-        "retries": 1,
-        "metadata": {},
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
         "id": "chromium",
         "name": "chromium",
-        "testDir": "/Users/kky/biomate-review/frontend/e2e",
+        "testDir": "/Users/kky/biomate-nextphase-ci-fix/frontend/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.e2e.ts"
@@ -51,13 +55,15 @@
         "timeout": 2700000
       },
       {
-        "outputDir": "/Users/kky/biomate-review/frontend/e2e/demo-artifacts",
+        "outputDir": "/Users/kky/biomate-nextphase-ci-fix/frontend/e2e/demo-artifacts",
         "repeatEach": 1,
-        "retries": 1,
-        "metadata": {},
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
         "id": "demo",
         "name": "demo",
-        "testDir": "/Users/kky/biomate-review/frontend/e2e",
+        "testDir": "/Users/kky/biomate-nextphase-ci-fix/frontend/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.demo.ts"
@@ -65,13 +71,15 @@
         "timeout": 2700000
       },
       {
-        "outputDir": "/Users/kky/biomate-review/frontend/e2e/test-results",
+        "outputDir": "/Users/kky/biomate-nextphase-ci-fix/frontend/e2e/test-results",
         "repeatEach": 1,
-        "retries": 1,
-        "metadata": {},
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
         "id": "firefox",
         "name": "firefox",
-        "testDir": "/Users/kky/biomate-review/frontend/e2e",
+        "testDir": "/Users/kky/biomate-nextphase-ci-fix/frontend/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.e2e.ts"
@@ -89,13 +97,13 @@
   },
   "suites": [
     {
-      "title": "dev-online-readiness.e2e.ts",
-      "file": "dev-online-readiness.e2e.ts",
+      "title": "coldstart-analysis-design-deep.e2e.ts",
+      "file": "coldstart-analysis-design-deep.e2e.ts",
       "column": 0,
       "line": 0,
       "specs": [
         {
-          "title": "online readiness: drug-development requests and isolation",
+          "title": "catalog layout matches filter slice",
           "ok": true,
           "tags": [],
           "tests": [
@@ -105,25 +113,268 @@
               "expectedStatus": "passed",
               "projectId": "chromium",
               "projectName": "chromium",
-              "results": [],
-              "status": "skipped"
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1144,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T17:11:41.581Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/kky/biomate-nextphase-ci-fix/frontend/e2e/test-results/coldstart-analysis-design--f45d7-layout-matches-filter-slice-chromium/test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
             }
           ],
-          "id": "b9fc5f1898564aac1c52-e9ea759734328850c4ec",
-          "file": "dev-online-readiness.e2e.ts",
-          "line": 8,
+          "id": "fbdc6be16a7108f01215-ac30016ab7c26f4a34c8",
+          "file": "coldstart-analysis-design-deep.e2e.ts",
+          "line": 481,
           "column": 1
+        },
+        {
+          "title": "e2e design-generate-bio-2",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 3000000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 198863,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T17:11:44.011Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/kky/biomate-nextphase-ci-fix/frontend/e2e/test-results/coldstart-analysis-design--fd9c1-s-e2e-design-generate-bio-2-chromium/test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "fbdc6be16a7108f01215-5e80ea25c0fa7496f6a6",
+          "file": "coldstart-analysis-design-deep.e2e.ts",
+          "line": 508,
+          "column": 3
+        },
+        {
+          "title": "e2e design-fold-complex-bio-0",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 3000000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "timedOut",
+                  "duration": 3917623,
+                  "error": {
+                    "message": "\u001b[31mTest timeout of 3000000ms exceeded.\u001b[39m",
+                    "stack": "\u001b[31mTest timeout of 3000000ms exceeded.\u001b[39m"
+                  },
+                  "errors": [
+                    {
+                      "message": "\u001b[31mTest timeout of 3000000ms exceeded.\u001b[39m"
+                    },
+                    {
+                      "location": {
+                        "file": "/Users/kky/biomate-nextphase-ci-fix/frontend/e2e/coldstart-analysis-design-deep.e2e.ts",
+                        "column": 16,
+                        "line": 327
+                      },
+                      "message": "Error: page.waitForTimeout: Test timeout of 3000000ms exceeded.\n\n  325 |       if (id) return id;\n  326 |     }\n> 327 |     await page.waitForTimeout(2_000);\n      |                ^\n  328 |   }\n  329 |   return undefined;\n  330 | }\n    at extractRunId (/Users/kky/biomate-nextphase-ci-fix/frontend/e2e/coldstart-analysis-design-deep.e2e.ts:327:16)\n    at /Users/kky/biomate-nextphase-ci-fix/frontend/e2e/coldstart-analysis-design-deep.e2e.ts:606:27"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T17:15:02.888Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/kky/biomate-nextphase-ci-fix/frontend/e2e/test-results/coldstart-analysis-design--f893b-e-design-fold-complex-bio-0-chromium/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/kky/biomate-nextphase-ci-fix/frontend/e2e/test-results/coldstart-analysis-design--f893b-e-design-fold-complex-bio-0-chromium/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/kky/biomate-nextphase-ci-fix/frontend/e2e/test-results/coldstart-analysis-design--f893b-e-design-fold-complex-bio-0-chromium/trace.zip"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "fbdc6be16a7108f01215-5ae342968ef6d20677dd",
+          "file": "coldstart-analysis-design-deep.e2e.ts",
+          "line": 508,
+          "column": 3
+        },
+        {
+          "title": "e2e design-predict-filter-pep-3",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 2700000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 2,
+                  "error": {
+                    "message": "TimeoutError: browserType.launch: Timeout 180000ms exceeded.\nCall log:\n\u001b[2m  - <launching> /Applications/Google Chrome.app/Contents/MacOS/Google Chrome --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-extensions --disable-features=AcceptCHFrame,AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --enable-automation --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/xb/vbq3vfh10sldj7hq8wcvfbxc0000gn/T/playwright_chromiumdev_profile-anxyUe --remote-debugging-pipe --no-startup-window\u001b[22m\n\u001b[2m  - <launched> pid=78701\u001b[22m\n",
+                    "stack": "TimeoutError: browserType.launch: Timeout 180000ms exceeded.\nCall log:\n\u001b[2m  - <launching> /Applications/Google Chrome.app/Contents/MacOS/Google Chrome --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-extensions --disable-features=AcceptCHFrame,AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --enable-automation --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/xb/vbq3vfh10sldj7hq8wcvfbxc0000gn/T/playwright_chromiumdev_profile-anxyUe --remote-debugging-pipe --no-startup-window\u001b[22m\n\u001b[2m  - <launched> pid=78701\u001b[22m\n"
+                  },
+                  "errors": [
+                    {
+                      "message": "TimeoutError: browserType.launch: Timeout 180000ms exceeded.\nCall log:\n\u001b[2m  - <launching> /Applications/Google Chrome.app/Contents/MacOS/Google Chrome --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-extensions --disable-features=AcceptCHFrame,AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --enable-automation --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/xb/vbq3vfh10sldj7hq8wcvfbxc0000gn/T/playwright_chromiumdev_profile-anxyUe --remote-debugging-pipe --no-startup-window\u001b[22m\n\u001b[2m  - <launched> pid=78701\u001b[22m\n"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T18:20:22.777Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/kky/biomate-nextphase-ci-fix/frontend/e2e/test-results/coldstart-analysis-design--6c3ea-design-predict-filter-pep-3-chromium/trace.zip"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "fbdc6be16a7108f01215-fe99f36d618ee47e0bb2",
+          "file": "coldstart-analysis-design-deep.e2e.ts",
+          "line": 508,
+          "column": 3
+        },
+        {
+          "title": "e2e design-optimise-properties-one-pass-pep-1",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 3000000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 412,
+                  "error": {
+                    "message": "Error: apiRequestContext.post: getaddrinfo ENOTFOUND dev-public.biomate.ai\nCall log:\n\u001b[2m  - → POST https://dev-public.biomate.ai/api/auth/login\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.7499.4 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n\u001b[2m    - X-E2E-Test-Token: biomate-e2e-bypass-token-dev-only\u001b[22m\n\u001b[2m    - Content-Type: application/json\u001b[22m\n\u001b[2m    - content-length: 63\u001b[22m\n",
+                    "stack": "Error: apiRequestContext.post: getaddrinfo ENOTFOUND dev-public.biomate.ai\nCall log:\n\u001b[2m  - → POST https://dev-public.biomate.ai/api/auth/login\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.7499.4 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n\u001b[2m    - X-E2E-Test-Token: biomate-e2e-bypass-token-dev-only\u001b[22m\n\u001b[2m    - Content-Type: application/json\u001b[22m\n\u001b[2m    - content-length: 63\u001b[22m\n\n    at loginAsFixture (/Users/kky/biomate-nextphase-ci-fix/frontend/e2e/_fixture-login.ts:84:35)\n    at /Users/kky/biomate-nextphase-ci-fix/frontend/e2e/coldstart-analysis-design-deep.e2e.ts:510:5",
+                    "location": {
+                      "file": "/Users/kky/biomate-nextphase-ci-fix/frontend/e2e/_fixture-login.ts",
+                      "column": 35,
+                      "line": 84
+                    },
+                    "snippet": "   at _fixture-login.ts:84\n\n  82 |   }\n  83 |\n> 84 |   const resp = await page.request.post(`${BASE_URL}/api/auth/login`, {\n     |                                   ^\n  85 |     headers: { \"Content-Type\": \"application/json\", \"X-E2E-Test-Token\": E2E_TOKEN },\n  86 |     data: { email: FIXTURE_EMAIL, password: FIXTURE_PASSWORD },\n  87 |   });"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/kky/biomate-nextphase-ci-fix/frontend/e2e/_fixture-login.ts",
+                        "column": 35,
+                        "line": 84
+                      },
+                      "message": "Error: apiRequestContext.post: getaddrinfo ENOTFOUND dev-public.biomate.ai\nCall log:\n\u001b[2m  - → POST https://dev-public.biomate.ai/api/auth/login\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.7499.4 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n\u001b[2m    - X-E2E-Test-Token: biomate-e2e-bypass-token-dev-only\u001b[22m\n\u001b[2m    - Content-Type: application/json\u001b[22m\n\u001b[2m    - content-length: 63\u001b[22m\n\n\n   at _fixture-login.ts:84\n\n  82 |   }\n  83 |\n> 84 |   const resp = await page.request.post(`${BASE_URL}/api/auth/login`, {\n     |                                   ^\n  85 |     headers: { \"Content-Type\": \"application/json\", \"X-E2E-Test-Token\": E2E_TOKEN },\n  86 |     data: { email: FIXTURE_EMAIL, password: FIXTURE_PASSWORD },\n  87 |   });\n    at loginAsFixture (/Users/kky/biomate-nextphase-ci-fix/frontend/e2e/_fixture-login.ts:84:35)\n    at /Users/kky/biomate-nextphase-ci-fix/frontend/e2e/coldstart-analysis-design-deep.e2e.ts:510:5"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T18:36:21.228Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/kky/biomate-nextphase-ci-fix/frontend/e2e/test-results/coldstart-analysis-design--69a5d-e-properties-one-pass-pep-1-chromium/test-failed-1.png"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/kky/biomate-nextphase-ci-fix/frontend/e2e/test-results/coldstart-analysis-design--69a5d-e-properties-one-pass-pep-1-chromium/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/kky/biomate-nextphase-ci-fix/frontend/e2e/_fixture-login.ts",
+                    "column": 35,
+                    "line": 84
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "fbdc6be16a7108f01215-655df3fa2cc857d3755c",
+          "file": "coldstart-analysis-design-deep.e2e.ts",
+          "line": 508,
+          "column": 3
         }
       ]
     }
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-11-08T04:54:59.667Z",
-    "duration": 168.17999999999995,
-    "expected": 0,
-    "skipped": 1,
-    "unexpected": 0,
+    "startTime": "2026-11-15T17:11:41.120Z",
+    "duration": 5080945.388,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 3,
     "flaky": 0
   }
 }

@@ -1,0 +1,56 @@
+{
+  "id": "design-optimise-properties-one-pass-pep-1",
+  "label": "“Reduce charge while keeping cell permeability.”",
+  "prompt": "Reduce charge while keeping cell permeability. (peptide design)",
+  "workflowNames": [
+    "cyclic_peptide_design"
+  ],
+  "answerHead": "BioMate\n\nCyclic Peptide Design — Reduces net charge on peptide scaffolds while predicting cell permeability, binding affinity, serum stability, and aggregation risk against a target protein structure.\n\nInput: BCL-XL structure (1BXL.pdb) as receptor; BAK BH3 reference sequence (GQVGRQLAIIGDDINR) as the peptide scaffold; charge-reduction mode enabled; cyclization chemistry specified\nKey steps:\nEnumerate charge-reducing substitutions (acidic Asp/Glu → polar Asn/Gln; basic Lys/Arg → polar Ser/Thr) while preserving the BH3 binding motif\nScore each variant for predicted binding ΔG (docking/FoldX), membrane permeability (logD, TPSA, H-bond count), and serum stability (proteolytic cleavage risk)\nRank candidates by multi-objective trade-off: net charge reduction vs. affinity retention vs. permeability gain\nExpected output: Ranked peptide sequences (FASTA) with per-variant predictions: net charge, predicted binding affinity (kcal/mol ± SEM), permeability score, aggregation propensity, solubility estimate; docking poses (PDB); design rationale JSON\n\nImportant: This workflow does not read your attached peptide_candidates.fasta or peptide_constraints.json — it generates and scores variants parametrically. If you want to screen your pre-enumerated candidate set against BCL-XL and rank them by permeability + charge, I can find a peptide-binding prediction workflow that accepts FASTA input directly. Which would you prefer — let this workflow generate new charge-optimized variants, or score your existing candidates?\n\ncyclic_peptide_design",
+  "clarify": {
+    "hadClarify": false,
+    "panelVisible": false
+  },
+  "launch": {
+    "clicked": true,
+    "reason": "confirm"
+  },
+  "runId": "b211c192-bd7e-4b4f-8928-222d5020bd5e",
+  "terminal": {
+    "status": "failed",
+    "error": "Process VALIDATE_CONSTRAINTS (validate_constraints) failed: Essential container in task exited — ERROR: seed_motif incompatible with alphabet/ring size",
+    "timedOut": false
+  },
+  "after": {
+    "afterShell": true,
+    "diagnosisOnly": true,
+    "failSnippet": "RUN FAILED Process VALIDATE_CONSTRAINTS (validate_constraints) failed: Essential container in task exited — ERROR: seed_motif incompatible with alphabet/ring size Summary Outputs Report No outputs — run did not complete successfully. Reproducibility pack Restart Reset to defaults DRUG DISCOVERY · WORKFLOW cyclic_peptide_design 1 phase × Failed Workflow settings Phases 1 After run 🔍 AI diagnosis T",
+    "findingsOk": true,
+    "outputsOk": false,
+    "paramsOk": true,
+    "stuckInProgress": false,
+    "tabResults": {
+      "outputs": {
+        "visible": true,
+        "clicked": true,
+        "head": "DRUG DISCOVERY · WORKFLOW\ncyclic_peptide_design\n1 phase\n×\nFailed\nWorkflow settings\nPhases\n1\nAfter run\n🔍\nAI diagnosis\n\nThe run stopped before completing.\n\nNo completed step is available to resume. Review the error and restart after correcting the cause.\n\nRun incomplete — partial outputs and the run record remain available.\nRUN FAILED\nProcess VALIDATE_CONSTRAINTS (validate_constraints) failed: Esse"
+      },
+      "findings": {
+        "visible": true,
+        "clicked": true,
+        "head": "DRUG DISCOVERY · WORKFLOW\ncyclic_peptide_design\n1 phase\n×\nFailed\nWorkflow settings\nPhases\n1\nAfter run\n🔍\nAI diagnosis\n\nThe run stopped before completing.\n\nNo completed step is available to resume. Review the error and restart after correcting the cause.\n\nRun incomplete — partial outputs and the run record remain available.\nRUN FAILED\nProcess VALIDATE_CONSTRAINTS (validate_constraints) failed: Esse"
+      },
+      "parameters": {
+        "visible": true,
+        "clicked": true,
+        "head": "DRUG DISCOVERY · WORKFLOW\ncyclic_peptide_design\n1 phase\n×\nFailed\nWorkflow settings\nPhases\n1\nAfter run\n🔍\nAI diagnosis\n\nThe run stopped before completing.\n\nNo completed step is available to resume. Review the error and restart after correcting the cause.\n\nRun incomplete — partial outputs and the run record remain available.\nRUN FAILED\nProcess VALIDATE_CONSTRAINTS (validate_constraints) failed: Esse"
+      }
+    }
+  },
+  "buildInfo": {
+    "commit": "a5ace834ed40b85be7c224df3cc710675e031d26"
+  },
+  "timedOutInProgress": false,
+  "grade": "HONEST_FAIL",
+  "useCasePass": false,
+  "errorObserved": "Process VALIDATE_CONSTRAINTS (validate_constraints) failed: Essential container in task exited — ERROR: seed_motif incompatible with alphabet/ring size"
+}

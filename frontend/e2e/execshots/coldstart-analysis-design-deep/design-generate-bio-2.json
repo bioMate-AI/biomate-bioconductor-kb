@@ -1,0 +1,57 @@
+{
+  "id": "design-generate-bio-2",
+  "label": "“Propose enzyme variants with a redesigned active-site pocket.”",
+  "prompt": "Propose enzyme variants with a redesigned active-site pocket. (protein design)",
+  "sessionId": "chat-1794762709624-2f5za8l5n",
+  "workflowNames": [
+    "profam"
+  ],
+  "answerHead": "BioMate\n\nprofam — Protein family-guided active-site redesign with structural constraints and variant scoring.\n\nInput: Protein structure (1LYZ.pdb); candidate sequences (enzyme_candidates.fasta); active-site constraints (enzyme_constraints.json)\nKey steps:\nStructure parsing & constraint validation — map catalytic residues (Glu35, Asp52) and disulfide bonds from PDB\nSequence alignment & homology modeling — rank candidates against template; evaluate pocket geometry\nScoring & stability prediction — AlphaFold2-based pLDDT confidence + FoldX ΔΔG estimates for thermostability\nExpected output: Ranked variant list (CSV with sequence ID, predicted ΔΔG, pLDDT, constraint violations); structure alignments (PDB); confidence report (JSON)\n\nNote: This workflow does not directly use your attached PDB or FASTA files as streaming inputs — it is configured through its parameter panel. If you need a workflow that reads your structure and designs new sequences de novo (rather than scoring pre-computed candidates), a complementary ProteinMPNN or Rosetta-based design workflow would be better suited; I can search for that if needed.\n\nReview the parameters in the panel and confirm execution when ready.\n\nprofam",
+  "clarify": {
+    "hadClarify": false,
+    "panelVisible": false
+  },
+  "launch": {
+    "clicked": true,
+    "reason": "confirm"
+  },
+  "runId": "7c79e345-0358-4e2c-af5b-1795014e2332",
+  "terminal": {
+    "status": "failed",
+    "error": "\tat Script_12bdd887.runScript(Script_12bdd887:5)",
+    "timedOut": false
+  },
+  "after": {
+    "afterShell": true,
+    "diagnosisOnly": true,
+    "failSnippet": "RUN FAILED Summary Outputs Report No outputs — run did not complete successfully. Reproducibility pack Restart Reset to defaults PROTEOMICS · WORKFLOW profam 2 phases × Failed Workflow settings Phases 2 After run 🔍 AI diagnosis The run stopped before completing. No completed step is available to resume. Review the error and restart after correcting the cause. ℹ️ No error log was captured for this",
+    "findingsOk": true,
+    "outputsOk": false,
+    "paramsOk": true,
+    "stuckInProgress": false,
+    "tabResults": {
+      "outputs": {
+        "visible": true,
+        "clicked": true,
+        "head": "PROTEOMICS · WORKFLOW\nprofam\n2 phases\n×\nFailed\nWorkflow settings\nPhases\n2\nAfter run\n🔍\nAI diagnosis\n\nThe run stopped before completing.\n\nNo completed step is available to resume. Review the error and restart after correcting the cause.\n\nℹ️ No error log was captured for this run. If resuming keeps failing, report the run to BioMate.\n\nRun incomplete — partial outputs and the run record remain availa"
+      },
+      "findings": {
+        "visible": true,
+        "clicked": true,
+        "head": "PROTEOMICS · WORKFLOW\nprofam\n2 phases\n×\nFailed\nWorkflow settings\nPhases\n2\nAfter run\n🔍\nAI diagnosis\n\nThe run stopped before completing.\n\nNo completed step is available to resume. Review the error and restart after correcting the cause.\n\nℹ️ No error log was captured for this run. If resuming keeps failing, report the run to BioMate.\n\nRun incomplete — partial outputs and the run record remain availa"
+      },
+      "parameters": {
+        "visible": true,
+        "clicked": true,
+        "head": "PROTEOMICS · WORKFLOW\nprofam\n2 phases\n×\nFailed\nWorkflow settings\nPhases\n2\nAfter run\n🔍\nAI diagnosis\n\nThe run stopped before completing.\n\nNo completed step is available to resume. Review the error and restart after correcting the cause.\n\nℹ️ No error log was captured for this run. If resuming keeps failing, report the run to BioMate.\n\nRun incomplete — partial outputs and the run record remain availa"
+      }
+    }
+  },
+  "buildInfo": {
+    "commit": "77969b9c6abbdd8e33e5a07e0527f86243a5dd8f"
+  },
+  "timedOutInProgress": false,
+  "grade": "HONEST_FAIL",
+  "useCasePass": false,
+  "errorObserved": "\tat Script_12bdd887.runScript(Script_12bdd887:5)"
+}

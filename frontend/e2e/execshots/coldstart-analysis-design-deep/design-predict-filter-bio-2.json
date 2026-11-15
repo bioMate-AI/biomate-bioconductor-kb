@@ -1,0 +1,56 @@
+{
+  "id": "design-predict-filter-bio-2",
+  "label": "“Flag expression and stability risks across these designs.”",
+  "prompt": "Flag expression and stability risks across these designs. (protein design)",
+  "workflowNames": [
+    "Antibody Antigen Complex"
+  ],
+  "answerHead": "BioMate\n\nI need to first preview your uploaded files to understand the designs and their constraints, then recommend the right workflow for expression and stability risk assessment.\n\nLet me read the key files:\n\nBased on your request to flag expression and stability risks across nanobody design variants, the workflow currently in the panel (Antibody Antigen Complex) is not the right tool — it performs co-folding prediction (structure validation) using demo antibodies, and does not consume your design files or run developability screening.\n\nFor expression + stability risk assessment of your nanobody candidates, I recommend the antibody_developability workflow instead, which scores:\n\nExpression risk — aggregation propensity, hydrophobic patches, charge distribution\nStability risk — thermal unfolding prediction, oxidation-prone residues (Met/Trp/Cys), glycan sequons, hydrophobic core quality\nAggregation flags — disorder, amyloid hotspots, immune epitope risk\n\nWhat you need to do:\n\nCopy your nanobody candidate sequences from the uploaded file (nanobody_candidates.fasta) into the workflow parameter panel as a JSON list or paste them directly.\nSet the framework source to your b12-derived backbone (1HZH.fasta) and the CDR constraints from nanobody_constraints.json.\n\nExpected output: A ranked CSV report with per-design expression/stability/aggregation scores, RED/YELLOW/GREEN flags per sequence, and actionable remediation (e.g. \"Trp at position 48 → oxidation risk; consider Phe substitution\").\n\nWould you like me to generate that workflow card, or would you prefer to explore the structure-validation path first (Boltz co-fold of your designs against the spike RBD epitope in 6Z43.pdb)?\n\nAntibody Antigen Complex",
+  "clarify": {
+    "hadClarify": false,
+    "panelVisible": false
+  },
+  "launch": {
+    "clicked": true,
+    "reason": "confirm"
+  },
+  "runId": "e62dcfff-4d68-4524-b8db-6ffc6bb3658e",
+  "terminal": {
+    "status": "succeeded",
+    "error": "",
+    "timedOut": false
+  },
+  "after": {
+    "afterShell": true,
+    "diagnosisOnly": false,
+    "failSnippet": "",
+    "findingsOk": true,
+    "outputsOk": true,
+    "paramsOk": true,
+    "stuckInProgress": false,
+    "tabResults": {
+      "outputs": {
+        "visible": true,
+        "clicked": true,
+        "head": "DRUG DISCOVERY · WORKFLOW\nAntibody Antigen Complex\n1 phase\n×\nCompleted\n100%\n1/1\nWorkflow settings\nPhases\n1\nAfter run\nExport report ▾\nSummary\nOutputs\nReport\nDownload output files (5) · ZIP\nReproducibility pack\n📁 Save to Project\n5 files\nshowing 5 of 5\nfmc63_complex.json\nJSON\n627 B\nview\nDownload\nHide preview\nantibody_id\tfmc63\ntarget\tdemo_target\ntool\tBoltz-2\nformat\tVH+VL\nn_antigens\t1\nn_structures\t1\ns"
+      },
+      "findings": {
+        "visible": true,
+        "clicked": true,
+        "head": "DRUG DISCOVERY · WORKFLOW\nAntibody Antigen Complex\n1 phase\n×\nCompleted\n100%\n1/1\nWorkflow settings\nPhases\n1\nAfter run\nExport report ▾\nSummary\nOutputs\nReport\nFindings are not available yet.\nQC findings\nCheck\tObserved\tFlag condition\tResult\nFASTP\nfmc63_complex.json\nNo supported QC rule evaluated these metrics.\n\t—\t—\tNOT EVALUATED\nFASTP\nconfidence_in_model_0.json\nNo supported QC rule evaluated these met"
+      },
+      "parameters": {
+        "visible": true,
+        "clicked": true,
+        "head": "DRUG DISCOVERY · WORKFLOW\nAntibody Antigen Complex\n1 phase\n×\nCompleted\n100%\n1/1\nWorkflow settings\nPhases\n1\nAfter run\nExport report ▾\nSummary\nOutputs\nReport\nAntibody Antigen Complex\nGenerated: 2026-11-15T16:28:57.339Z\nDataset\n\nNo inline dataset descriptors detected in run parameters. If inputs were supplied separately, see the BioMate workspace inputs/ folder for this run.\n\nFindings\n\nFindings analy"
+      }
+    }
+  },
+  "buildInfo": {
+    "commit": "a5ace834ed40b85be7c224df3cc710675e031d26"
+  },
+  "timedOutInProgress": false,
+  "grade": "REAL_PASS",
+  "useCasePass": true,
+  "errorObserved": ""
+}

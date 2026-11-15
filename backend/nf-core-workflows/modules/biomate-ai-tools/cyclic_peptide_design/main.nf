@@ -296,8 +296,7 @@ rows.sort(key=lambda r: (-r['score'], r['id']))
 
 with open('cyclic_peptides.fasta', 'w') as fh:
     for r in rows:
-        // Escape \$ so Nextflow GString does not eat the Python f-string
-        // (coldstart pep-3: SyntaxError f-string unmatched '[').
+        # Escape \$ for Nextflow GString (pep-3: f-string unmatched '[').
         fh.write(f\">{r["id"]} len={r["length"]} score={r["score"]}\\n{r["seq"]}\\n")
 
 with open('cyclic_peptides.csv', 'w', newline='') as fh:

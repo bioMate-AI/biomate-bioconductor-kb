@@ -1,0 +1,10 @@
+{
+  "total": 4,
+  "filter": "^(design-generate-bio-2|design-predict-filter-pep-3|design-optimise-properties-one-pass-pep-1|design-fold-complex-bio-0)$",
+  "cases": [
+    "design-generate-bio-2",
+    "design-fold-complex-bio-0",
+    "design-predict-filter-pep-3",
+    "design-optimise-properties-one-pass-pep-1"
+  ]
+}

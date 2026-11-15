@@ -1,0 +1,17 @@
+{
+  "total": 11,
+  "filter": "^(design-fold-complex-bio-0|design-fold-complex-bio-1|design-fold-complex-bio-2|design-generate-bio-0|design-generate-bio-1|design-generate-bio-2|analysis-domain-gen-2|design-predict-filter-pep-3|design-optimise-properties-one-pass-pep-0|design-optimise-properties-one-pass-pep-1|design-predict-filter-bio-2)$",
+  "cases": [
+    "analysis-domain-gen-2",
+    "design-generate-bio-0",
+    "design-generate-bio-1",
+    "design-generate-bio-2",
+    "design-fold-complex-bio-0",
+    "design-fold-complex-bio-1",
+    "design-fold-complex-bio-2",
+    "design-predict-filter-pep-3",
+    "design-predict-filter-bio-2",
+    "design-optimise-properties-one-pass-pep-0",
+    "design-optimise-properties-one-pass-pep-1"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "total": 8,
+  "filter": "design-generate-bio-1|design-generate-bio-2|design-fold-complex-bio-2|design-predict-filter-pep-3|analysis-try-sample-data-7|analysis-domain-prot-0|analysis-domain-gen-2|analysis-try-sample-data-3",
+  "cases": [
+    "analysis-try-sample-data-3",
+    "analysis-try-sample-data-7",
+    "analysis-domain-gen-2",
+    "analysis-domain-prot-0",
+    "design-generate-bio-1",
+    "design-generate-bio-2",
+    "design-fold-complex-bio-2",
+    "design-predict-filter-pep-3"
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "id": "design-generate-bio-1",
+  "label": "“Graft these CDRs onto a stable human framework.”",
+  "prompt": "Graft these CDRs onto a stable human framework. (protein design)",
+  "workflowNames": [
+    "Antibody Antigen Complex"
+  ],
+  "answerHead": "BioMate\n\nAntibody Antigen Complex — Co-folds an antibody and antigen structure from sequences, predicting the bound complex geometry and interface interactions.\n\nInput: Demo antibody–antigen pair (FMC63 scFv × CD19 fragment); the workflow does not read your attached PDB/FASTA files\nKey steps:\nBoltz-2 / AlphaFold3 multi-chain co-folding → predicted complex structure (PDB)\nInterface analysis → contact map, buried surface area, interaction energies\nCDR orientation and pairing geometry scoring\nExpected output: Complex structure (PDB), interface contact table, interaction summary, confidence metrics (pAE, pLDDT per chain)\n\nTo graft your nanobody CDRs onto the human b12 framework and validate the design, this workflow runs co-folding on the default demo pair. To use your sequences (H11-D4 CDRs + 1HZH b12 framework), you have two options:\n\nPaste your antibody and antigen sequences directly into the workflow parameters as JSON — the panel accepts a JSON-formatted antibody_chains and antigen_chains input instead of the defaults. This lets you keep all your CDR grafting logic and constraints in the JSON spec.\n\nUse a dedicated CDR grafting + design workflow — search for scfv_antibody_design or antibody_developability (these read PDB + FASTA directly and handle framework/CDR boundary annotation, constraint parsing, and expression/stability prediction). Which would you prefer?\n\nAntibody Antigen Complex",
+  "clarify": {
+    "hadClarify": false,
+    "panelVisible": false
+  },
+  "launch": {
+    "clicked": true,
+    "reason": "confirm"
+  },
+  "runId": "aa47d4c9-86b4-4f3e-8f63-101ee3c4ca33",
+  "terminal": {
+    "status": "failed",
+    "error": "Nov-15 15:35:14.979 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): [storage]",
+    "timedOut": false
+  },
+  "after": {
+    "afterShell": true,
+    "diagnosisOnly": true,
+    "failSnippet": "RUN FAILED Nov-15 15:35:14.979 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): [storage] Summary Outputs Report Download output files (5) · ZIP Reproducibility pack 📁 Save to Project 5 files showing 5 of 5 fmc63_complex.json JSON 627 B view Download Hide preview Failed to load file: HTTP 403: {\"error\":\"File outside allowed directories\"} confidence_in_model_0.json JSON 900",
+    "findingsOk": true,
+    "outputsOk": false,
+    "paramsOk": true,
+    "stuckInProgress": false,
+    "tabResults": {
+      "outputs": {
+        "visible": true,
+        "clicked": true,
+        "head": "DRUG DISCOVERY · WORKFLOW\nAntibody Antigen Complex\n1 phase\n×\nFailed\nWorkflow settings\nPhases\n1\nAfter run\n🔍\nAI diagnosis\n\nThe run stopped before completing.\n\nResume from last step to reuse completed work.\n\nRun incomplete — partial outputs and the run record remain available.\nRUN FAILED\nNov-15 15:35:14.979 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): [storage]\nSummary\nOu"
+      },
+      "findings": {
+        "visible": true,
+        "clicked": true,
+        "head": "DRUG DISCOVERY · WORKFLOW\nAntibody Antigen Complex\n1 phase\n×\nFailed\nWorkflow settings\nPhases\n1\nAfter run\n🔍\nAI diagnosis\n\nThe run stopped before completing.\n\nResume from last step to reuse completed work.\n\nRun incomplete — partial outputs and the run record remain available.\nRUN FAILED\nNov-15 15:35:14.979 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): [storage]\nSummary\nOu"
+      },
+      "parameters": {
+        "visible": true,
+        "clicked": true,
+        "head": "DRUG DISCOVERY · WORKFLOW\nAntibody Antigen Complex\n1 phase\n×\nFailed\nWorkflow settings\nPhases\n1\nAfter run\n🔍\nAI diagnosis\n\nThe run stopped before completing.\n\nResume from last step to reuse completed work.\n\nRun incomplete — partial outputs and the run record remain available.\nRUN FAILED\nNov-15 15:35:14.979 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): [storage]\nSummary\nOu"
+      }
+    }
+  },
+  "buildInfo": {
+    "commit": "ab7e9118995b75becdbab7faf32d5d517bcbaf40"
+  },
+  "timedOutInProgress": false,
+  "grade": "HONEST_FAIL",
+  "useCasePass": false,
+  "errorObserved": "Nov-15 15:35:14.979 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): [storage]"
+}

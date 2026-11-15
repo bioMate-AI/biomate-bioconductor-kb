@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" translate="no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>BioMate - Simplified Bioinformatics Workflows</title>
+    <meta name="description" content="Transform complex bioinformatics workflows into simple, conversational experiences. Chat with AI to discover tools, build workflows, and analyze your data with ease." />
+    <meta property="og:title" content="BioMate - Simplified Bioinformatics Workflows" />
+    <meta property="og:description" content="Transform complex bioinformatics workflows into simple, conversational experiences." />
+    <meta property="og:type" content="website" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+
+    <!-- Google Analytics 4 — see docs/20260527_GOOGLE_ANALYTICS_SETUP.md for the
+         full rationale. Short version of the pattern below:
+           1. STATIC loader tag (line below): Tag Assistant + Google's
+              "Site Tag Detected" scrape static HTML; a dynamically-injected
+              <script src="…gtag/js…"> is invisible to them and triggers
+              false "not tagged" reports. The loader by itself sends NO hits.
+           2. Hit dispatch (gtag('config', ID)) is gated by hostname so each
+              environment writes to its own GA4 property:
+                biomate.ai / www.biomate.ai            → G-65JDDPEDQ5 (prod)
+                app.biomate.ai / www.app.biomate.ai    → G-65JDDPEDQ5 (prod app)
+                dev-public.biomate.ai / *.dev-public…  → G-8YG54DFHQG (dev)
+                localhost / 127.0.0.1 / E2E hosts      → no config → no hits
+           3. The loader's ?id= param is just the URL it fetches gtag.js from;
+              it does NOT bind the page to that property. config() does. So a
+              single static loader serving the prod ID is fine for all envs. -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-65JDDPEDQ5"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){ dataLayer.push(arguments); }
+      window.gtag = gtag;
+      gtag('js', new Date());
+      (function() {
+        var host = window.location.hostname;
+        if (host === 'biomate.ai' || host === 'www.biomate.ai'
+            || host === 'app.biomate.ai' || host === 'www.app.biomate.ai'
+            || host.indexOf('.app.biomate.ai') !== -1) {
+          gtag('config', 'G-65JDDPEDQ5', { anonymize_ip: true });
+        } else if (host === 'dev-public.biomate.ai' || host.indexOf('.dev-public.biomate.ai') !== -1) {
+          gtag('config', 'G-8YG54DFHQG', { anonymize_ip: true });
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-X2jacdJe.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Ce8u21Rj.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

@@ -1,0 +1,56 @@
+{
+  "id": "design-optimise-properties-one-pass-pep-0",
+  "label": "“Improve serum stability without losing affinity.”",
+  "prompt": "Improve serum stability without losing affinity. (peptide design)",
+  "workflowNames": [
+    "Improve serum stability without losing affinity"
+  ],
+  "answerHead": "BioMate\n\nI've planned this as one 2-step analysis: the steps are independent and run in parallel.\n\nDesign cyclic/stapled BAK BH3 peptide variants against BCL-XL (chain A of 1BXL.pdb) that improve serum stability while preserving the BAK binding motif (GQVGRQLAIIGDDINR), using the attached peptide_candidates.fasta and peptide_constraints.json; report affinity, serum stability, permeability, aggregation and solubility as predictions with uncertainty — runs gromacs_pmx_fep (runs in parallel)\nEvaluate whether the lead single-substitution candidate retains affinity: relative binding free energy (GROMACS pmx FEP) of peptide pair GQVGRQLAIIGDDINR vs AQVGRQLAIIGDDINR bound to BCL-XL receptor 1BXL.pdb — runs gromacs_pmx_fep (runs in parallel) Inputs are set — review the plan, then click Confirm & Run.\nImprove serum stability without losing affinity",
+  "clarify": {
+    "hadClarify": false,
+    "panelVisible": false
+  },
+  "launch": {
+    "clicked": true,
+    "reason": "confirm"
+  },
+  "runId": "4b16fd5b-95a0-4fc2-9221-4121dccd5d22",
+  "terminal": {
+    "status": "failed",
+    "error": "Pipeline failed. Inspect the step results for details.",
+    "timedOut": false
+  },
+  "after": {
+    "afterShell": true,
+    "diagnosisOnly": true,
+    "failSnippet": "RUN FAILED Pipeline failed. Inspect the step results for details. Summary Outputs Report No outputs — run did not complete successfully. Reproducibility pack Restart WORKFLOW Improve serum stability without losing affinity × Failed Workflow settings Phases After run Run incomplete — partial outputs and the run record remain available. RUN FAILED Pipeline failed. Inspect the step results for detail",
+    "findingsOk": true,
+    "outputsOk": false,
+    "paramsOk": true,
+    "stuckInProgress": false,
+    "tabResults": {
+      "outputs": {
+        "visible": true,
+        "clicked": true,
+        "head": "WORKFLOW\nImprove serum stability without losing affinity\n×\nFailed\nWorkflow settings\nPhases\nAfter run\nRun incomplete — partial outputs and the run record remain available.\nRUN FAILED\nPipeline failed. Inspect the step results for details.\nSummary\nOutputs\nReport\n\nNo outputs — run did not complete successfully.\n\nReproducibility pack\nRestart"
+      },
+      "findings": {
+        "visible": true,
+        "clicked": true,
+        "head": "WORKFLOW\nImprove serum stability without losing affinity\n×\nFailed\nWorkflow settings\nPhases\nAfter run\nRun incomplete — partial outputs and the run record remain available.\nRUN FAILED\nPipeline failed. Inspect the step results for details.\nSummary\nOutputs\nReport\nRestart"
+      },
+      "parameters": {
+        "visible": true,
+        "clicked": true,
+        "head": "WORKFLOW\nImprove serum stability without losing affinity\n×\nFailed\nWorkflow settings\nPhases\nAfter run\nRun incomplete — partial outputs and the run record remain available.\nRUN FAILED\nPipeline failed. Inspect the step results for details.\nSummary\nOutputs\nReport\nImprove serum stability without losing affinity\nGenerated: 2026-11-15T16:30:36.893Z\nDataset\n\nNo inline dataset descriptors detected in run p"
+      }
+    }
+  },
+  "buildInfo": {
+    "commit": "a5ace834ed40b85be7c224df3cc710675e031d26"
+  },
+  "timedOutInProgress": false,
+  "grade": "HONEST_FAIL",
+  "useCasePass": false,
+  "errorObserved": "Pipeline failed. Inspect the step results for details."
+}

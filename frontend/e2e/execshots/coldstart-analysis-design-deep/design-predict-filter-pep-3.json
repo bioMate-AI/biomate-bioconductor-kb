@@ -1,0 +1,56 @@
+{
+  "id": "design-predict-filter-pep-3",
+  "label": "“Compute the relative binding free energy for a single-residue change in this peptide binder.”",
+  "prompt": "Compute the relative binding free energy for a single-residue change in this peptide binder.",
+  "workflowNames": [
+    "cyclic_peptide_design"
+  ],
+  "answerHead": "BioMate\n\nI need to stop and clarify: the workflow panel shows Cyclic Peptide Design, but your request is for relative binding free energy (RBFE) — a computation that requires alchemical free-energy perturbation (FEP), not peptide cyclization design.\n\nCyclic Peptide Design — generates and optimizes cyclic or stapled peptide backbones to improve stability and cell permeability.\n\nInput: Peptide sequence parameters only (no structure files read).\nKey steps: Cyclization/stapling chemistry selection → backbone optimization → ADMET prediction (solubility, aggregation, serum stability).\nExpected output: Designed cyclic peptide sequences + property predictions.\n\nThis workflow does not compute binding free energy. It is a design tool, not an FEP calculator.\n\nWhat you actually need: The gromacs_pmx_fep workflow, which performs relative binding free energy calculations via alchemical FEP with GROMACS + pmx. It takes:\n\nReceptor structure (1BXL.pdb, chain A — BCL-XL)\nTwo peptide sequences (wild-type reference BAK BH3 vs. a single-residue mutant, e.g., GQVGRQLAIIGDDINR → AQVGRQLAIIGDDINR)\nEdge specification defining which residue mutates\n\nThis workflow will compute ΔΔG (the free-energy difference between the two peptides binding to BCL-XL), with uncertainty from MBAR (multistate Bennett acceptance ratio) over alchemical lambda windows.\n\nWould you like me to generate the RBFE workflow instead? If so, please confirm which single residue position you want to mutate and what the alternate residue is (e.g., position 1: G→A, or another position from your peptide_candidates.fasta).\n\ncyclic_peptide_design",
+  "clarify": {
+    "hadClarify": false,
+    "panelVisible": false
+  },
+  "launch": {
+    "clicked": true,
+    "reason": "confirm"
+  },
+  "runId": "a8f846c3-32c5-4ec7-b209-2963d4b6f633",
+  "terminal": {
+    "status": "failed",
+    "error": "Process RANK_CANDIDATES (rank_candidates) failed: Essential container in task exited — ^^ | SyntaxError: f-string: unmatched '['",
+    "timedOut": false
+  },
+  "after": {
+    "afterShell": true,
+    "diagnosisOnly": true,
+    "failSnippet": "RUN FAILED Process RANK_CANDIDATES (rank_candidates) failed: Essential container in task exited — ^^ | SyntaxError: f-string: unmatched '[' FAILED STEP(S) rank_candidates (rank_candidates) Summary Outputs Report Download output files (3) · ZIP Reproducibility pack 📁 Save to Project 3 files showing 3 of 3 constraints.json JSON 310 B view Download Hide preview ring_size_min 8 ring_size_max 14 n_can",
+    "findingsOk": true,
+    "outputsOk": false,
+    "paramsOk": true,
+    "stuckInProgress": false,
+    "tabResults": {
+      "outputs": {
+        "visible": true,
+        "clicked": true,
+        "head": "DRUG DISCOVERY · WORKFLOW\ncyclic_peptide_design\n1 phase\n×\nFailed\nWorkflow settings\nPhases\n1\nAfter run\n🔍\nAI diagnosis\n\nThe step stopped with an error from the tool itself: f-string: unmatched '['\n\nNext: Check the input and parameters against that message (it usually names what is wrong), fix them, then run again.\n\nCheck your input data and parameters against the error, then run again.\n\nRun incompl"
+      },
+      "findings": {
+        "visible": true,
+        "clicked": true,
+        "head": "DRUG DISCOVERY · WORKFLOW\ncyclic_peptide_design\n1 phase\n×\nFailed\nWorkflow settings\nPhases\n1\nAfter run\n🔍\nAI diagnosis\n\nThe step stopped with an error from the tool itself: f-string: unmatched '['\n\nNext: Check the input and parameters against that message (it usually names what is wrong), fix them, then run again.\n\nCheck your input data and parameters against the error, then run again.\n\nRun incompl"
+      },
+      "parameters": {
+        "visible": true,
+        "clicked": true,
+        "head": "DRUG DISCOVERY · WORKFLOW\ncyclic_peptide_design\n1 phase\n×\nFailed\nWorkflow settings\nPhases\n1\nAfter run\n🔍\nAI diagnosis\n\nThe step stopped with an error from the tool itself: f-string: unmatched '['\n\nNext: Check the input and parameters against that message (it usually names what is wrong), fix them, then run again.\n\nCheck your input data and parameters against the error, then run again.\n\nRun incompl"
+      }
+    }
+  },
+  "buildInfo": {
+    "commit": "a5ace834ed40b85be7c224df3cc710675e031d26"
+  },
+  "timedOutInProgress": false,
+  "grade": "HONEST_FAIL",
+  "useCasePass": false,
+  "errorObserved": "Process RANK_CANDIDATES (rank_candidates) failed: Essential container in task exited — ^^ | SyntaxError: f-string: unmatched '['"
+}

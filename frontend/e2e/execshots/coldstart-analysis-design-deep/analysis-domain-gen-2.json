@@ -1,0 +1,57 @@
+{
+  "id": "analysis-domain-gen-2",
+  "label": "Check contamination and relatedness before analysis",
+  "prompt": "Check these genotypes for contamination and relatedness before I analyse them.",
+  "sessionId": "chat-1794755878698-beg24z5aj",
+  "workflowNames": [
+    "seqvartools"
+  ],
+  "answerHead": "BioMate\n\nseqvartools — Quality control and relatedness analysis for VCF genotypes, detecting contamination, pedigree discordance, and sample swaps.\n\nInput: ceph1463_genotypes.vcf.gz (VCF, GRCh37/b37, 19,991 sites, 17 samples); ceph1463.ped (pedigree file with declared relationships and sexes)\nKey steps:\nParse VCF and pedigree; compute genotype-inferred relatedness (IBS, pi-hat) and sex concordance\nFlag heterozygosity outliers, allele-balance deviations, and depth anomalies (FORMAT: GT, DP, RO, AO)\nCompare inferred kinship to declared pedigree relationships\nExpected output: Relatedness matrix + pedigree check report (inferred vs. declared pi-hat, kinship coefficients); sex concordance table; heterozygosity and depth summaries; flagged samples and sample-pair anomalies (contamination / swap candidates)\n\nNote on data: This workflow does not read your attached VCF and PED files directly — it is parameter-configured. However, seqvartools is designed specifically for pedigree QC and will accept your files when you bind them in the parameter panel. Review the panel and click Confirm & Run to execute.\n\nThese are Illumina Platinum Genomes (CEPH 1463, public tutorial dataset from the peddy repository). Depth-based contamination metrics are limited to the 19,991 sites in this subset; for a full genome, a larger variant set and higher coverage are expected to improve signal.\n\nseqvartools",
+  "clarify": {
+    "hadClarify": false,
+    "panelVisible": false
+  },
+  "launch": {
+    "clicked": true,
+    "reason": "confirm"
+  },
+  "runId": "aad4cf7c-1356-42ef-99e2-5ddf6ac9be3d",
+  "terminal": {
+    "status": "failed",
+    "error": "Process BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING (sample) failed: Essential container in task exited — Calls: plot -> plot -> plot.default -> xy.coords | Execution halted",
+    "timedOut": false
+  },
+  "after": {
+    "afterShell": true,
+    "diagnosisOnly": true,
+    "failSnippet": "RUN FAILED Process BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING (sample) failed: Essential container in task exited — Calls: plot -> plot -> plot.default -> xy.coords | Execution halted FAILED STEP(S) bioc_seqvartools_variant_qc_and_association_testing (sample) Summary Outputs Report No outputs — run did not complete successfully. Reproducibility pack Restart Reset to defaults VARIANT CALLI",
+    "findingsOk": true,
+    "outputsOk": false,
+    "paramsOk": true,
+    "stuckInProgress": false,
+    "tabResults": {
+      "outputs": {
+        "visible": true,
+        "clicked": true,
+        "head": "VARIANT CALLING · WORKFLOW\nseqvartools\n1 phase\n×\nFailed\nWorkflow settings\nPhases\n1\nAfter run\n🔍\nAI diagnosis\n\nA step failed while running.\n\nCheck your input data and parameters against the error, then run again.\n\nRun incomplete — partial outputs and the run record remain available.\nRUN FAILED\nProcess BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING (sample) failed: Essential container in task e"
+      },
+      "findings": {
+        "visible": true,
+        "clicked": true,
+        "head": "VARIANT CALLING · WORKFLOW\nseqvartools\n1 phase\n×\nFailed\nWorkflow settings\nPhases\n1\nAfter run\n🔍\nAI diagnosis\n\nA step failed while running.\n\nCheck your input data and parameters against the error, then run again.\n\nRun incomplete — partial outputs and the run record remain available.\nRUN FAILED\nProcess BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING (sample) failed: Essential container in task e"
+      },
+      "parameters": {
+        "visible": true,
+        "clicked": true,
+        "head": "VARIANT CALLING · WORKFLOW\nseqvartools\n1 phase\n×\nFailed\nWorkflow settings\nPhases\n1\nAfter run\n🔍\nAI diagnosis\n\nA step failed while running.\n\nCheck your input data and parameters against the error, then run again.\n\nRun incomplete — partial outputs and the run record remain available.\nRUN FAILED\nProcess BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING (sample) failed: Essential container in task e"
+      }
+    }
+  },
+  "buildInfo": {
+    "commit": "cd5ba35a2a189d204b5b46f191c2408222947850"
+  },
+  "timedOutInProgress": false,
+  "grade": "HONEST_FAIL",
+  "useCasePass": false,
+  "errorObserved": "Process BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING (sample) failed: Essential container in task exited — Calls: plot -> plot -> plot.default -> xy.coords | Execution halted"
+}

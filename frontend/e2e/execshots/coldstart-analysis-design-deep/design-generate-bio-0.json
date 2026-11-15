@@ -1,0 +1,56 @@
+{
+  "id": "design-generate-bio-0",
+  "label": "“Design scFv antibody sequences from this antibody structure.”",
+  "prompt": "Design scFv antibody sequences from this antibody structure.",
+  "workflowNames": [
+    "Antibody Antigen Complex"
+  ],
+  "answerHead": "BioMate\n\nAntibody Antigen Complex — Co-folds an antibody and antigen structure together to predict binding interfaces and validate scFv design.\n\nInput: Demo antibody–antigen pair (FMC63 scFv × CD19 fragment); parameters only — your attached PDB and FASTA files are not used by this workflow\nKey steps:\nBoltz-1 co-folding → predicted complex structure with confidence scores (pLDDT, PAE)\nInterface analysis → contact residues, buried surface area, binding geometry\nExpected output: Complex PDB file + interface metrics JSON + confidence visualization\n\nTo design scFv sequences from your 6Z43 nanobody–spike complex with CDR constraints and b12 framework grafting, you will need a different workflow: scfv_antibody_design or antibody_developability, which read PDB structure input and preserve your CDR/framework specifications.\n\nWould you like me to generate one of those workflows instead? I can bind them to your 6Z43.pdb structure and apply the constraints from your nanobody_constraints.json.\n\nAntibody Antigen Complex",
+  "clarify": {
+    "hadClarify": false,
+    "panelVisible": false
+  },
+  "launch": {
+    "clicked": true,
+    "reason": "confirm"
+  },
+  "runId": "c57d8d44-2803-4a83-9cf0-3a2f908b0c38",
+  "terminal": {
+    "status": "completed",
+    "error": "",
+    "timedOut": false
+  },
+  "after": {
+    "afterShell": true,
+    "diagnosisOnly": false,
+    "failSnippet": "",
+    "findingsOk": true,
+    "outputsOk": true,
+    "paramsOk": true,
+    "stuckInProgress": false,
+    "tabResults": {
+      "outputs": {
+        "visible": true,
+        "clicked": true,
+        "head": "DRUG DISCOVERY · WORKFLOW\nAntibody Antigen Complex\n1 phase\n×\nCompleted\n100%\n1/1\nWorkflow settings\nPhases\n1\nAfter run\nExport report ▾\nSummary\nOutputs\nReport\nDownload output files (5) · ZIP\nReproducibility pack\n📁 Save to Project\n5 files\nshowing 5 of 5\nfmc63_complex.json\nJSON\n627 B\nview\nDownload\nHide preview\nantibody_id\tfmc63\ntarget\tdemo_target\ntool\tBoltz-2\nformat\tVH+VL\nn_antigens\t1\nn_structures\t1\ns"
+      },
+      "findings": {
+        "visible": true,
+        "clicked": true,
+        "head": "DRUG DISCOVERY · WORKFLOW\nAntibody Antigen Complex\n1 phase\n×\nCompleted\n100%\n1/1\nWorkflow settings\nPhases\n1\nAfter run\nExport report ▾\nSummary\nOutputs\nReport\nFindings are not available yet.\nQC findings\nCheck\tObserved\tFlag condition\tResult\nFASTP\nfmc63_complex.json\nNo supported QC rule evaluated these metrics.\n\t—\t—\tNOT EVALUATED\nFASTP\nconfidence_in_model_0.json\nNo supported QC rule evaluated these met"
+      },
+      "parameters": {
+        "visible": true,
+        "clicked": true,
+        "head": "DRUG DISCOVERY · WORKFLOW\nAntibody Antigen Complex\n1 phase\n×\nCompleted\n100%\n1/1\nWorkflow settings\nPhases\n1\nAfter run\nExport report ▾\nSummary\nOutputs\nReport\nAntibody Antigen Complex\nGenerated: 2026-11-15T15:33:43.733Z\nDataset\n\nNo inline dataset descriptors detected in run parameters. If inputs were supplied separately, see the BioMate workspace inputs/ folder for this run.\n\nFindings\n\nFindings analy"
+      }
+    }
+  },
+  "buildInfo": {
+    "commit": "ab7e9118995b75becdbab7faf32d5d517bcbaf40"
+  },
+  "timedOutInProgress": false,
+  "grade": "REAL_PASS",
+  "useCasePass": true,
+  "errorObserved": ""
+}
