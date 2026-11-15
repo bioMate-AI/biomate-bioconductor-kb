@@ -1,9 +1,12 @@
 # 2026-11-15 — Cold-start Models module audit + DEV test
 
-**DEV tip (live):** `cb472efe5c13d798b67e02aa642e088e1bdf9847`  
+**DEV tip (live):** `28e3dac52cbd311de7c2e7f411142c09ce02b37e`  
+**Prior tip (pre-fix harness):** `cb472efe5c13d798b67e02aa642e088e1bdf9847`  
 **Fixture:** `lifeifei163361@163.com` (password from `~/.config/biomate/e2e_fixture_password`, not printed)  
 **Harness:** API (login once, one project) — Playwright deep suite skipped (local disk / Chrome risk; API pattern matches `design-generate-sm-0`)  
-**Evidence:** `/tmp/models_coldstart_harness_20261115T121101Z/`, `/tmp/models_coldstart_session_ds_20261115T122334Z/`
+**Evidence (pre-fix):** `/tmp/models_coldstart_harness_20261115T121101Z/`, `/tmp/models_coldstart_session_ds_20261115T122334Z/`  
+**Evidence (post-sync remasure):** `/tmp/models_coldstart_remasure_20261115T141507Z/`  
+**Sync log:** `/tmp/biomate_sync_to_dev_2c2233c042_codeonly_20261115_140255.log` (`BIOMATE_SYNC_DB=0`, SYNC_RC=0)
 
 ## Catalog (Models module)
 
@@ -31,7 +34,7 @@ Source: `cold-start-dashboard.tsx` → `COLD_MODULES[id=models]` + `cold-start-d
 
 Cryo license **402** is out of scope for Models (known blocker on Data analysis / cryo, not this module).
 
-## DEV API results (tip `cb472efe`)
+## DEV API results — pre-fix (tip `cb472efe`)
 
 Login once + project `12143210-…` (first harness) / `d44828a1-…` (session_datasets remasure).
 
@@ -47,6 +50,26 @@ Login once + project `12143210-…` (first harness) / `d44828a1-…` (session_da
 
 No `undefined` card names; no `s3://` in card title/message. Remasure with explicit `session_datasets` in the public generate body still ignored on live tip (Node did not forward that field until local fix).
 
+## DEV API remasure — post-sync (tip `28e3dac5`)
+
+Hostname TLS (`https://dev-public.biomate.ai`). Login once + project `c7878fd2-…`. Route + dataset-binding only (no Batch exec). Uploads via `/api/projects/{id}/files/upload` (returns `id` + `s3_key`, no `s3Uri` field).
+
+| id | Card name | nextflow_path | source | dataset | target_col | Verdict |
+|----|-----------|---------------|--------|---------|------------|---------|
+| models-train-potency | potency predictor | `ml_training/chemprop_train.nf` | ml_training | `bace_assays.csv` (not reinvent) | `pIC50` | **PASS** route |
+| models-train-herg | hERG classifier | `ml_training/chemprop_train.nf` | ml_training | `herg.csv` (**not** `tdc:hERG`) | `IC50_nM` | **PASS** attach (filename, not TDC) |
+| models-train-solubility | Solubility_AqSolDB regressor | `ml_training/chemprop_train.nf` | ml_training | `solubility.csv` (**not** `tdc:Solubility_*`) | `solubility` | **PASS** attach (filename, not TDC) |
+| models-adapt-generative | Reinvent4 Finetune Rl | `…/reinvent4_finetune_rl/main.nf` | template_reuse | — | — | **PASS** route |
+| models-adapt-finetune-property | property predictor | `ml_training/chemprop_train.nf` | ml_training | `bace_assays.csv` | `pIC50` | **PASS** route |
+| models-optimise-dmt-loop | REINVENT4 Generative Lead Design | `…/reinvent4_lead_design/main.nf` | template_reuse | — | — | **DEV** — not DMTA (known product gap) |
+| models-optimise-next-round | REINVENT4 Generative Lead Design | same | template_reuse | — | — | **DEV** — same |
+
+### Remasure notes
+
+- Live Galaxy confirms `uploaded_datasets = request.session_datasets or request.available_datasets or None` (lines ~4184 / ~4706). Frontend `/app/dist/index.js` forwards `session_datasets`.
+- Generate `dataset` is the **attached project filename**, not a `tdc:*` alias and not a literal `s3://…` URI. Project upload API surfaces `s3_key` (`projects/<pid>/inputs/<file>`); execute staging resolves that key to Batch-readable S3. Residual vs the strictest pass-criteria wording (`dataset=s3://…`) — binding is by uploaded name/id, not URI string in the card params.
+- REINVENT TL TOML no longer emits `[logging] logfile=` (verified on live container). Batch remasure of Adapt generative not re-run this pass (route-only).
+
 ## Root causes
 
 1. **Upload binding dropped for `generate_workflow` API**  
@@ -59,7 +82,7 @@ No `undefined` card names; no `s3://` in card title/message. Remasure with expli
 3. **Optimise / DMTA**  
    Catalog seeds a design–make–test loop, but chat still template-reuses lead design. Matches prior committee note (Rounds read-only / no launch). Not a catalog typo; product gap.
 
-## Fixes landed (local; need sync for DEV)
+## Fixes landed + synced
 
 | File | Change |
 |------|--------|
@@ -69,15 +92,21 @@ No `undefined` card names; no `s3://` in card title/message. Remasure with expli
 | `backend/lib/galaxy/ai/drug_discovery/reinvent4_trainer.py` | Drop forbidden `[logging] logfile` from TL TOML |
 | `…/test_reinvent4_trainer.py` | Assert TL config omits logfile |
 
-## Pass criteria after sync
+Synced to DEV as tip `28e3dac5` (ancestry includes `3536d04b05` + `2c2233c042` + merge of live `cb472efe`). Layers: frontend + backend; `BIOMATE_SYNC_DB=0`.
 
-- Potency + fine-tune-property → `ml_training/chemprop_train.nf`, `dataset=s3://…/bace_assays.csv`, `target_col=pIC50`, name not reinvent.
-- herg/solubility → same chemprop path with **attached** S3 URI (not `tdc:*`).
-- Adapt generative → reinvent4_finetune_rl; TL process no longer dies on logfile.
-- Optimise may still be lead-design until DMTA launch ships — document, do not soft-pass.
+## Pass criteria (status after remasure)
+
+| Criterion | Status |
+|-----------|--------|
+| Potency + fine-tune-property → `chemprop_train.nf`, not reinvent | **Met** |
+| `target_col=pIC50` on potency / fine-tune | **Met** |
+| herg/solubility → chemprop with **attached** data (not `tdc:*`) | **Met** (filename bind) |
+| Generate param is literal `s3://…` URI | **Not met** — filename/`s3_key` path; execute stages from project_files |
+| Adapt generative → reinvent4_finetune_rl | **Met** (route) |
+| Optimise → DMTA | **Open** product gap (still lead-design) |
 
 ## Commits
 
 Focused Models coldstart wiring + REINVENT TL logfile fix: `3536d04b05`.  
-Related already on branch: `8493c1d891` / `2435bab3d2` (scaffold “diffusion train” re-arm).  
-**Not synced to DEV yet** — remasure Train attach-S3 after PRE_SYNC + `scripts/sync_to_dev.sh`.
+Related already on branch: `8493c1d891` / `2435bab3d2` (scaffold “diffusion train” re-arm); phase-map `2c2233c042`.  
+Sync merge tip on DEV: `28e3dac5`.
