@@ -467,6 +467,8 @@ export const COLD_MODULES: ColdModule[] = [
       },
       {
         k: "Optimise",
+        // These seeds deep-link to Models Molecular Rounds (campaign Bayesian DMTA),
+        // not reinvent4_lead_design — see isDmtaLoopQuery / MODELS_DMTA_HREF.
         ex: [
           "Run the design–make–test loop on this series under a 96-assay budget.",
           "Propose the next round and refit on the results.",

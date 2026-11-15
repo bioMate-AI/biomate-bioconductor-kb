@@ -20,9 +20,8 @@ import { originLabel } from "./model-origin"
  * namespace, complete in both en and zh.
  */
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { t, tOr } from "@/lib/i18n"
-import { HintTabsTrigger } from "@/components/ui/hint-tip"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -37,7 +36,19 @@ import { TrainingLauncher } from "./training-launcher"
 import { CodeSandboxPath } from "./code-sandbox-path"
 import { formatRunTime, openRunManager, runStatusLabel } from "./training-logic"
 import { TrainingRegistration } from "./training-registration"
+import { RoundsSection } from "./dmta-rounds"
 import type { ModelSummary } from "./types"
+
+/** Resolve /models?tab=molecular|library|train|0|1|2 → tab index. */
+export function tabIndexFromSearch(search: string): number | undefined {
+  const raw = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search).get("tab")
+  if (raw == null || raw === "") return undefined
+  if (raw === "train" || raw === "0") return 0
+  if (raw === "library" || raw === "1") return 1
+  if (raw === "molecular" || raw === "2") return 2
+  const n = Number(raw)
+  return Number.isInteger(n) && n >= 0 && n <= 2 ? n : undefined
+}
 
 /** Train-tab path: no-code UI (clinicians) vs code sandbox (power users). */
 export type TrainPath = "ui" | "code"
@@ -280,125 +291,6 @@ export interface OptimiseData {
   proposal: OptimiseProposal[]
 }
 
-function proposalVerdictColor(verdict: string): string {
-  if (verdict === "accepted") return "#22c55e"
-  if (/reject/i.test(verdict)) return "#ef4444"
-  return "#f59e0b"
-}
-
-function RoundsSection({ data, onOpenModel }: { data?: OptimiseData; onOpenModel: (id: string) => void }) {
-  if (!data) {
-    return (
-      <Card data-testid="track-optimise">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">{t("models.rounds_heading")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-xs text-muted-foreground" data-testid="optimise-empty">{t("models.rounds_empty")}</p>
-        </CardContent>
-      </Card>
-    )
-  }
-  return (
-    <div className="space-y-3" data-testid="track-optimise">
-      <Card data-testid="optimise-loop">
-        <CardHeader className="pb-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <CardTitle className="text-sm">{t("models.rounds_heading")}</CardTitle>
-            <Badge
-              variant="outline"
-              className="ml-auto gap-1 text-fs-xs"
-              style={{ color: data.running ? "#22c55e" : "#94a3b8" }}
-              data-testid="optimise-loop-state"
-            >
-              <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: data.running ? "#22c55e" : "#94a3b8" }} />
-              {data.running ? t("models.rounds_running", { round: String(data.round) }) : t("models.rounds_stopped")}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="grid grid-cols-[6rem_1fr] gap-x-2 gap-y-1 text-xs">
-            <span className="text-muted-foreground">{t("models.rounds_surrogate")}</span>
-            <span className="flex flex-wrap items-center gap-1" data-testid="optimise-surrogates">
-              {data.surrogates.length ? (
-                data.surrogates.map((s, i) => (
-                  <span key={s.id} className="flex items-center gap-1">
-                    {i > 0 && <span className="text-muted-foreground">+</span>}
-                    <button
-                      type="button"
-                      className="font-mono text-primary hover:underline"
-                      onClick={() => onOpenModel(s.id)}
-                      data-testid={`optimise-surrogate-${s.id}`}
-                    >
-                      {s.label}
-                    </button>
-                  </span>
-                ))
-              ) : (
-                <span className="text-muted-foreground">—</span>
-              )}
-            </span>
-            {data.budget && (<><span className="text-muted-foreground">{t("models.rounds_budget")}</span><span>{data.budget}</span></>)}
-            {data.refitPolicy && (<><span className="text-muted-foreground">{t("models.rounds_refit")}</span><span>{data.refitPolicy}</span></>)}
-          </div>
-          <div className="space-y-1" data-testid="optimise-rounds">
-            {data.rounds.map((r) => (
-              <div key={r.round} className="flex items-center gap-2 text-xs" data-testid={`optimise-round-${r.round}`}>
-                <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground" />
-                <span className="font-semibold">{r.round}</span>
-                <Badge variant="outline" className="text-fs-xs">{r.status}</Badge>
-                <span>{r.what}</span>
-                <span className="ml-auto text-fs-xs text-muted-foreground">{r.when}</span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card data-testid="optimise-proposal">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">{t("models.rounds_proposal", { round: String(data.round) })}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-1">
-          <div className="rounded border text-xs" data-testid="optimise-proposal-table">
-            <div className="grid grid-cols-[1.2fr_0.8fr_0.9fr_1.2fr] gap-2 bg-muted px-2 py-1 font-semibold">
-              <span>{t("models.col_candidate")}</span>
-              <span>{t("models.col_score")}</span>
-              <span>{t("models.col_confidence")}</span>
-              <span>{t("models.col_verdict")}</span>
-            </div>
-            {data.proposal.length ? (
-              data.proposal.map((p) => (
-                <div
-                  key={p.id}
-                  className="grid grid-cols-[1.2fr_0.8fr_0.9fr_1.2fr] items-center gap-2 border-t px-2 py-1"
-                  data-testid={`optimise-proposal-${p.id}`}
-                >
-                  <span className="truncate font-mono font-semibold">{p.id}</span>
-                  <span className="font-mono">{p.score}</span>
-                  <span className="text-muted-foreground">{p.confidence}</span>
-                  <Badge
-                    variant="outline"
-                    className="w-fit gap-1 text-fs-xs"
-                    style={{ color: proposalVerdictColor(p.verdict) }}
-                    data-testid={`optimise-proposal-verdict-${p.id}`}
-                  >
-                    <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: proposalVerdictColor(p.verdict) }} />
-                    {p.verdict}
-                  </Badge>
-                </div>
-              ))
-            ) : (
-              <p className="border-t px-2 py-2 text-fs-xs text-muted-foreground">{t("models.rounds_no_proposal")}</p>
-            )}
-          </div>
-          <p className="pt-1 text-fs-xs text-muted-foreground">{t("models.rounds_rejected_note")}</p>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
 function TrackRequestState({ query, overridden, children }: {
   query: { isPending: boolean; isError: boolean; refetch: () => unknown }
   overridden: boolean
@@ -431,6 +323,14 @@ export function ModelsPanel({
   project = "Project", tab, onTabChange, className, trainData, optimiseData,
 }: ModelsPanelProps) {
   const [internalTab, setInternalTab] = useState(0)
+  // Deep-link /models?tab=molecular (chat Optimise → Models Rounds).
+  useEffect(() => {
+    if (tab !== undefined) return
+    try {
+      const fromUrl = tabIndexFromSearch(window.location.search)
+      if (fromUrl !== undefined) setInternalTab(fromUrl)
+    } catch { /* non-browser */ }
+  }, [tab])
   const activeTab = tab ?? internalTab
   const setTab = (i: number) => { setInternalTab(i); onTabChange?.(i) }
   // Two paths on Train: default no-code launcher; code → owned run_code sandbox
@@ -487,15 +387,18 @@ export function ModelsPanel({
               {MODELS_TRACKS.map((track, i) => {
                 const Icon = TRACK_ICONS[i]
                 return (
-                  <HintTabsTrigger key={track} hint={tOr(`hint.models.${track}`, '')} value={String(i)} className="text-xs" data-testid={`models-track-${i}`}>
+                  <TabsTrigger key={track} value={String(i)} className="text-xs" data-testid={`models-track-${i}`}>
                     <Icon className="mr-1 h-3 w-3" />
                     {t(`models.tab_${track}`)}
-                  </HintTabsTrigger>
+                  </TabsTrigger>
                 )
               })}
             </TabsList>
 
             <TabsContent value="0" className="space-y-3">
+              <p className="text-fs-xs text-muted-foreground" data-testid="tab-purpose-train">
+                {t("models.tab_purpose_train")}
+              </p>
               <div className="flex flex-wrap gap-1" data-testid="train-path-toggle" role="group" aria-label={t("models.path_toggle_label")}>
                 <Button
                   type="button"
@@ -533,14 +436,24 @@ export function ModelsPanel({
               )}
             </TabsContent>
 
-            <TabsContent value="1">
+            <TabsContent value="1" className="space-y-3">
+              <p className="text-fs-xs text-muted-foreground" data-testid="tab-purpose-library">
+                {t("models.tab_purpose_library")}
+              </p>
               <LibraryTrack project={projectArg} onOpenModel={setOpenModelId} preselectModelId={runPreselect} />
             </TabsContent>
 
             <TabsContent value="2" className="space-y-3">
+              <p className="text-fs-xs text-muted-foreground" data-testid="tab-purpose-molecular">
+                {t("models.tab_purpose_molecular")}
+              </p>
               <TrainingLauncher family="molecular" />
               <TrackRequestState query={optimiseQuery} overridden={optimiseData !== undefined}>
-                <RoundsSection data={effectiveOptimiseData} onOpenModel={setOpenModelId} />
+                <RoundsSection
+                  data={effectiveOptimiseData ?? undefined}
+                  projectId={projectArg}
+                  onOpenModel={setOpenModelId}
+                />
               </TrackRequestState>
             </TabsContent>
           </Tabs>

@@ -4667,6 +4667,18 @@ Query: "run on fixture:empiar-10028-movies pixel_size=0.885 voltage=300 symmetry
         r'\b(adapt|fine-?tune|retrain)\b[^.\n]{0,40}?\b(generative|generator|reinvent)\b',
     )
 
+    # Campaign Bayesian DMTA (Models Optimise) — must NOT be treated as reinvent4_lead_design.
+    _DMTA_LOOP_PATTERNS = (
+        r'\bdesign[-–—\s]*make[-–—\s]*test\b',
+        r'\bdmta\b',
+        r'\bbayesian\s+optim',
+        r'\b96[-\s]?assay\b',
+        r'\bassay\s+budget\b',
+        r'\bpropos\w*\s+the\s+next\s+round\b',
+        r'\bnext\s+round\b.{0,40}\brefit\b',
+        r'\brefit\b.{0,40}\b(results?|round|propos)',
+    )
+
     @staticmethod
     def _request_task_text(user_intent: str) -> str:
         """The request's statement of its task: the user's own text (without the
@@ -4681,11 +4693,23 @@ Query: "run on fixture:empiar-10028-movies pixel_size=0.885 voltage=300 symmetry
         return own.strip().split('\n\n')[0]
 
     @classmethod
+    def _is_dmta_loop_task(cls, user_intent: str) -> bool:
+        """True when the task is a campaign design–make–test / next-round / assay-budget loop
+        (Models Molecular Rounds + drug-discovery retrain APIs), not generative lead design."""
+        import re as _re_dmta
+
+        task = cls._request_task_text(user_intent).lower()
+        return any(_re_dmta.search(p, task) for p in cls._DMTA_LOOP_PATTERNS)
+
+    @classmethod
     def _is_generative_task(cls, user_intent: str) -> bool:
         """The task is to make new molecules or improve existing ones (generate / design /
-        optimise / adapt a generator), as opposed to predicting, docking or ranking given ones."""
+        optimise / adapt a generator), as opposed to predicting, docking or ranking given ones.
+        DMTA campaign loops are excluded — those are not reinvent4_lead_design."""
         import re as _re_gen
 
+        if cls._is_dmta_loop_task(user_intent):
+            return False
         task = cls._request_task_text(user_intent).lower()
         return any(_re_gen.search(p, task) for p in cls._GENERATIVE_TASK_PATTERNS)
 
@@ -5436,6 +5460,29 @@ Query: "run on fixture:empiar-10028-movies pixel_size=0.885 voltage=300 symmetry
             # Initialise variables that may be set only in specific code paths
             # so the final return dict can always reference them safely.
             dataset_match_result: Dict[str, Any] = {}
+
+            # DMTA / Optimise campaign loop — not a Nextflow card. Chat Node layer
+            # deep-links to Models Molecular Rounds; if this path is hit directly,
+            # refuse reinvent4_lead_design rather than template-reusing it as DMTA.
+            if self._is_dmta_loop_task(user_intent):
+                log.info(
+                    "[UnifiedWorkflowGeneration] DMTA loop task — refusing reinvent4_lead_design "
+                    "(use Models → Molecular → Rounds / drug-discovery retrain APIs)"
+                )
+                return {
+                    'success': False,
+                    'error': (
+                        'DMTA / design–make–test loop is a campaign Bayesian propose/refit surface '
+                        '(Models → Molecular learning → Rounds), not reinvent4_lead_design. '
+                        'Open /models?tab=molecular to create a campaign and propose the next round.'
+                    ),
+                    'source': 'dmta_models_rounds',
+                    'needs_user_feedback': False,
+                    'search_results': [],
+                    'selected_trial': '',
+                    'trials': [],
+                    'uploaded_datasets': uploaded_datasets,
+                }
 
             # An explicitly named workflow outranks every keyword heuristic below.
             _fast_named = self._try_fast_path_named_catalog_workflow(

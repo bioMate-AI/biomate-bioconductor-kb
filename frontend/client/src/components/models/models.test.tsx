@@ -18,7 +18,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
-import { ModelsPanel, HOUSE_STYLE_HIDDEN, type OptimiseData, type TrainData } from "./models-panel"
+import { ModelsPanel, HOUSE_STYLE_HIDDEN, tabIndexFromSearch, type OptimiseData, type TrainData } from "./models-panel"
+import { MOLECULAR } from "./training-logic"
 import { ModelObject } from "./model-object"
 import { RunPretrained } from "./run-pretrained"
 import { InferenceResultView } from "./inference-result"
@@ -210,11 +211,26 @@ describe("ModelsPanel — 模型库 (Model library) tab", () => {
 })
 
 describe("ModelsPanel — 分子学习 (Molecular learning) tab", () => {
-  it("shows the molecular launcher and the honest empty rounds state", async () => {
+  it("shows the molecular launcher, honest empty rounds, and real DMTA controls", async () => {
     mockFetchByUrl({ "/api/models": CATALOG })
     render(<ModelsPanel project="Test project" tab={2} />, { wrapper: wrapper() })
     await waitFor(() => expect(screen.getByTestId("training-launcher-molecular")).toBeTruthy())
     expect(await screen.findByTestId("optimise-empty")).toBeTruthy()
+    expect(screen.getByTestId("optimise-controls")).toBeTruthy()
+    expect(screen.getByTestId("optimise-create-campaign")).toBeTruthy()
+    expect(screen.getByTestId("optimise-start")).toBeTruthy()
+    expect(screen.getByTestId("optimise-stop")).toBeTruthy()
+    expect(screen.getByTestId("optimise-trigger")).toBeTruthy()
+    expect(screen.getByTestId("tab-purpose-molecular")).toBeTruthy()
+    // Chemprop on Molecular (same path as chat Train) — not RDKit-only.
+    expect(MOLECULAR).toContain("chemprop_gnn")
+  })
+
+  it("resolves /models?tab=molecular deep-link (Optimise / CRO retarget)", () => {
+    expect(tabIndexFromSearch("?tab=molecular")).toBe(2)
+    expect(tabIndexFromSearch("tab=library")).toBe(1)
+    expect(tabIndexFromSearch("?tab=train")).toBe(0)
+    expect(tabIndexFromSearch("")).toBeUndefined()
   })
 
   it("renders the DMTA loop, surrogate links and a safety-gate rejection that stays visible", async () => {

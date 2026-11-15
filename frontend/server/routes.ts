@@ -5592,9 +5592,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
   //   POST   /api/drug-discovery/:id/ind-assembly
   //   GET    /api/drug-discovery/:id/compounds
   //   GET    /api/drug-discovery/:id/export/cro-order
-  //   POST   /api/drug-discovery/:id/ingest-assay  (multipart handled below)
+  //   POST   /api/drug-discovery/:id/ingest-assay  (multipart: dedicated route below)
   //   GET    /api/drug-discovery/availability
   // ─────────────────────────────────────────────────────────────────────────
+  // Assay CSV ingest — dedicated multipart route BEFORE the wildcard.
+  // The wildcard cannot re-stream multipart (body was empty → Galaxy 422).
+  // Same pattern as /api/ind-report/.../attachments.
+  const _assayIngestUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 50 * 1024 * 1024 },
+  });
+  app.post(
+    "/api/drug-discovery/:campaignId/ingest-assay",
+    optionalAuth,
+    _assayIngestUpload.single("file"),
+    async (req: any, res: any) => {
+      try {
+        const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+        if (!req.file) {
+          return res.status(400).json({ error: 'no file in multipart upload' });
+        }
+        const campaignId = String(req.params.campaignId || '').trim();
+        if (!campaignId || campaignId.includes('/') || campaignId.includes('\\')) {
+          return res.status(400).json({ error: 'invalid campaign id' });
+        }
+        const fd = new FormData();
+        const blob = new Blob([req.file.buffer], {
+          type: req.file.mimetype || 'text/csv',
+        });
+        fd.append('file', blob, req.file.originalname || 'assays.csv');
+        const resp = await fetchGalaxyAsUser(req,
+          `${galaxyUrl}/api/drug-discovery/${encodeURIComponent(campaignId)}/ingest-assay`,
+          {
+            method: 'POST',
+            headers: {},
+            body: fd,
+            signal: AbortSignal.timeout(120000),
+          },
+        );
+        const data = await resp.json().catch(() => ({}));
+        return res.status(resp.status).json(data);
+      } catch (err: any) {
+        return res.status(502).json({ error: 'assay ingest proxy error', detail: err.message });
+      }
+    },
+  );
+
   app.all("/api/drug-discovery/*", optionalAuth, async (req: any, res: any) => {
     try {
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
@@ -5617,10 +5660,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       if (method !== 'GET' && method !== 'HEAD' && method !== 'DELETE') {
-        // For multipart (file upload), stream the raw body
+        // Multipart must use the dedicated ingest-assay route above — never
+        // forward an empty body through this JSON wildcard.
         if (req.headers['content-type']?.includes('multipart/form-data')) {
-          // Can't easily re-stream multipart here — skip body forwarding
-          // (ingest-assay uses its own dedicated handler above this wildcard)
+          return res.status(400).json({
+            error: 'multipart must use POST /api/drug-discovery/:id/ingest-assay',
+          });
         } else {
           // B3 — inject org_id into IND assembly bodies so the backend
           // _build_rag_context can load the per-org prompt_rules YAML +

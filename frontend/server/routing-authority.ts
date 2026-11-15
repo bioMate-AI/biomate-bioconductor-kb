@@ -156,3 +156,21 @@ export function boinDoseLevelsMissing(intent: RoutingIntent, message: string): b
     || /\bstarting.dose\b.+\bmax.dose\b/i.test(message);
   return !hasDoseLevels;
 }
+
+/**
+ * Models Optimise / DMTA loop intents — campaign Bayesian propose/refit, not REINVENT4
+ * generative lead design. Matches cold-start Optimise seeds and natural follow-ups.
+ * The first paragraph (task statement) is used so Prepared-demo context cannot poison
+ * a non-DMTA ask that merely mentions assays in scaffolding.
+ */
+const DMTA_LOOP_RE = /\bdesign[-–—\s]*make[-–—\s]*test\b|\bdmta\b|\bbayesian\s+optim|\b96[-\s]?assay\b|\bassay\s+budget\b|\bpropos\w*\s+the\s+next\s+round\b|\bnext\s+round\b.{0,40}\brefit\b|\brefit\b.{0,40}\b(results?|round|propos)/i;
+
+export function isDmtaLoopQuery(message: string, subQuery?: string): boolean {
+  const own = String(message || '').split(/\n\s*\[(?:Memory context|Inline parameters:|Prepared)/i)[0]
+    .trim().split(/\n\n/)[0];
+  const blob = `${own}\n${subQuery || ''}`;
+  return DMTA_LOOP_RE.test(blob);
+}
+
+/** Deep-link target for DMTA / Optimise — Models Molecular Rounds (CRO Library route is disabled). */
+export const MODELS_DMTA_HREF = '/models?tab=molecular';

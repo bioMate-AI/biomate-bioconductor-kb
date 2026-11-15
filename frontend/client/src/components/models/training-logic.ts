@@ -14,16 +14,17 @@ export type FileKind = 'table' | 'h5ad' | 'structure' | 'other';
 export type TaskType = 'classification' | 'regression';
 
 /** Panel model choices. `ludwig_molecular` = ludwig_tabular + featurizer rdkit_2d.
+ *  `chemprop_gnn` = message-passing GNN (same plan path as chat Train).
  *  Mirrors backend MODEL_TYPES (ml_training/config.py) — the panel must surface
  *  the FULL ML/DL set, not a subset. */
 export type PanelModelType =
   | 'sklearn_tabular' | 'ludwig_tabular'
   | 'ludwig_llm' | 'trl_dpo' | 'trl_grpo'
   | 'scrna_diffusion' | 'protein_diffusion' | 'tabular_diffusion'
-  | 'sklearn_gbr' | 'ludwig_molecular';
+  | 'sklearn_gbr' | 'ludwig_molecular' | 'chemprop_gnn';
 
 export const SUPERVISED_GENERAL: PanelModelType[] = ['sklearn_tabular', 'ludwig_tabular'];
-export const MOLECULAR: PanelModelType[] = ['sklearn_gbr', 'ludwig_molecular'];
+export const MOLECULAR: PanelModelType[] = ['sklearn_gbr', 'ludwig_molecular', 'chemprop_gnn'];
 export const LLM_TYPES: PanelModelType[] = ['ludwig_llm', 'trl_dpo', 'trl_grpo'];
 /** Generative families — unsupervised (no target/metric gate). */
 export const GENERATIVE: PanelModelType[] = ['scrna_diffusion', 'protein_diffusion', 'tabular_diffusion'];
@@ -131,6 +132,7 @@ const SUPERVISED_METRICS: Record<string, Record<TaskType, string[]>> = {
   ludwig_tabular: { classification: ['accuracy'], regression: ['mae'] },
   ludwig_molecular: { classification: ['auc', 'accuracy'], regression: ['mae'] },
   sklearn_gbr: { classification: ['auc'], regression: ['mae'] },
+  chemprop_gnn: { classification: ['auc', 'accuracy'], regression: ['mae', 'rmse'] },
 };
 
 export function metricsFor(type: PanelModelType, task: TaskType): string[] {
@@ -185,7 +187,8 @@ export function formatRunTime(value: string, lang: string = locale): string {
  * (chat-with-artifacts.tsx: biomate-run-manager-open / -scope) and has no
  * per-run deep link, so a panel-launched run is shown by opening the manager on
  * the all-chats scope, where the run is listed. Storage can be unavailable
- * (private mode); navigation still happens.
+ * (private mode); navigation still happens. Callers should label the control as
+ * opening Run Manager (not as ejecting the user from Models).
  */
 export function openRunManager(navigate: (url: string) => void = url => window.location.assign(url)): void {
   try {

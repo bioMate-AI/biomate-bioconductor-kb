@@ -245,6 +245,11 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
         {family === 'molecular' ? t('models.launch_heading_molecular') : t('models.launch_heading_general')}
       </p>
       <p className="text-xs text-muted-foreground">{t('models.launch_intro')}</p>
+      {family === 'molecular' && (
+        <p className="text-fs-xs text-muted-foreground" data-testid="launcher-molecular-path-note">
+          {t('models.launch_molecular_path_note')}
+        </p>
+      )}
 
       <label className="block text-xs">{t('models.setup_project')}
         <select className={FIELD} value={project} onChange={e => setProject(e.target.value)} required
@@ -409,6 +414,9 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
             <button type="button" className="ml-auto text-primary hover:underline" onClick={() => openRunManager()}
               data-testid="launcher-run-link">{t('models.open_in_run_manager')}</button>
           </div>
+          <p className="text-fs-xs text-muted-foreground" data-testid="launcher-run-follow-hint">
+            {t('models.open_run_manager_hint')}
+          </p>
           <p className="font-mono text-fs-xs text-muted-foreground break-all">{runId}</p>
           {runStatus.data?.errorMessage && (
             <p className="text-destructive break-words" data-testid="launcher-run-error">{runStatus.data.errorMessage}</p>

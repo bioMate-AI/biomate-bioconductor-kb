@@ -321,7 +321,7 @@ describe("training-logic", () => {
   it("filters model types by dataset shape", () => {
     expect(availableModelTypes("general", "table", ["a", "b"], [])).toContain("sklearn_tabular")
     expect(availableModelTypes("general", "table", ["a", "b"], [])).not.toContain("trl_dpo")
-    expect(availableModelTypes("molecular", "table", ["smiles", "y"], ["smiles"])).toEqual(["sklearn_gbr", "ludwig_molecular"])
+    expect(availableModelTypes("molecular", "table", ["smiles", "y"], ["smiles"])).toEqual(["sklearn_gbr", "ludwig_molecular", "chemprop_gnn"])
     expect(availableModelTypes("molecular", "table", ["a", "y"], [])).toEqual([])
     expect(availableModelTypes("general", "structure", [], [])).toEqual(["protein_diffusion"])
   })

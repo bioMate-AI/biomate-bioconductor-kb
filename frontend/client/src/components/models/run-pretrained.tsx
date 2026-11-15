@@ -192,7 +192,11 @@ export function RunPretrained({ onOpenModel, className, initialModelId }: RunPre
                 </button>
               ) : (
                 <span className="text-muted-foreground" data-testid="run-pretrained-no-model">
-                  {t("models.no_model_for_domain")}
+                  {domain.id === "genomic"
+                    ? t("models.no_model_genomic")
+                    : domain.id === "chemical"
+                      ? t("models.no_model_chemical")
+                      : t("models.no_model_for_domain")}
                 </span>
               )}
               {catalogModel?.origin && (

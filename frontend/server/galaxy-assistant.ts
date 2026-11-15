@@ -36,7 +36,7 @@ import { groundedResearchReply, researchEvidenceContext } from './grounded-resea
 import { resolveChainHintNames } from './chain-hint-fallback';
 import { routingExamplesPrompt } from './routing-examples';
 import { EXECUTE_NOW_NUDGE, attachedInputNames, generatesSyntheticData, redactStoragePaths, shouldRequireExecution, syntheticDataAllowed, SYNTHETIC_DATA_REFUSAL, unbackedOutputFileClaims } from './execution-integrity';
-import { applyRetrievalHints, applyUserConstraintGate, boinDoseLevelsMissing, parseUserConstraint, reconcileExecutionMode, type UserConstraint } from './routing-authority';
+import { applyRetrievalHints, applyUserConstraintGate, boinDoseLevelsMissing, isDmtaLoopQuery, MODELS_DMTA_HREF, parseUserConstraint, reconcileExecutionMode, type UserConstraint } from './routing-authority';
 import { jsonrepair } from 'jsonrepair';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
@@ -5197,12 +5197,19 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
     decomposition: IntentDecomposition,
     message: string,
     opts: { paperContentResult?: unknown; originalUserQuery?: string; context?: ChatContext } = {},
-  ): { boinDoseLevelsMissing?: boolean; pathwayEnrichment?: boolean } {
+  ): { boinDoseLevelsMissing?: boolean; dmtaLoop?: boolean; pathwayEnrichment?: boolean } {
     const userText = opts.originalUserQuery ?? message;
     reconcileExecutionMode(intent, conversationHasComputableData(message, opts.context) && !conversationHasPipelineScaleData(message, opts.context));
     const { pathwayEnrichment } = applyRetrievalHints(intent, decomposition, userText);
     const gate = applyUserConstraintGate(intent, userText);
     if (gate !== 'none') console.log(`[GalaxyAssistant] [routing] user-constraint gate: ${gate}`);
+    // DMTA / Optimise loop → Models Molecular Rounds (campaign Bayesian APIs), never invent4.
+    if (isDmtaLoopQuery(userText, intent.subQuery)) {
+      console.log('[GalaxyAssistant] [routing] DMTA loop → Models Rounds deep-link (not reinvent4_lead_design)');
+      intent.actions.needsWorkflowGeneration = false;
+      intent.actions.needsWorkflowModification = false;
+      return { dmtaLoop: true, pathwayEnrichment };
+    }
     if (boinDoseLevelsMissing(intent, userText)) {
       console.log('[GalaxyAssistant] [routing] BOIN prereq gate: dose levels missing — returning clarification');
       intent.actions.needsWorkflowGeneration = false;
@@ -5762,6 +5769,23 @@ Rules:
 
     const _routing = this._applyPostClassifierRouting(intent, decomposition, message, { paperContentResult, originalUserQuery, context });
     const _isPathwayEnrichmentQuery = !!_routing.pathwayEnrichment;
+    if (_routing.dmtaLoop) {
+      const _dmtaMsg =
+        'That is a **design–make–test–analyse (DMTA)** campaign loop — Bayesian propose / refit under an assay budget — not generative lead design (REINVENT4).\n\n' +
+        `Open **[Models → Molecular learning → Rounds](${MODELS_DMTA_HREF})** to create a campaign for this project and start, stop, or propose the next round. ` +
+        'Attach assay results and a candidate library in the project first; the loop will not invent measurements.\n\n' +
+        'If you instead wanted **de novo / scaffold-hop generative design**, say so explicitly (e.g. “generate analogs with REINVENT4”).';
+      return {
+        message: _dmtaMsg,
+        intentType: intent.type,
+        intentConfidence: intent.confidence,
+        recommendedTools: recommendedTools.length > 0 ? recommendedTools : undefined,
+        recommendedDatasets: recommendedDatasets.length > 0 ? recommendedDatasets : undefined,
+        workflowSuggestion: { shouldGenerate: false, userIntent: message, confidence: 0, reasoning: 'DMTA loop → Models Rounds (not reinvent4_lead_design)' },
+        generatedWorkflow: null, researchResponse: undefined, benchmarkEvidence: undefined,
+        truncated: false, suggestions: [], sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: false, thinkingUsed: false, researchAgentUsed: false, benchmarkAgentUsed: false, knowledgeHighlightsUsed: false },
+      } as GalaxyAssistantResponse;
+    }
     if (_routing.boinDoseLevelsMissing) {
       const _boinQuestion = 'To design the BOIN Phase I trial, I need the **dose levels** to test (in mg). For example: `[10, 30, 60, 100, 200]`. What dose range should I use for your compound?';
       return {
@@ -6344,27 +6368,20 @@ Rules:
       }
     }
 
-    // CRO compliance workspace routing: if the message is about CRO/compliance/IND/DMTA,
-    // append a direct link to the CRO workspace so users can open it immediately.
+    // DMTA / campaign / auto-retrain deep-link → Models Molecular Rounds.
+    // The /drug-discovery-cro page is commented out in App.tsx — never link there.
     // IMPORTANT: use word-boundary regex for short substrings like 'cro' and 'esig'
     // to avoid false matches on words like 'design' (d-esig-n) or 'microsomal' (mi-cro-...).
     const _msgLower = message.toLowerCase();
-    const _isCroQuery = /\bcro\b/.test(_msgLower)
-      || /\bcompliance\b/.test(_msgLower)
-      || _msgLower.includes('ind assembly')
-      || _msgLower.includes('ind §')
-      || _msgLower.includes('21 cfr')
-      || _msgLower.includes('cfr part 11')
-      || _msgLower.includes('audit trail')
-      || /\besign(ature)?\b/.test(_msgLower)
-      || _msgLower.includes('electronic signature')
+    const _isDmtaSurfaceQuery = /\bcro\b/.test(_msgLower)
       || _msgLower.includes('auto-retrain')
       || _msgLower.includes('dmta loop')
       || _msgLower.includes('drug discovery campaign')
       || _msgLower.includes('ingest assay')
-      || _msgLower.includes('cro order');
-    if (_isCroQuery && !finalMessage.includes('/drug-discovery-cro')) {
-      finalMessage += '\n\n→ Open your [CRO Compliance workspace](/drug-discovery-cro) to manage campaigns, view the audit chain, and generate IND packages.';
+      || _msgLower.includes('cro order')
+      || isDmtaLoopQuery(message);
+    if (_isDmtaSurfaceQuery && !finalMessage.includes(MODELS_DMTA_HREF) && !finalMessage.includes('/models?tab=molecular')) {
+      finalMessage += `\n\n→ Open [Models → Molecular learning → Rounds](${MODELS_DMTA_HREF}) to run the design–make–test campaign loop (propose / refit).`;
     }
 
     // Ground LLM-extracted keys against the workflow schema so the panel

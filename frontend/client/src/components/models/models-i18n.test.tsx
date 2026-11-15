@@ -25,6 +25,8 @@ const LATIN_ALLOWED = new Set([
   "rdkit", "smiles", "roc", "auc", "f1", "r²", "hugging", "face", "pdb", "cif", "h5ad", "csv", "tsv",
   "jsonl", "parquet", "plddt", "pae", "contig", "kl", "beta", "obs", "gpu", "id", "a30", "a33", "ai",
   "biomate", "nvidia", "boltz", "tabddpm", "tabsyn",
+  // Molecular / DMTA product names that stay Latin in zh UI when they appear.
+  "chemprop", "sklearn", "gnn", "evo2", "reinvent",
   // Code-path labels (language names + sandbox symbols kept in Latin script).
   "python", "r", "bash", "input", "files", "run", "code", "galaxy",
 ])

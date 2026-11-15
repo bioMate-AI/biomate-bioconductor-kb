@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  applyRetrievalHints, applyUserConstraintGate, boinDoseLevelsMissing, parseUserConstraint,
+  applyRetrievalHints, applyUserConstraintGate, boinDoseLevelsMissing, isDmtaLoopQuery, MODELS_DMTA_HREF, parseUserConstraint,
   reconcileExecutionMode, type RoutingIntent,
 } from './routing-authority';
 import { GalaxyAssistant } from './galaxy-assistant';
@@ -137,6 +137,21 @@ describe('BOIN prerequisite gate', () => {
   });
   it('only applies to a workflow decision', () => {
     expect(boinDoseLevelsMissing(mk(false), 'What is BOIN?')).toBe(false);
+  });
+});
+
+describe('DMTA / Models Optimise loop detection', () => {
+  it('matches cold-start Optimise seeds', () => {
+    expect(isDmtaLoopQuery('Run the design–make–test loop on this series under a 96-assay budget.')).toBe(true);
+    expect(isDmtaLoopQuery('Propose the next round and refit on the results.')).toBe(true);
+  });
+  it('does not treat generative lead design as DMTA', () => {
+    expect(isDmtaLoopQuery('Generate 500 candidates for this target with drug-like properties.')).toBe(false);
+    expect(isDmtaLoopQuery('Scaffold-hop away from this series but keep the binding pharmacophore.')).toBe(false);
+  });
+  it('deep-links to Models Molecular Rounds, not CRO Library', () => {
+    expect(MODELS_DMTA_HREF).toBe('/models?tab=molecular');
+    expect(MODELS_DMTA_HREF).not.toContain('drug-discovery-cro');
   });
 });
 
