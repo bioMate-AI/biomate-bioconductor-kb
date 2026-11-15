@@ -1,7 +1,9 @@
 # 2026-11-15 — Models panel + Optimise/DMTA UX improvements
 
 **Decision:** Phase 0 **(A) Wire** — recorded in `docs/20261115_MODELS_TEST_AND_FIX_PLAN.md`.  
-**Branch tip at restore:** `a5ace834ed` (`sync/pr398-onto-dev`; prior claim verified against `5cfdc43f84`).
+**Branch tip at restore:** `a5ace834ed` (`sync/pr398-onto-dev`; prior claim verified against `5cfdc43f84`).  
+**Commit:** `029383bad6` — `fix(models): restore Option A DMTA UX and seed propose fixtures`.  
+**Sync:** not completed this turn (SSM sandbox fail; interactive DEV sync approval timed out). Run `BIOMATE_SYNC_DB=0 bash scripts/sync_to_dev.sh` after pre-sync (tsc + full vitest already green).
 
 ---
 
