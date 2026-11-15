@@ -8152,7 +8152,7 @@ ${paramLines || '(none recorded)'}`;
   // Workflow generation endpoint - proxies to Galaxy backend
   app.post("/api/ai_assistant/generate_workflow", optionalAuth, checkBillingQuota('AI generation'), async (req, res) => {
     try {
-      const { request_text, available_datasets, context, preferred_tools, constraints } = req.body;
+      const { request_text, available_datasets, session_datasets, context, preferred_tools, constraints } = req.body;
 
       if (!request_text) {
         return res.status(400).json({ error: "request_text is required" });
@@ -8166,9 +8166,17 @@ ${paramLines || '(none recorded)'}`;
       // record / api_keys row is missing or rotated (verified live today:
       // admin key `f17c618a…` returns 401 from /api/whoami, while per-user
       // keys provisioned at registration succeed).
+      // Forward user uploads as session_datasets. Galaxy ml_training routing
+      // historically only read session_datasets; callers of this public route
+      // only sent available_datasets — potency Train then fell through to
+      // reinvent4_finetune_rl (Models coldstart audit 2026-11-15).
+      const uploads = (Array.isArray(session_datasets) && session_datasets.length)
+        ? session_datasets
+        : (Array.isArray(available_datasets) && available_datasets.length ? available_datasets : undefined);
       const response = await userProxy(req).generateWorkflow({
         user_intent: request_text,
         datasets: available_datasets,
+        session_datasets: uploads,
         max_tools_search: constraints?.max_tools_search,
       });
 

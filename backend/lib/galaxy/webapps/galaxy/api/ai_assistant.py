@@ -4173,13 +4173,18 @@ def generate_workflow_unified(
         raise HTTPException(status_code=503, detail="AI Assistant not available")
 
     try:
-        # uploaded_datasets = user's actual session-uploaded files (threaded from
-        # req.session.uploadedDatasets via enrichedContext.sessionDatasets → session_datasets).
-        # request.available_datasets contains BioMNI public reference datasets used for
-        # knowledge retrieval — NOT user input files.
-        uploaded_datasets = request.session_datasets or None
+        # uploaded_datasets = user's actual session-uploaded files.
+        # Prefer session_datasets (chat-stream: req.session.uploadedDatasets →
+        # enrichedContext.sessionDatasets). Fall back to available_datasets when
+        # callers only send that field (POST /api/ai_assistant/generate_workflow
+        # Node proxy, API harnesses). Without this fallback, "Train a potency
+        # predictor" + bace_assays.csv with s3_uri in available_datasets never
+        # reached ml_training and template-reused reinvent4_finetune_rl
+        # (Models coldstart audit 2026-11-15).
+        uploaded_datasets = request.session_datasets or request.available_datasets or None
         import sys
         print(f"[DEBUG generate_workflow] session_datasets={request.session_datasets}", file=sys.stderr, flush=True)
+        print(f"[DEBUG generate_workflow] available_datasets={request.available_datasets}", file=sys.stderr, flush=True)
         print(f"[DEBUG generate_workflow] uploaded_datasets={uploaded_datasets}", file=sys.stderr, flush=True)
 
         user_id = str(trans.user.id) if getattr(trans, "user", None) else None
@@ -4696,10 +4701,9 @@ def generate_workflow_multi_agent(
         raise HTTPException(status_code=503, detail="AI Assistant not available")
 
     try:
-        # uploaded_datasets = user's actual session-uploaded files (threaded from
-        # req.session.uploadedDatasets via enrichedContext.sessionDatasets → session_datasets).
-        # request.available_datasets contains BioMNI public reference datasets — not user files.
-        uploaded_datasets = request.session_datasets or None
+        # Same fallback as generate_workflow_unified: session_datasets first,
+        # then available_datasets (API / proxy callers that only send the latter).
+        uploaded_datasets = request.session_datasets or request.available_datasets or None
 
         # Generate session ID for audit tracking
         session_id = request.context.get('session_id') if request.context else None

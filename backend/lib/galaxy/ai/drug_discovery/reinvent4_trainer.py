@@ -287,8 +287,12 @@ class Reinvent4TransferLearner(_Reinvent4Base):
         ]
         if validation_smiles_file:
             lines.append(f'validation_smiles_file = "{validation_smiles_file}"')
-        # A CSV of loss/epoch is written next to the model; keep for provenance.
-        lines += ["", "[logging]", f'logfile = "{logfile}"']
+        # Do NOT emit `[logging] logfile=…`. Current REINVENT4 pydantic configs
+        # reject that key as extra_forbidden (dev coldstart Adapt / finetune runs:
+        # Process REINVENT4_TRAIN … Extra inputs are not permitted … logfile).
+        # TensorBoard via tb_logdir above is the supported provenance channel;
+        # `logfile` remains a local path we may inspect after the CLI returns.
+        _ = logfile  # retained for TrainerResult / post-run inspection
         return "\n".join(lines) + "\n"
 
 

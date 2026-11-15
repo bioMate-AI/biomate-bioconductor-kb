@@ -89,6 +89,9 @@ def test_transfer_config_is_valid_transfer_learning():
           "config wires base prior -> new checkpoint (fine-tuning)")
     check("smiles_file" in cfg, "config trains on the partner SMILES file")
     check("num_epochs = 5" in cfg, "epochs honoured")
+    # REINVENT4 pydantic rejects [logging] logfile= as extra_forbidden
+    check("[logging]" not in cfg and "logfile" not in cfg,
+          "TL config omits forbidden [logging] logfile key")
 
 
 def test_transfer_honest_failure_no_fabrication():
