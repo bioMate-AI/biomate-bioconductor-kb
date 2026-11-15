@@ -5895,7 +5895,9 @@ def _list_s3_work_output_files(work_s3_uri: str) -> list:
 
 
 # CryoSPARC-specific: map S3 output directory names → 0-indexed step IDs
-# (matching _CRYOSPARC_STEP_PHASES in ai_assistant.py)
+# (parse order of `process` decls in cryosparc_standard_spa/main.nf — same
+# indices the viewer uses. Phase letters are name-keyed in ai_assistant
+# `_CRYOSPARC_STEP_PHASES`, not these ints.)
 _CRYOSPARC_S3_DIR_TO_STEP: Dict[str, int] = {
     # Phase A — Motion Correction & CTF (step IDs from workflow definition)
     "00_cs_init": 0,                       # INIT_CRYOSPARC_PROJECT
