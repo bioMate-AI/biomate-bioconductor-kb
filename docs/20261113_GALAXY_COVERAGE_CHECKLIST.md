@@ -57,7 +57,7 @@ Have / Partial rows cite at least one file path or route verified in-tree (not d
 | Interactive Tools (Jupyter/RStudio/cellxgene) | **Partial** | Routes `/api/interactive/*`, open-in handlers exist; `OPEN_IN_AVAILABLE = false` (`dataset-view-model.ts`); `INTERACTIVE_TOOLS_ENABLED` gate in `routes.ts` — buttons hidden |
 | Genome builds (igenomes) | **Partial** | Silent resolve on execute (`nextflow_executor.py`); no user-facing `GET /api/genomes` browser / build picker |
 | Extra remote file-source plugins (Drive/WebDAV/…) | **Partial** | Galaxy supports many plugins; BioMate `file_sources_conf.yml` only public FTP/HTTP set |
-| Workflow landings (shareable pre-filled invoke UUID) | **Missing** | Galaxy `workflow_landings` API in-tree; BioMate has library/deep links only |
+| Workflow landings (shareable pre-filled invoke UUID) | **Have** | BioMate-native `run_landings` + `POST /api/workflows/landings` → `/run/:token` claim → panel prefilled (2026-11-15 Wave 4). Distinct from `/workflow/:id` drafts; not Galaxy `workflow_landings` |
 | Extract workflow from history | **Missing** | Galaxy `from_history_id` / `workflow/extract.py`; no BioMate “save completed run as reusable workflow” |
 | Built-in datatype converters (~98) | **Partial** | Galaxy converter registry still unused for HDA path. **Staging indexes Have (2026-11-15 Wave 3):** local BAM→`.bai` / VCF.gz→`.tbi` via `samtools`/`tabix` before Batch (`staging-index.ts`); missing tool → 409 `staging_index_failed` |
 | Collection operation tools (zip/filter/relabel/rules) | **Missing** | Semantics useful for samplesheets; not productized on project_files |
@@ -101,7 +101,7 @@ Cap for chat summary; full Missing rows remain in the table.
 4. ~~BAM/VCF viewers without IT~~ → **Partial/Have** in-product IGV.js for BAM + indexed VCF.gz (2026-11-14); h5ad still IT/summary  
 
 5. ~~Datatype auto-converters before Batch~~ → **Partial/Have** staging BAM/VCF indexes (2026-11-15); full Galaxy converter set still Missing for HDA path  
-6. Workflow landing / shareable pre-filled run links  
+6. ~~Workflow landing / shareable pre-filled run links~~ → **Have** BioMate-native `/run/:token` (2026-11-15 Wave 4)  
 7. Storage archive/purge for abandoned S3 data  
 8. In-app run-complete / QC notifications  
 9. Honest `.ga` → Galaxy-engine (or clear “Nextflow only”) labeling  

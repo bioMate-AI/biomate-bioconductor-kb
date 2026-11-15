@@ -1794,6 +1794,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const { registerProjectRoutes } = await import("./project-routes");
   registerProjectRoutes(app);
 
+  // Wave 4 — BioMate-native pre-filled run landing links (/run/:token).
+  // Distinct from owner-scoped /workflow/:id drafts and Galaxy workflow_landings.
+  const { registerRunLandingRoutes } = await import("./run-landings");
+  registerRunLandingRoutes(app);
+
   // Project Notes (synthesis) — Stream-A platform.
   const { registerNotesRoutes } = await import("./notes-routes");
   registerNotesRoutes(app);
