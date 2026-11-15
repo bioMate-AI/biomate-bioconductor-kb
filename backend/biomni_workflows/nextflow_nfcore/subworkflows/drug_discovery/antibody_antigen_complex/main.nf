@@ -140,7 +140,7 @@ PYEOF
     #     large for this GPU — crop the antigen to the binding domain or use a
     #     larger-memory GPU instance.
     if grep -qiE "ran out of memory|Number of failed examples: [1-9]" boltz_run.log \
-       && [ -z "$(find out -name '*.cif' 2>/dev/null)" ]; then
+       && [ -z "\$(find out -name '*.cif' 2>/dev/null)" ]; then
       echo "[antibody_antigen_complex] Boltz produced NO structure (GPU OOM / failed example). Likely the complex is too large for this GPU — crop the antigen to its binding domain or use a larger-memory GPU." >&2
       exit 42
     fi

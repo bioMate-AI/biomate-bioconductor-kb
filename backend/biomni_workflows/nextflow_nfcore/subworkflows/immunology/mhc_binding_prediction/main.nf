@@ -49,7 +49,6 @@
 
 nextflow.enable.dsl = 2
 
-import groovy.json.JsonSlurper
 
 // Demo defaults (overridden by BioMate's executor at launch). SIINFEKL is the
 // canonical OVA epitope; GILGFVFTL is the influenza M1 HLA-A*02:01 epitope.
@@ -289,7 +288,7 @@ workflow MHC_BINDING_PREDICTION {
 // Entry workflow for standalone execution.
 workflow {
     def alleles  = params.alleles instanceof String
-        ? new JsonSlurper().parseText(params.alleles)
+        ? new groovy.json.JsonSlurper().parseText(params.alleles)
         : params.alleles
     // Pass the peptide JSON string unchanged to every allele task so each scores
     // the full peptide set against its own allele (fan-out parallelism).

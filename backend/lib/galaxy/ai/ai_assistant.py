@@ -5696,7 +5696,8 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 user_intent = user_intent + (
                     "\n[Routing hint: the task is to GENERATE or OPTIMISE molecules; property / ADMET "
                     f"criteria in the request are design objectives or constraints, not the task. Prefer {_gen_wf}, "
-                    "NOT a property-prediction-only workflow.]"
+                    "NOT a property-prediction-only workflow, and NOT gromacs_pmx_fep / openfe_rbfe "
+                    "(those are relative-FEP affinity engines, not generators).]"
                 )
                 log.info(
                     "[UnifiedWorkflowGeneration] Generative task (ADMET as constraint=%s) — injected generative-design hint",

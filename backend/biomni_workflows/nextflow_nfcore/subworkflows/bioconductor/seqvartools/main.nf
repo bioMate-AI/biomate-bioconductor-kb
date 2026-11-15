@@ -64,7 +64,7 @@ process BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING {
     # Resolve VCF: declared name, then any staged .vcf / .vcf.gz (coldstart CEPH
     # demo ships ceph1463_genotypes.vcf.gz — do not require a rename to file.vcf).
     vcf_cands <- c("file.vcf", "file.vcf.gz",
-                   list.files(".", pattern = "\\\\.vcf(\\\\.gz)?$", ignore.case = TRUE))
+                   list.files(".", pattern = "\\\\.vcf(\\\\.gz)?\$", ignore.case = TRUE))
     vcf_cands <- unique(vcf_cands[file.exists(vcf_cands) & !dir.exists(vcf_cands)])
     if (!length(vcf_cands)) {
       stop("No VCF found in the working directory (expected file.vcf or *.vcf/.vcf.gz).")
@@ -232,7 +232,7 @@ process BIOC_SEQVARTOOLS_VARIANT_QC_AND_ASSOCIATION_TESTING {
     }
     if (is.null(pedigree)) {
       ped_cands <- c("pedigree.ped", "ceph1463.ped",
-                     list.files(".", pattern = "\\\\.ped$", ignore.case = TRUE))
+                     list.files(".", pattern = "\\\\.ped\$", ignore.case = TRUE))
       ped_cands <- unique(ped_cands[file.exists(ped_cands) & !dir.exists(ped_cands)])
       if (!length(ped_cands)) {
         stop("No pedigree found (expected pedigree_data.RData or a PLINK .ped).")

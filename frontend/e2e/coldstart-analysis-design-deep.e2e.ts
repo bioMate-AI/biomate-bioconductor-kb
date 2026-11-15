@@ -197,24 +197,35 @@ async function waitForAssistantSettled(page: Page) {
 }
 
 async function pollWorkflowMeta(page: Page, sessionId?: string) {
-  if (!sessionId) return { names: [] as string[], runId: undefined as string | undefined };
   let names: string[] = [];
   let runId: string | undefined;
   for (let i = 0; i < 18; i++) {
-    const res = await page.request.get(`${BASE_URL}/api/sessions/${sessionId}`);
-    if (res.ok()) {
-      const session = await res.json();
-      const msgs: any[] = session.messages ?? [];
-      for (const m of msgs) {
-        if (m.role !== "assistant") continue;
-        const wf = m.metadata?.workflow;
-        if (wf) {
-          names.push(String(wf.name ?? wf.display_name ?? wf.workflow_type ?? "unnamed"));
+    if (sessionId) {
+      const res = await page.request.get(`${BASE_URL}/api/sessions/${sessionId}`);
+      if (res.ok()) {
+        const session = await res.json();
+        const msgs: any[] = session.messages ?? [];
+        for (const m of msgs) {
+          if (m.role !== "assistant") continue;
+          const wf = m.metadata?.workflow;
+          if (wf) {
+            names.push(String(wf.name ?? wf.display_name ?? wf.workflow_type ?? "unnamed"));
+          }
         }
+        runId = runId || pickRunIdFromSessionPayload(session);
+        if (names.length) break;
       }
-      runId = runId || pickRunIdFromSessionPayload(session);
-      if (names.length) break;
     }
+    // Session metadata often lags (antibody_developability completed with empty
+    // workflowNames → FAKE_OR_SOFT_PASS). Panel title is the product source of truth.
+    if (!names.length) {
+      const panelName = (
+        (await page.getByTestId("workflow-panel-name").first().textContent().catch(() => null)) ||
+        ""
+      ).trim();
+      if (panelName && !/^untitled$/i.test(panelName)) names.push(panelName);
+    }
+    if (names.length) break;
     await page.waitForTimeout(5_000);
   }
   return { names, runId };
@@ -355,10 +366,21 @@ async function auditAfterRunTabs(page: Page, runFailed: boolean) {
     await page.waitForTimeout(1500);
   }
 
+  // v2 After Run = Summary · Outputs · Report (Findings live inside Summary).
+  // Older harness selectors looked for a Findings tab that no longer exists →
+  // completed antibody_developability graded FAKE_OR_SOFT_PASS despite real outputs.
   const tabs = {
     outputs: page.locator('[data-testid="after-tab-outputs"], button:has-text("Outputs")').first(),
-    findings: page.locator('[data-testid="after-tab-findings"], button:has-text("Findings")').first(),
-    parameters: page.locator('[data-testid="after-tab-parameters"], button:has-text("Parameters")').first(),
+    findings: page
+      .locator(
+        '[data-testid="after-tab-findings"], [data-testid="after-tab-summary"], button:has-text("Findings"), button:has-text("Summary")',
+      )
+      .first(),
+    parameters: page
+      .locator(
+        '[data-testid="after-tab-parameters"], [data-testid="after-tab-report"], button:has-text("Parameters"), button:has-text("Report")',
+      )
+      .first(),
   };
 
   const tabResults: Record<string, { visible: boolean; clicked: boolean; text: string }> = {};

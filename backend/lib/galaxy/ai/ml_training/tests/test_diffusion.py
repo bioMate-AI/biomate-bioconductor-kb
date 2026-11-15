@@ -160,14 +160,21 @@ def test_train_diffusion_defers_without_framework(tmp_path):
 
 
 # --- routing --------------------------------------------------------------
-@pytest.mark.parametrize("text", [
-    "fine-tune a protein diffusion model for FcRn binders",
-    "design a de novo protein binder against PD-L1",
-    "use RFdiffusion to generate a peptide scaffold",
-    "train a protein backbone generation model",
+@pytest.mark.parametrize("text,expected", [
+    ("fine-tune a protein diffusion model for FcRn binders", True),
+    # Bare design/sample phrasing → catalog (antibody fold / cyclic / MPNN), NOT TRAIN.
+    ("design a de novo protein binder against PD-L1", False),
+    ("use RFdiffusion to generate a peptide scaffold", False),
+    ("peptide structure design for a BCL-XL binder", False),
+    ("train a protein backbone generation model", True),
 ])
-def test_diffusion_intent_detected(text):
-    assert detect_training_intent(text) is True
+def test_diffusion_intent_detected(text, expected):
+    assert detect_training_intent(text) is expected
+
+
+def test_design_without_train_falls_through_to_catalog():
+    assert route_ml_training("design a de novo protein binder against PD-L1") is None
+    assert route_ml_training("optimise this peptide structure for solubility") is None
 
 
 def test_routing_diffusion_intent():
@@ -187,8 +194,10 @@ def test_routing_diffusion_from_scratch_and_framework():
 
 
 def test_routing_diffusion_extracts_hotspots():
+    # extract_training_config still maps diffusion phrasing when called directly;
+    # the router gate (detect_training_intent) requires a train verb.
     cfg = extract_training_config(
-        "design a binder against a target with hotspot residues A30, A33, A34")
+        "fine-tune a binder against a target with hotspot residues A30, A33, A34")
     assert cfg.diffusion.hotspot_residues == "A30,A33,A34"
 
 

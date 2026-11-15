@@ -64,13 +64,13 @@ process BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION {
         # Read user input file (accept common cold-start aliases of the basename)
         .clin_candidates <- c(
           "patient_clinical_data.csv",
-          list.files(".", pattern = "(?i)(clinical|patient|cohort|survival).*\\\\.(csv|tsv|txt)$")
+          list.files(".", pattern = "(?i)(clinical|patient|cohort|survival).*\\\\.(csv|tsv|txt)\$")
         )
         .clin_path <- .clin_candidates[file.exists(.clin_candidates)][1]
         if (is.na(.clin_path) || !nzchar(.clin_path)) {
           stop("Required input file missing: patient_clinical_data.csv (or a *clinical*/*patient* CSV)")
         }
-        clinical_data <- if (grepl("\\\\.tsv$", .clin_path, ignore.case = TRUE)) {
+        clinical_data <- if (grepl("\\\\.tsv\$", .clin_path, ignore.case = TRUE)) {
           read.delim(.clin_path, stringsAsFactors = FALSE)
         } else {
           read.csv(.clin_path, stringsAsFactors = FALSE)
@@ -108,7 +108,7 @@ process BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION {
         }
         clinical_data\$time <- as.numeric(clinical_data\$time)
         # Drop ID-like columns from the RHS so coxph(~ .) is identifiable
-        .drop <- grepl("(?i)^(patient|subject|sample|id|rownames)$|(_id)$", colnames(clinical_data))
+        .drop <- grepl("(?i)^(patient|subject|sample|id|rownames)\$|(_id)\$", colnames(clinical_data))
         clinical_data <- clinical_data[, (!.drop) | colnames(clinical_data) %in% c("time", "status"), drop = FALSE]
         # Coerce remaining character covariates to factors
         for (.cn in setdiff(colnames(clinical_data), c("time", "status"))) {

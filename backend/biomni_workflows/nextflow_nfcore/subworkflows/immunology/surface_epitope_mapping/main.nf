@@ -39,7 +39,6 @@
 
 nextflow.enable.dsl = 2
 
-import groovy.json.JsonSlurper
 
 // Demo default is intentionally empty — this workflow consumes a real structure
 // file; production supplies {id, pdb} (e.g. an ESMFold/AlphaFold model of an EBV
@@ -292,7 +291,7 @@ workflow SURFACE_EPITOPE_MAPPING {
 // Entry workflow for standalone execution.
 workflow {
     def structures = params.structures instanceof String
-        ? new JsonSlurper().parseText(params.structures)
+        ? new groovy.json.JsonSlurper().parseText(params.structures)
         : params.structures
 
     ch_structures = Channel

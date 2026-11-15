@@ -74,11 +74,11 @@ process BIOC_DEQMS_MAXQUANT_LFQ {
     #    Potential.contaminant, not the vignette's Contaminant column).
     .pg_candidates <- c(
       "proteinGroups.txt",
-      list.files(".", pattern = "(?i)proteingroups.*\\\\.(txt|tsv|csv)$")
+      list.files(".", pattern = "(?i)proteingroups.*\\\\.(txt|tsv|csv)\$")
     )
     .pg_path <- .pg_candidates[file.exists(.pg_candidates)][1]
     if (is.na(.pg_path) || !nzchar(.pg_path)) stop("Required input file missing: proteinGroups.txt")
-    .sep <- if (grepl("\\\\.csv$", .pg_path, ignore.case = TRUE)) "," else "\\t"
+    .sep <- if (grepl("\\\\.csv\$", .pg_path, ignore.case = TRUE)) "," else "\\t"
     df.prot = read.table(.pg_path, header = TRUE, sep = .sep, stringsAsFactors = FALSE,
                          comment.char = "", quote = "")
     if ("Reverse" %in% colnames(df.prot)) {

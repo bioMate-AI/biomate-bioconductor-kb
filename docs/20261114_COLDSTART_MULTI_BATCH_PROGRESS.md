@@ -21,11 +21,24 @@
 | **G** Bioconductor R exits | **Done** — cox/deqms/multigsea/mageckflute staging+script fixes; 6 pytest green (`docs/20261114_BATCH_G_BIOCONDUCTOR.md`) |
 | **H** generic NF fails | **Done (code)** | `docs/20261114_BATCH_H_GENERIC_NF.md` — count-matrix remap, seqvartools VCF/ped, bcell P03200, vina 1IEP+symlink, antibody JsonSlurper, prompt-as-name, gromacs pep-3 seeds |
 
-## All batches A–H: code-complete locally
+## All batches A–H: synced to DEV
 
-**Next (not done):** lease free → `docs/PRE_SYNC_CHECKLIST.md` → `scripts/sync_to_dev.sh` → filtered coldstart deep re-run. Optional: rebuild `reinvent4-nf:x86` to drop runtime Zenodo.
+| Gate | Result |
+|------|--------|
+| Commit | `ae4dbfd12a` (A–H) + `4867407ddb` (reinvent docstring) |
+| PRE_SYNC | `tsc` 0; targeted vitest **235** green; full vitest has unrelated tip-drift fails (i18n/LLM/catalog) |
+| Sync | `BIOMATE_SYNC_DB=0` → **healthy** at `4867407d` (waited out stale remote lease from deploy-images worktree) |
+| Public tip | `{"commit":"4867407ddb868b0d7b820d90da51f999fa9f194e"}` |
 
-**Concurrency note:** parallel agents kept reverting `_PER_PROCESS_CONTAINER_WORKFLOWS` and the samplesheet helper — parent re-applied both; verified intact after H (`tsc` exit 0).
+**In flight:** full **71-fail** remasure on DEV tip `4867407d` — log `/tmp/coldstart_fail_remeasure_20261114_1613.log` (pid 89051). Details: `docs/20261114_COLDSTART_REMEASURE_AND_REST.md`.
+
+**Spot (pre-full remasure):** `design-generate-sm-0` on tip → `HONEST_FAIL` **Script compilation** (CLI class closed; needs `de208a32bb` sync to scrub residual `"""` in comments).
+
+**Local pending sync:** JsonSlurper/JsonOutput FQN sweep; gromacs `DEFINE_EDGE` → workflow-tools; catalog dataset=PDB hints; generative routing excludes FEP.
+
+**Still optional:** rebuild `reinvent4-nf:x86` to drop runtime Zenodo egress.
+
+**Concurrency note:** never wipe `/tmp/biomate_coldstart_deep.lock` mid-suite (causes 1ms refuse cascade).
 
 ## Local verification this session
 

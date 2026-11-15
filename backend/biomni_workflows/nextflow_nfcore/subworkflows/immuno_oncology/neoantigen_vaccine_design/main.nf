@@ -66,8 +66,9 @@
 
 nextflow.enable.dsl = 2
 
-import groovy.json.JsonSlurper
-import groovy.json.JsonOutput
+// Note: use fully-qualified groovy.json.* (no top-level import) — Nextflow
+// strict/classic parsers reject `import groovy.json.*` as a script compile error
+// on some Batch head images.
 
 // Demo defaults (overridden by BioMate's executor at launch). A small built-in
 // set of illustrative missense neoepitope windows (wt vs mut differ by one
@@ -603,10 +604,10 @@ workflow NEOANTIGEN_VACCINE_DESIGN {
 workflow {
     def variants_json = params.variants instanceof String
         ? params.variants
-        : JsonOutput.toJson(params.variants)
+        : groovy.json.JsonOutput.toJson(params.variants)
 
     def alleles = params.alleles instanceof String
-        ? new JsonSlurper().parseText(params.alleles)
+        ? new groovy.json.JsonSlurper().parseText(params.alleles)
         : params.alleles
 
     ch_variants = Channel.value(variants_json as String)
