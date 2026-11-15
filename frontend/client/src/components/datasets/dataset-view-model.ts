@@ -143,7 +143,8 @@ const CONTENT: Record<ViewKind, ContentRenderer> = {
   molecules: "viewer", json: "viewer", sequences: "viewer", reads: "viewer", variants: "viewer", structure: "viewer",
   image: "viewer", document: "viewer",
   anndata: "anndata", loom: "anndata",
-  alignment: "summary", matrix: "summary",
+  // BAM/CRAM: in-product IGV.js slot (dataset-file-preview); not Interactive Tools.
+  alignment: "viewer", matrix: "summary",
   archive: "download", binary: "download", unknown: "download",
 }
 

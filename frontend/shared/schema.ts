@@ -1100,6 +1100,8 @@ export const executionRunSchema = z.object({
     executionEngine: z.string().optional(),
     nextflowStatus: z.any().optional(),
     trainingLaunchParameters: z.record(z.unknown()).optional(),
+    /** Honest cost estimate snapshot at launch — admin compare only; never user UI. */
+    costEstimateSnapshot: z.any().optional(),
     status: executionRunStatusSchema,
     startedAt: z.coerce.date().optional(),
     completedAt: z.coerce.date().optional(),

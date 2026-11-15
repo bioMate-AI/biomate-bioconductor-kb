@@ -12,7 +12,7 @@ import {
   CheckCircle2, XCircle, AlertCircle, Loader2, RefreshCw, ArrowLeft,
   Copy, Check, Server, Database, Cpu, Bot, Users, Activity, Wifi,
   MemoryStick, Layers, Clock, ChevronDown, ChevronRight, Terminal,
-  List, AlertTriangle, Square, FileText, X,
+  List, AlertTriangle, Square, FileText, X, DollarSign,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -801,6 +801,184 @@ function RunStatsPanel() {
   );
 }
 
+// ── Cost estimate / compare (admin ops only) ──────────────────────────────────
+// Lives on the existing /admin SystemDashboard — do NOT add a parallel /admin/cost page.
+
+interface HonestCostEstimate {
+  confidence: "historical" | "prior" | "unavailable";
+  basis: string;
+  assumptions: string[];
+  sample_count?: number | null;
+  nextflow_path?: string | null;
+  domain?: string | null;
+  range: { min_vcpu_hrs: number; max_vcpu_hrs: number };
+  usd_range?: { min_usd: number; max_usd: number; label?: string } | null;
+}
+
+interface CostCompareRow {
+  runId: string;
+  workflowName: string | null;
+  status: string | null;
+  estimated_vcpu_hrs: number | null;
+  actual_vcpu_hrs: number | null;
+  delta_pct: number | null;
+  estimate_confidence: string | null;
+}
+
+function CostPanel() {
+  const [path, setPath] = useState("nf-core/rnaseq");
+  const [domain, setDomain] = useState("");
+  const [runId, setRunId] = useState("");
+  const [estimate, setEstimate] = useState<HonestCostEstimate | null>(null);
+  const [compareRows, setCompareRows] = useState<CostCompareRow[]>([]);
+  const [runDetail, setRunDetail] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const runEstimate = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const qs = new URLSearchParams();
+      if (path.trim()) qs.set("nextflow_path", path.trim());
+      if (domain.trim()) qs.set("domain", domain.trim());
+      const r = await fetch(`/api/admin/cost/estimate?${qs}`, { credentials: "include" });
+      if (r.status === 403) { setError("需要管理员权限"); return; }
+      if (!r.ok) { setError(`estimate ${r.status}`); return; }
+      setEstimate(await r.json());
+    } catch (e: any) {
+      setError(e?.message || "estimate failed");
+    } finally {
+      setLoading(false);
+    }
+  }, [path, domain]);
+
+  const runCompare = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const qs = new URLSearchParams({ limit: "15" });
+      if (path.trim()) qs.set("nextflow_path", path.trim());
+      const r = await fetch(`/api/admin/cost/compare?${qs}`, { credentials: "include" });
+      if (!r.ok) { setError(`compare ${r.status}`); return; }
+      const body = await r.json();
+      setCompareRows(Array.isArray(body.rows) ? body.rows : []);
+    } catch (e: any) {
+      setError(e?.message || "compare failed");
+    } finally {
+      setLoading(false);
+    }
+  }, [path]);
+
+  const loadRun = useCallback(async () => {
+    if (!runId.trim()) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const r = await fetch(`/api/admin/cost/runs/${encodeURIComponent(runId.trim())}`, { credentials: "include" });
+      if (r.status === 404) { setError("run not found"); setRunDetail(null); return; }
+      if (!r.ok) { setError(`run ${r.status}`); return; }
+      setRunDetail(await r.json());
+    } catch (e: any) {
+      setError(e?.message || "run lookup failed");
+    } finally {
+      setLoading(false);
+    }
+  }, [runId]);
+
+  const confColor =
+    estimate?.confidence === "historical" ? "text-green-700"
+      : estimate?.confidence === "prior" ? "text-yellow-700"
+        : "text-muted-foreground";
+
+  return (
+    <Card data-testid="admin-cost-panel">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <DollarSign className="h-4 w-4" /> 成本估算（运维）
+          </CardTitle>
+          <Badge variant="outline" className="text-[10px]">admin only · 不对用户展示</Badge>
+        </div>
+        <CardDescription className="text-xs">
+          honest vCPU-hrs：historical / prior / unavailable — 无假美元报价
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div>
+            <Label className="text-xs">nextflow_path</Label>
+            <Input className="h-8 text-xs" value={path} onChange={(e) => setPath(e.target.value)} placeholder="nf-core/rnaseq" />
+          </div>
+          <div>
+            <Label className="text-xs">domain（可选）</Label>
+            <Input className="h-8 text-xs" value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="rnaseq" />
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" className="h-7 text-xs" onClick={runEstimate} disabled={loading}>估算</Button>
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={runCompare} disabled={loading}>对比近期</Button>
+        </div>
+        {error && <p className="text-xs text-destructive">{error}</p>}
+        {estimate && (
+          <div className="rounded border p-2 text-xs space-y-1" data-testid="admin-cost-estimate">
+            <p className={confColor}>confidence: <strong>{estimate.confidence}</strong> · {estimate.basis}</p>
+            <p>vCPU-hrs: {estimate.range.min_vcpu_hrs} – {estimate.range.max_vcpu_hrs}</p>
+            {estimate.usd_range ? (
+              <p className="text-muted-foreground">
+                rough USD: ${estimate.usd_range.min_usd} – ${estimate.usd_range.max_usd}
+                {estimate.usd_range.label ? ` (${estimate.usd_range.label})` : ""}
+              </p>
+            ) : (
+              <p className="text-muted-foreground">无 USD 带（unavailable 或无费率）</p>
+            )}
+            <ul className="list-disc pl-4 text-muted-foreground">
+              {(estimate.assumptions || []).slice(0, 5).map((a, i) => <li key={i}>{a}</li>)}
+            </ul>
+          </div>
+        )}
+        {compareRows.length > 0 && (
+          <div className="overflow-auto max-h-48 border rounded" data-testid="admin-cost-compare">
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr className="text-left text-muted-foreground border-b">
+                  <th className="p-1">run</th>
+                  <th className="p-1">est</th>
+                  <th className="p-1">actual</th>
+                  <th className="p-1">Δ%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {compareRows.map((row) => (
+                  <tr key={row.runId} className="border-b last:border-0">
+                    <td className="p-1 font-mono truncate max-w-[8rem]" title={row.runId}>{row.runId.slice(0, 8)}</td>
+                    <td className="p-1">{row.estimated_vcpu_hrs ?? "—"}</td>
+                    <td className="p-1">{row.actual_vcpu_hrs ?? "—"}</td>
+                    <td className="p-1">{row.delta_pct != null ? `${row.delta_pct}%` : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <Separator />
+        <div className="flex gap-2 items-end">
+          <div className="flex-1">
+            <Label className="text-xs">runId</Label>
+            <Input className="h-8 text-xs font-mono" value={runId} onChange={(e) => setRunId(e.target.value)} placeholder="execution run uuid" />
+          </div>
+          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={loadRun} disabled={loading || !runId.trim()}>查 run</Button>
+        </div>
+        {runDetail && (
+          <pre className="text-[10px] bg-muted/40 rounded p-2 overflow-auto max-h-40" data-testid="admin-cost-run">
+            {JSON.stringify(runDetail, null, 2)}
+          </pre>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── LLM Probe Panel ───────────────────────────────────────────────────────────
 
 function LLMProbePanel() {
@@ -1008,12 +1186,13 @@ export default function SystemDashboardPage() {
           </Button>
           <div>
             <h1 className="text-xl font-semibold">系统管理</h1>
-            <p className="text-xs text-muted-foreground">服务健康 · 运行统计 · LLM 配置</p>
+            <p className="text-xs text-muted-foreground">服务健康 · 运行统计 · 成本估算 · LLM 配置</p>
           </div>
         </div>
 
         <HealthPanel />
         <RunStatsPanel />
+        <CostPanel />
         <LLMProbePanel />
         <LLMConfigPanel />
       </div>

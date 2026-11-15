@@ -44,6 +44,8 @@ export interface SessionDataset {
 
 export interface ParamDef extends DataInputParamLike {
   name?: string;
+  /** Optional; prefer undefined over null for DataInputParamLike compat. */
+  format?: string;
   format_mismatch_warning?: string | null;
 }
 
@@ -64,8 +66,29 @@ export interface InputMappingRow {
   formatChecked?: boolean;
 }
 
+export type ParamSchemaHint = {
+  description?: string | null;
+  type?: string | null;
+  format?: string | null;
+  label?: string | null;
+};
+
+/** True when schema text clearly describes a samplesheet / CSV / TSV table input. */
+export function schemaHintsSamplesheet(hint?: ParamSchemaHint | null): boolean {
+  if (!hint) return false;
+  const blob = [hint.description, hint.format, hint.label, hint.type]
+    .filter((s): s is string => typeof s === 'string' && s.length > 0)
+    .join(' ')
+    .toLowerCase();
+  if (!blob) return false;
+  return /samplesheet|sample[_\s-]?sheet|sample[_\s-]?metadata|coldata|contrasts|\bcsv\b|\btsv\b|\btable\b/.test(blob);
+}
+
 /** Param-name families → accepted perception viewKinds. null = do not sniff-gate. */
-export function expectedViewKindsForParam(name: string | undefined): ReadonlySet<string> | null {
+export function expectedViewKindsForParam(
+  name: string | undefined,
+  schemaHint?: ParamSchemaHint | null,
+): ReadonlySet<string> | null {
   if (!name) return null;
   const n = name.toLowerCase().replace(/-/g, '_');
   if (/^(reads|fastq|fastqs|input_fastq|read1|read2|r1|r2)$/.test(n) || /_fastq$/.test(n)) {
@@ -89,8 +112,13 @@ export function expectedViewKindsForParam(name: string | undefined): ReadonlySet
   if (/^(matrix|counts|count_matrix|countmatrix|expression)$/.test(n)) {
     return new Set(['table', 'matrix', 'anndata', 'loom']);
   }
-  // samplesheet / input / design CSV — the bound file is the sheet, not the FASTQs
-  if (/^(samplesheet|sample_sheet|sample_metadata|metadata|design|contrasts|coldata|input|input_csv)$/.test(n)) {
+  // Explicit samplesheet / design CSV names — the bound file is the sheet, not FASTQs.
+  // Bare `input` is too generic (FASTA/FASTQ/BAM workflows use it) — only gate when
+  // schema/description hints samplesheet/csv/tsv.
+  if (/^(samplesheet|sample_sheet|sample_metadata|metadata|design|contrasts|coldata|input_csv)$/.test(n)) {
+    return new Set(['table', 'records', 'document']);
+  }
+  if (n === 'input' && schemaHintsSamplesheet(schemaHint)) {
     return new Set(['table', 'records', 'document']);
   }
   return null;
@@ -129,8 +157,9 @@ export function perceptionMismatch(
   paramName: string | undefined,
   dataset: SessionDataset | null,
   value?: unknown,
+  schemaHint?: ParamSchemaHint | null,
 ): string | null {
-  const expected = expectedViewKindsForParam(paramName);
+  const expected = expectedViewKindsForParam(paramName, schemaHint);
   if (!expected) return null;
   const got = sniffedViewKind(dataset, value);
   if (!got) return null;
@@ -180,11 +209,26 @@ export function deriveInputMappingRows(
     const empty = isEmpty(value);
     const dataset = datasetForValue(value, sessionDatasets);
     const paramName = p.id || p.name || '';
+    const def = paramDefs.find(d => d?.name === paramName);
+    const schemaHint: ParamSchemaHint | null = def
+      ? {
+          description: typeof (def as any).description === 'string' ? (def as any).description : null,
+          type: def.type ?? null,
+          format: typeof def.format === 'string' ? def.format : null,
+          label: typeof (p as any).label === 'string' ? (p as any).label
+            : typeof (def as any).label === 'string' ? (def as any).label : null,
+        }
+      : {
+          description: null,
+          type: p.type ?? null,
+          format: null,
+          label: typeof (p as any).label === 'string' ? (p as any).label : null,
+        };
     const declared = mismatchForParam(paramName, paramDefs);
-    const sniffed = perceptionMismatch(paramName, dataset, value);
+    const sniffed = perceptionMismatch(paramName, dataset, value, schemaHint);
     const mismatch = declared || sniffed;
     const formatChecked = !empty && !mismatch && sniffedViewKind(dataset, value) != null
-      && expectedViewKindsForParam(paramName) != null;
+      && expectedViewKindsForParam(paramName, schemaHint) != null;
     const status: InputMappingStatus =
       p.required && empty
         ? 'unresolved'

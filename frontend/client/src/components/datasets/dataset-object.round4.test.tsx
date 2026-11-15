@@ -93,9 +93,11 @@ describe("N5 — each fact once, one set of actions", () => {
         { section: "note", code: "alignment_sorted", level: "info", params: { order: "coordinate" } },
       ],
     }
-    renderObj(a)
-    await screen.findByTestId("dataset-kind-summary")
+    // Alignment content is the IGV viewer slot (Wave 2); facts still live once in QC + stats.
+    renderObj(a, { preview: <div data-testid="dataset-igv-preview">igv</div> })
+    await screen.findByTestId("dataset-igv-preview")
     await screen.findByTestId("data-perception")
+    expect(screen.queryByTestId("dataset-kind-summary")).toBeNull()
     expect(occurrences("No read groups (@RG)")).toBe(1)
     expect(occurrences("168")).toBe(1)
   })

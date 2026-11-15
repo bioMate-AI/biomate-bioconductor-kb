@@ -10,7 +10,8 @@ import { RunFileDownload } from "./run-file-download";
  *   table   → InlineTableViewer (handles CSV/TSV/JSON + STAR/RELION format)
  *   density → DensityMapViewer (full 3-axis slice viewer — same as ChatOutputAttachments)
  *   sequence → FASTA/FASTQ record list
- *   vcf     → variant table
+ *   vcf     → variant table (plain .vcf)
+ *   igv     → IGV.js for .bam+.bai / .vcf.gz+.tbi (Range GETs; not Interactive Tools)
  *   annotation → BED/GFF table
  *   structure  → PDB/mmCIF rendered with 3Dmol.js (cartoon + spectrum default)
  *   html    → sandboxed iframe
@@ -37,6 +38,8 @@ import {
   InlineSequenceViewer, InlineVcfViewer, InlineAnnotationViewer, InlineStructureViewer,
   type ViewerKind,
 } from "./viewers/inline-content-viewers";
+import { InlineIgvViewer } from "./viewers/inline-igv-viewer";
+import { stepFileUrl } from "./viewers/genomics-index";
 // Re-exported for existing importers (e.g. step-output-preview.test.tsx).
 export { parsePlddtFromPdb };
 export type { ViewerKind };
@@ -207,7 +210,7 @@ function InlineImageViewer({ src, name }: { src: string; name: string }) {
 // Density viewer wrapper — renders DensityMapViewer without going through
 // the blob/text fetch machinery (the viewer fetches its own data).
 function DensityPreview({ runId, file, onClose, embedded, projectId }: StepOutputPreviewProps) {
-  const stepFileUrl = `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(file.path)}&name=${encodeURIComponent(file.name)}`;
+  const url = stepFileUrl(runId, file.path, file.name);
   return (
     <div className="mt-2">
       {!embedded && <div className="flex items-center justify-between mb-2 gap-2 px-1">
@@ -221,7 +224,34 @@ function DensityPreview({ runId, file, onClose, embedded, projectId }: StepOutpu
           </Button>
         </div>
       </div>}
-      <DensityMapViewer src={stepFileUrl} name={file.name} />
+      <DensityMapViewer src={url} name={file.name} />
+    </div>
+  );
+}
+
+/** BAM / indexed VCF.gz — IGV.js with Range GETs; never full-file fetch. */
+function IgvPreview({ runId, file, onClose, embedded }: StepOutputPreviewProps) {
+  const url = stepFileUrl(runId, file.path, file.name);
+  return (
+    <div className="mt-2" data-testid="step-igv-preview">
+      {!embedded && <div className="flex items-center justify-between mb-2 gap-2 px-1">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label={t('preview.close')}>
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>}
+      <InlineIgvViewer
+        url={url}
+        name={file.name}
+        runId={runId}
+        filePath={file.path}
+        downloadUrl={url}
+      />
     </div>
   );
 }
@@ -562,11 +592,15 @@ function DlJsonPreview({ runId, file, onClose, embedded, viewerKind }: StepOutpu
 
 export function StepOutputPreview({ runId, file, onClose, projectId, onOpenFullStepView, maxHClass, embedded, expanded }: StepOutputPreviewProps) {
   const ext = file.extension.toLowerCase().replace(/^\./, '');
-  const viewer = resolveViewer(ext);
+  const viewer = resolveViewer(ext, file.name);
 
   // Route density files to a separate component (avoids hook-after-conditional).
   if (viewer === 'density') {
     return <DensityPreview runId={runId} file={file} embedded={embedded} onClose={onClose} projectId={projectId} />;
+  }
+
+  if (viewer === 'igv') {
+    return <IgvPreview runId={runId} file={file} embedded={embedded} onClose={onClose} projectId={projectId} />;
   }
 
   // R object files — binary, no inline preview; offer RStudio launch instead.

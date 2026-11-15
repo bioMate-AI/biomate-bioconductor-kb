@@ -41,27 +41,28 @@ Have / Partial rows cite at least one file path or route verified in-tree (not d
 | Per-user Galaxy API key provisioning | **Have** | `provisionGalaxyUser` in `galaxy-api-proxy.ts` |
 | Connectors / credentials vault surface | **Have** | `connectors-dialog.tsx`; settings connections; vault-backed connector keys |
 | Save run outputs to project | **Have** | save-to-project paths on execute / AfterRun (`routes.ts` + panel) |
-| Step / file preview (tables, images, text, VCF table) | **Have** | `step-output-preview.tsx` — common formats; binary genomics still weak (see Display apps) |
+| Step / file preview (tables, images, text, VCF table) | **Have** | `step-output-preview.tsx` — common formats; **BAM + indexed VCF.gz via IGV.js** in preview slots (2026-11-14); Display apps / IT still unused |
+| Display applications (IGV, UCSC, Ensembl, …) | **Partial** | In-product IGV.js for BAM/VCF.gz in AfterRun/Files preview (not Galaxy Display Apps; `OPEN_IN_AVAILABLE` still false) |
 | Deferred / large URL import | **Have** | Chat `UrlImportForm` + Data Hub defer/413→deferred; Confirm & Run / `POST /api/workflows/execute` materializes deferred HDAs via `deferred-materialize.ts` then stages for Batch (2026-11-13) |
-| Remote public FTP/HTTP → project file | **Have** | Data Hub `RemoteSourcePicker` → sources/browse/fetch → `files/import-url` (2026-11-13). Agent/MCP unchanged |
+| Remote public FTP/HTTP → project file | **Have** | Data Hub `RemoteSourcePicker` → sources/browse/fetch → `files/import-url` (2026-11-13). Agent/MCP unchanged. **Keys unique per user/project** `users/{id}/remote/{project\|inbox}/…` (2026-11-15 Wave 0; no shared `public-data/{filename}`) |
 | FASTQ folder → **samplesheet** as one Analysis input | **Have** | `POST …/folders/samplesheet` + folder **Use samplesheet** (complement **Attach all files**) — 2026-11-13 |
 | Collections / HDCA create | **Partial** | `POST /api/collections*`; `createDatasetCollection` in proxy; **no** client UI; Nextflow rejects HDCA (`workflow-input-gate.ts`) |
-| Pre-run cost estimate badge | **Partial** | `GET\|POST /api/workflows/estimate_cost` wired; `CostEstimateBadge` removed from panel (`wiring-contracts.test.ts` asserts absent); billing page shows usage after the fact |
-| Post-run cost on Runs / panel strip | **Partial** | Billing ledger + panel vCPU meter (`nextflow-workflow-viewer.tsx`); no estimate-vs-actual Runs-row strip |
+| Pre-run cost estimate badge | **Skip (users)** / **Have (admin)** | User panel badge stays removed (`wiring-contracts` §5). Honest estimator + admin CostPanel on existing `/admin` SystemDashboard (`/api/admin/cost/*`, 2026-11-15). Public estimate returns unavailable — never fake `$0.50–$5`. |
+| Post-run cost on Runs / panel strip | **Partial** | Billing ledger + panel vCPU meter; admin compare table on `/admin` CostPanel (estimate snapshot vs actual). No end-user Runs-row strip |
 | Reproducibility pack (one zip) | **Have** | `GET /api/runs/:id/reproducibility-pack` (`reproducibility-pack.ts` + `routes.ts`); AfterRun + panel `button-download-repro-pack` — methods snapshot + software + citations + run-record + run RO-Crate (2026-11-13). Not Galaxy `/tmp` bundle; not download-all |
-| Perception → Confirm & Run datatype gate | **Have** | `perceptionMismatch` in `input-mapping-status.ts` → `isPrereqBlocked` (2026-11-13); strong kinds only |
+| Perception → Confirm & Run datatype gate | **Have** | `perceptionMismatch` in `input-mapping-status.ts` → `isPrereqBlocked` (2026-11-13); strong kinds only. Bare `input` samplesheet-gated only with schema hints (2026-11-15 Wave 0) |
 | Native Galaxy `.ga` invoke | **Partial** | Upload accepts `.ga` into `personal_workflows` (`POST /api/workflows/upload-file`); execute path is Nextflow/`file_content`-oriented — not honest Galaxy-engine invoke UX |
 | Galaxy invoke API (proxy) | **Partial** | `invokeWorkflow` + `/api/galaxy/workflows/...` exist; product default engine is Nextflow |
 | Subworkflow extract | **Partial** | `POST /api/workflows/:id/extract-subworkflow`; `extractSubworkflow` in proxy; no product UI |
 | Interactive Tools (Jupyter/RStudio/cellxgene) | **Partial** | Routes `/api/interactive/*`, open-in handlers exist; `OPEN_IN_AVAILABLE = false` (`dataset-view-model.ts`); `INTERACTIVE_TOOLS_ENABLED` gate in `routes.ts` — buttons hidden |
 | Genome builds (igenomes) | **Partial** | Silent resolve on execute (`nextflow_executor.py`); no user-facing `GET /api/genomes` browser / build picker |
 | Extra remote file-source plugins (Drive/WebDAV/…) | **Partial** | Galaxy supports many plugins; BioMate `file_sources_conf.yml` only public FTP/HTTP set |
-| Workflow landings (shareable pre-filled invoke UUID) | **Missing** | Galaxy `workflow_landings` API in-tree; BioMate has library/deep links only |
+| Workflow landings (shareable pre-filled invoke UUID) | **Have** | BioMate-native `run_landings` + `POST /api/workflows/landings` → `/run/:token` claim → panel prefilled (2026-11-15 Wave 4). Distinct from `/workflow/:id` drafts; not Galaxy `workflow_landings` |
 | Extract workflow from history | **Missing** | Galaxy `from_history_id` / `workflow/extract.py`; no BioMate “save completed run as reusable workflow” |
-| Built-in datatype converters (~98) | **Missing** | Galaxy converters registry; BioMate does not auto-convert (e.g. BAM→BAI) before Batch |
+| Built-in datatype converters (~98) | **Partial** | Galaxy converter registry still unused for HDA path. **Staging indexes Have (2026-11-15 Wave 3):** local BAM→`.bai` / VCF.gz→`.tbi` via `samtools`/`tabix` before Batch (`staging-index.ts`); missing tool → 409 `staging_index_failed` |
 | Collection operation tools (zip/filter/relabel/rules) | **Missing** | Semantics useful for samplesheets; not productized on project_files |
 | Rule-based uploader / Apply Rules | **Missing** | Stronger than folder expand for multi-lane clinical FASTQ |
-| Display applications (IGV, UCSC, Ensembl, …) | **Missing** | Configs in Galaxy; BioMate BAM/VCF/h5ad still download / IT-gated — no IGV.js product viewer |
+| Display applications (Galaxy Display Apps registry) | **Missing** | Galaxy Display Apps configs unused; BioMate uses in-product IGV.js instead (Partial row above) |
 | Visualizations registry / viz plugins | **Missing** | `visualizations.py` unused by product UI |
 | Published histories / anonymous history share URLs | **Missing** | Galaxy `enable_link_access` / published histories; BioMate sharing is project membership + share-link (different model — Have above) |
 | Storage cleaner / archive / purge UX | **Missing** | Galaxy `/api/storage/*`; no S3 abandoned-run cleanup product UX |
@@ -96,10 +97,11 @@ Cap for chat summary; full Missing rows remain in the table.
 
 1. ~~Deferred materialize on Confirm & Run~~ → **Have** (2026-11-13)  
 2. ~~Reproducibility pack zip~~ → **Have** (2026-11-13)  
-3. Inline estimate vs actual run cost  
-4. BAM/VCF/(h5ad) viewers without IT (IGV.js-class)  
-5. Datatype auto-converters before Batch  
-6. Workflow landing / shareable pre-filled run links  
+3. ~~Inline estimate vs actual run cost~~ → **Have (admin)** on `/admin` CostPanel (2026-11-15); not user panel  
+4. ~~BAM/VCF viewers without IT~~ → **Partial/Have** in-product IGV.js for BAM + indexed VCF.gz (2026-11-14); h5ad still IT/summary  
+
+5. ~~Datatype auto-converters before Batch~~ → **Partial/Have** staging BAM/VCF indexes (2026-11-15); full Galaxy converter set still Missing for HDA path  
+6. ~~Workflow landing / shareable pre-filled run links~~ → **Have** BioMate-native `/run/:token` (2026-11-15 Wave 4)  
 7. Storage archive/purge for abandoned S3 data  
 8. In-app run-complete / QC notifications  
 9. Honest `.ga` → Galaxy-engine (or clear “Nextflow only”) labeling  

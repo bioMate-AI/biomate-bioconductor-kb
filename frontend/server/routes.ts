@@ -144,6 +144,20 @@ import {
   collectCandidateDatasetIds,
   ensureDeferredDatasetsMaterialized,
 } from "./deferred-materialize";
+import {
+  ensureGenomicIndexesForParams,
+  siblingIndexLocalPath,
+  StagingIndexError,
+} from "./staging-index";
+import {
+  normalizeHonestEstimate,
+  UNAVAILABLE_ESTIMATE,
+  historicalFromRuns,
+  actualVcpuHoursFromRun,
+  compareRow,
+  type HonestCostEstimate,
+  type HistoricalRunRow,
+} from "./admin-cost-estimate";
 import { unboundClinicHardDataFromParams } from "../shared/workflow-data-inputs";
 import * as mfaService from "./mfa-service";
 import toolsManifest from "./tools_manifest.json";
@@ -1510,6 +1524,31 @@ async function stageLocalFilesForBatch(
       const s3Uri = `s3://${s3Bucket}/${s3Key}`;
       console.log(`[S3Stage] Staged ${val.startsWith('/') ? 'local' : 'uuid'} file ${key}=${val} → ${s3Uri}`);
       staged[key] = s3Uri;
+
+      // Wave 3: stage sibling BAM/VCF indexes next to the data object when present.
+      const idxLocal = siblingIndexLocalPath(localPath);
+      if (idxLocal) {
+        try {
+          await fs.stat(idxLocal);
+          const idxName = path.basename(idxLocal);
+          const idxKey = `${s3Key}.${idxName.endsWith('.bai') ? 'bai' : idxName.endsWith('.tbi') ? 'tbi' : 'idx'}`;
+          // Prefer canonical sidecar names: foo.bam → foo.bam.bai, foo.vcf.gz → foo.vcf.gz.tbi
+          const canonicalIdxKey = idxName.endsWith('.bai')
+            ? `${s3Key}.bai`
+            : idxName.endsWith('.tbi')
+              ? `${s3Key}.tbi`
+              : idxKey;
+          const idxBuf = await fs.readFile(idxLocal);
+          await s3.send(new PutObjectCommand({
+            Bucket: s3Bucket,
+            Key: canonicalIdxKey,
+            Body: idxBuf,
+          }));
+          console.log(`[S3Stage] Staged index sidecar → s3://${s3Bucket}/${canonicalIdxKey}`);
+        } catch {
+          /* index missing — Wave 3 ensureGenomicIndexesForParams should have created or 409'd */
+        }
+      }
     } catch (s3Err: any) {
       console.warn(`[S3Stage] Failed to stage ${key}=${val} (${s3Err.message}) — param left as-is`);
     }
@@ -1754,6 +1793,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Project CRUD — list/create/fetch/update/archive/delete user projects.
   const { registerProjectRoutes } = await import("./project-routes");
   registerProjectRoutes(app);
+
+  // Wave 4 — BioMate-native pre-filled run landing links (/run/:token).
+  // Distinct from owner-scoped /workflow/:id drafts and Galaxy workflow_landings.
+  const { registerRunLandingRoutes } = await import("./run-landings");
+  registerRunLandingRoutes(app);
 
   // Project Notes (synthesis) — Stream-A platform.
   const { registerNotesRoutes } = await import("./notes-routes");
@@ -10258,17 +10302,29 @@ ${paramLines || '(none recorded)'}`;
   app.post("/api/data/fetch", authenticateStaticApiKey, authenticateToken, express.json(), async (req, res) => {
     // Stages a remote file into BioMate S3 so a workflow can consume it.
     // The Galaxy backend handles the actual download + S3 upload.
+    // Pass user/project so Galaxy lands under users/{id}/remote/{project|inbox}/…
+    // instead of a shared public-data/{filename} key (cross-user clobber).
     try {
-      const { source, path: remotePath, url } = req.body || {};
+      const { source, path: remotePath, url, project_id, projectId, destination_key } = req.body || {};
       if (!remotePath && !url) {
         return res.status(400).json({ error: "path or url is required" });
       }
       const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const userId = req.user?.id != null ? String(req.user.id) : undefined;
+      const project = project_id || projectId || undefined;
       const upstream = await fetch(`${galaxyUrl}/api/nextflow/fetch_public_data`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source_id: source, remote_path: remotePath, url }),
-        signal: AbortSignal.timeout(30_000),
+        body: JSON.stringify({
+          source_id: source,
+          remote_path: remotePath,
+          url,
+          user_id: userId,
+          project_id: project ? String(project) : undefined,
+          destination_key: typeof destination_key === "string" ? destination_key : undefined,
+        }),
+        // FTP downloads of multi-MB public files routinely exceed 30s.
+        signal: AbortSignal.timeout(120_000),
       });
       const data = await upstream.json();
       res.status(upstream.status).json(data);
@@ -12403,6 +12459,35 @@ ${paramLines || '(none recorded)'}`;
         request.projectId
       );
 
+      // Admin-only: store honest costEstimateSnapshot at launch for later compare.
+      // Invisible to user panel (CostEstimateBadge stays removed).
+      try {
+        const nfPath =
+          workflowDefinitionForExecution?.nextflow_path ||
+          workflowDefinitionForExecution?.name ||
+          executionRun.workflowName ||
+          "";
+        const domain = workflowDefinitionForExecution?.domain || undefined;
+        const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+        const estResp = await fetch(`${galaxyUrl}/api/workflows/estimate_cost`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nextflow_path: nfPath, domain }),
+          signal: AbortSignal.timeout(5000),
+        });
+        const estRaw = estResp.ok ? await estResp.json().catch(() => null) : null;
+        const snapshot = normalizeHonestEstimate(estRaw);
+        await storage.updateExecutionRun(executionRun.id, {
+          execution: {
+            ...executionRun.execution,
+            costEstimateSnapshot: snapshot,
+          },
+        });
+        executionRun = (await storage.getExecutionRun(executionRun.id)) || executionRun;
+      } catch (snapErr: any) {
+        console.warn("[Execute] costEstimateSnapshot skipped:", snapErr?.message || snapErr);
+      }
+
       // Determine history name based on mode
       const mode = request.executionConfig?.mode || 'sandbox';
       const historyPrefix = mode === 'sandbox' ? '[Sandbox]' : '[Production]';
@@ -12831,6 +12916,34 @@ ${paramLines || '(none recorded)'}`;
               console.log(`[S3Subst] Pre-substituted ${k}=${v} → ${_uuidS3Uris[v]}`);
               rawParams[k] = _uuidS3Uris[v];
             }
+          }
+
+          // Wave 3: fail-closed BAM/VCF index generation on local staged bytes
+          // before Batch upload. Missing samtools/tabix → 409 (no silent launch).
+          try {
+            const indexTargets: Record<string, unknown> = { ...rawParams };
+            // UUID params still unresolved to s3:// may point at local files via registry.
+            for (const [k, v] of Object.entries(rawParams)) {
+              if (typeof v === "string" && _uuidFilePaths[v]?.filePath) {
+                indexTargets[k] = _uuidFilePaths[v].filePath;
+              }
+            }
+            const indexed = await ensureGenomicIndexesForParams(indexTargets);
+            if (indexed.some((r) => r.created)) {
+              console.log(
+                `[Execute] staging indexes created: ${indexed.filter((r) => r.created).map((r) => `${r.param}→${r.kind}`).join(",")}`,
+              );
+            }
+          } catch (idxErr: any) {
+            if (idxErr instanceof StagingIndexError) {
+              console.error(`[Execute] staging index failed: ${idxErr.message}`, idxErr.detail);
+              return res.status(409).json({
+                error: "staging_index_failed",
+                message: idxErr.message,
+                detail: idxErr.detail,
+              });
+            }
+            throw idxErr;
           }
 
           const stagedParams = await stageLocalFilesForBatch(
@@ -14092,7 +14205,9 @@ ${paramLines || '(none recorded)'}`;
     }
   });
 
-  // Cost estimation — pre-run cost estimate before user commits to a full run (D1)
+  // Cost estimation — honest shape only. On transport failure return unavailable
+  // (never invent $0.50–$5). Primary surface is /api/admin/cost/*; this public
+  // proxy stays for compatibility but must not fake dollars.
   app.post("/api/workflows/estimate_cost", optionalAuth, express.json(), async (req, res) => {
     const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
     try {
@@ -14103,36 +14218,33 @@ ${paramLines || '(none recorded)'}`;
         signal: AbortSignal.timeout(5000),
       });
       const data = await resp.json();
-      res.status(resp.status).json(data);
+      res.status(resp.status).json(normalizeHonestEstimate(data));
     } catch (err: any) {
-      res.status(503).json({
-        min_usd: 0.5,
-        max_usd: 5.0,
-        assumptions: ['Could not reach backend — using default estimate'],
+      res.status(200).json({
+        ...UNAVAILABLE_ESTIMATE("Could not reach backend for cost estimate"),
         error: String(err?.message ?? err),
       });
     }
   });
 
-  // Track 3D: GET /api/workflows/estimate_cost — query-param variant used by CostEstimateBadge
   app.get('/api/workflows/estimate_cost', optionalAuth, async (req, res) => {
-    const { nextflow_path, sample_count } = req.query;
+    const { nextflow_path, sample_count, domain } = req.query;
     try {
       const params = new URLSearchParams();
       if (nextflow_path) params.set('nextflow_path', String(nextflow_path));
       if (sample_count) params.set('sample_count', String(sample_count));
+      if (domain) params.set('domain', String(domain));
       const galaxyBase = process.env.GALAXY_URL || 'http://localhost:8081';
       const resp = await fetch(`${galaxyBase}/api/nextflow/estimate_cost?${params}`, {
         signal: AbortSignal.timeout(5000),
       });
-      if (!resp.ok) return res.status(resp.status).json({ error: 'estimate failed' });
-      res.json(await resp.json());
+      if (!resp.ok) {
+        return res.status(200).json(UNAVAILABLE_ESTIMATE(`upstream estimate HTTP ${resp.status}`));
+      }
+      res.json(normalizeHonestEstimate(await resp.json()));
     } catch (err: any) {
-      res.status(503).json({
-        cost_min_usd: 0.5,
-        cost_max_usd: 5.0,
-        estimated_runtime_hours: 1.0,
-        assumptions: ['Could not reach backend — using default estimate'],
+      res.status(200).json({
+        ...UNAVAILABLE_ESTIMATE("Could not reach backend for cost estimate"),
         error: String(err?.message ?? err),
       });
     }
@@ -15617,6 +15729,14 @@ Rules:
 
       // Infer Content-Type (shared for both S3 and local paths)
       const ext = (fileName || filePath).split('.').pop()?.toLowerCase() ?? '';
+      // Compound genomics names: sample.vcf.gz → prefer full suffix over bare "gz"
+      const lowerName = (fileName || filePath).toLowerCase();
+      const genomicsCt =
+        lowerName.endsWith('.bam') ? 'application/octet-stream'
+        : lowerName.endsWith('.bai') || lowerName.endsWith('.bam.bai') ? 'application/octet-stream'
+        : lowerName.endsWith('.vcf.gz') || lowerName.endsWith('.vcf.bgz') ? 'application/octet-stream'
+        : lowerName.endsWith('.tbi') || lowerName.endsWith('.csi') ? 'application/octet-stream'
+        : null;
       const contentTypeMap: Record<string, string> = {
         png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
         svg: 'image/svg+xml', pdf: 'application/pdf',
@@ -15631,11 +15751,17 @@ Rules:
         map: 'application/octet-stream', rec: 'application/octet-stream',
         // CryoSPARC binary datasets — trigger download
         cs: 'application/octet-stream',
+        // Genomics tracks for IGV.js (Range GETs)
+        bam: 'application/octet-stream', bai: 'application/octet-stream',
+        cram: 'application/octet-stream', crai: 'application/octet-stream',
+        tbi: 'application/octet-stream', csi: 'application/octet-stream',
       };
-      const ct = contentTypeMap[ext] || 'application/octet-stream';
+      const ct = genomicsCt || contentTypeMap[ext] || 'application/octet-stream';
+      const rangeHeader = typeof req.headers.range === 'string' ? req.headers.range : undefined;
 
       res.setHeader('Content-Disposition', stepFileDisposition(fileName || filePath, req.query.download));
       res.setHeader('Content-Type', ct);
+      res.setHeader('Accept-Ranges', 'bytes');
       setFilePreviewSecurityHeaders(res, ct);
 
       // If the path is just a bare filename (no directory separator, no s3://),
@@ -15740,8 +15866,21 @@ Rules:
           followRegionRedirects: true,
           ...(nfKey && nfSecret ? { credentials: { accessKeyId: nfKey, secretAccessKey: nfSecret } } : {}),
         });
-        const s3Obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+        const s3Obj = await s3.send(new GetObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          ...(rangeHeader ? { Range: rangeHeader } : {}),
+        }));
         if (!s3Obj.Body) return res.status(404).json({ error: 'S3 object empty' });
+
+        // IGV.js (and browsers) need 206 + Content-Range for BAM/BAI Range GETs.
+        if (rangeHeader && s3Obj.ContentRange) {
+          res.status(206);
+          res.setHeader('Content-Range', s3Obj.ContentRange);
+        }
+        if (typeof s3Obj.ContentLength === 'number') {
+          res.setHeader('Content-Length', String(s3Obj.ContentLength));
+        }
 
         // AWS SDK v3 Body is a SdkStreamMixin (Node.js Readable in Node context)
         // pipe it directly to the response
@@ -15780,7 +15919,7 @@ Rules:
         return res.status(403).json({ error: 'File outside allowed directories' });
       }
 
-      const { createReadStream, existsSync } = await import('fs');
+      const { createReadStream, existsSync, statSync } = await import('fs');
       if (!existsSync(resolved)) {
         // On-prem: the Galaxy backend container has /app/nf-work mounted but the
         // frontend container does not. Proxy the file through Galaxy's local-download API.
@@ -15812,6 +15951,24 @@ Rules:
         }
         return res.status(404).json({ error: 'File not found' });
       }
+      const st = statSync(resolved);
+      const size = st.size;
+      if (rangeHeader) {
+        const m = /^bytes=(\d*)-(\d*)$/i.exec(rangeHeader.trim());
+        if (m) {
+          const start = m[1] ? parseInt(m[1], 10) : 0;
+          const end = m[2] ? parseInt(m[2], 10) : Math.max(0, size - 1);
+          if (Number.isFinite(start) && Number.isFinite(end) && start <= end && start < size) {
+            const safeEnd = Math.min(end, size - 1);
+            res.status(206);
+            res.setHeader('Content-Range', `bytes ${start}-${safeEnd}/${size}`);
+            res.setHeader('Content-Length', String(safeEnd - start + 1));
+            createReadStream(resolved, { start, end: safeEnd }).pipe(res);
+            return;
+          }
+        }
+      }
+      res.setHeader('Content-Length', String(size));
       createReadStream(resolved).pipe(res);
     } catch (error: any) {
       console.error('[step-file] Error:', error);
@@ -19245,6 +19402,122 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
       : services.some(s => s.status === 'down') ? 'down' : 'degraded';
 
     res.json({ overall, services, checkedAt: new Date().toISOString() });
+  });
+
+  // ── Admin cost estimate / compare (ops only; no user panel badge) ─────────
+  // Wired into SystemDashboardPage CostPanel — do NOT add a parallel /admin/cost page.
+  async function buildAdminCostEstimate(opts: {
+    nextflow_path?: string;
+    domain?: string;
+    sample_count?: number;
+    params?: Record<string, unknown>;
+  }): Promise<HonestCostEstimate> {
+    const nextflow_path = opts.nextflow_path || "";
+    const domain = opts.domain || "";
+    try {
+      const recent = await storage.getExecutionRuns(undefined as any, undefined, undefined, 200).catch(() => []);
+      const rows: HistoricalRunRow[] = (recent || []).map((r: any) => ({
+        id: String(r.id),
+        workflowName: r.workflowName,
+        status: r.execution?.status || r.status,
+        nextflowPath:
+          r.workflowDefinition?.nextflow_path ||
+          r.execution?.nextflowPath ||
+          r.workflowName,
+        domain: r.workflowDefinition?.domain || domain || null,
+        vcpuHours: actualVcpuHoursFromRun(r),
+        usd: typeof r.metrics?.billing?.usd === "number" ? r.metrics.billing.usd : null,
+        costEstimateSnapshot: r.execution?.costEstimateSnapshot || null,
+      }));
+      const hist = historicalFromRuns(rows, nextflow_path || null, domain || null);
+      if (hist) return hist;
+    } catch (e: any) {
+      console.warn("[admin/cost] historical lookup failed:", e?.message || e);
+    }
+
+    const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+    try {
+      const resp = await fetch(`${galaxyUrl}/api/workflows/estimate_cost`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nextflow_path: nextflow_path || undefined,
+          domain: domain || undefined,
+          sample_count: opts.sample_count,
+          params: opts.params,
+        }),
+        signal: AbortSignal.timeout(8000),
+      });
+      const data = await resp.json().catch(() => null);
+      return normalizeHonestEstimate(data);
+    } catch (e: any) {
+      return UNAVAILABLE_ESTIMATE(`Galaxy estimate unreachable: ${e?.message || e}`);
+    }
+  }
+
+  app.get("/api/admin/cost/estimate", authenticateToken, requireAdmin, async (req, res) => {
+    const nextflow_path = req.query.nextflow_path ? String(req.query.nextflow_path) : undefined;
+    const domain = req.query.domain ? String(req.query.domain) : undefined;
+    const sample_count = req.query.sample_count ? Number(req.query.sample_count) : undefined;
+    res.json(await buildAdminCostEstimate({ nextflow_path, domain, sample_count }));
+  });
+
+  app.post("/api/admin/cost/estimate", authenticateToken, requireAdmin, express.json(), async (req, res) => {
+    const body = req.body || {};
+    res.json(await buildAdminCostEstimate({
+      nextflow_path: body.nextflow_path,
+      domain: body.domain,
+      sample_count: body.sample_count,
+      params: body.params,
+    }));
+  });
+
+  app.get("/api/admin/cost/runs/:runId", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const runId = String(req.params.runId || "");
+      let run = await storage.getExecutionRun(runId);
+      if (!run && storage.getExecutionRunByNextflowId) {
+        run = await storage.getExecutionRunByNextflowId(runId);
+      }
+      if (!run) return res.status(404).json({ error: "run not found" });
+      const snapshot = (run as any).execution?.costEstimateSnapshot || null;
+      const actual_vcpu_hrs = actualVcpuHoursFromRun(run);
+      res.json({
+        runId: run.id,
+        workflowName: run.workflowName,
+        status: (run as any).execution?.status,
+        estimateSnapshot: snapshot,
+        actual: {
+          vcpu_hrs: actual_vcpu_hrs,
+          duration_seconds: (run as any).metrics?.runtime?.totalSeconds ?? null,
+        },
+        compare: compareRow(run),
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/admin/cost/compare", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const nextflow_path = req.query.nextflow_path ? String(req.query.nextflow_path) : "";
+      const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
+      const recent = await storage.getExecutionRuns(undefined as any, undefined, undefined, 200).catch(() => []);
+      const pathL = nextflow_path.toLowerCase().replace(/^nf-core\//, "");
+      const filtered = (recent || [])
+        .filter((r: any) => {
+          if (!pathL) return true;
+          const p = String(
+            r.workflowDefinition?.nextflow_path || r.workflowName || "",
+          ).toLowerCase();
+          return p.includes(pathL);
+        })
+        .slice(0, limit)
+        .map((r: any) => compareRow(r, nextflow_path));
+      res.json({ nextflow_path: nextflow_path || null, rows: filtered });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
   });
 
   // GET /api/admin/run-stats — execution_runs stats from Postgres

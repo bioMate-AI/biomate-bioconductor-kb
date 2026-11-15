@@ -22,7 +22,7 @@ describe("kind → views", () => {
   it("chooses the right renderer per kind", () => {
     expect(vm("pbmc.h5ad").content).toBe("anndata")
     expect(vm("x.loom").content).toBe("anndata")
-    expect(vm("a.bam").content).toBe("summary")
+    expect(vm("a.bam").content).toBe("viewer") // IGV.js slot — not Interactive Tools
     expect(vm("plot.png").content).toBe("viewer")
     expect(vm("data.zip").content).toBe("download")
     expect(vm("thing.xyz").content).toBe("download")

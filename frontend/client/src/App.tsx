@@ -61,6 +61,7 @@ import DebugOutputs from "@/pages/DebugOutputs";
 import DebugViewerChain from "@/pages/DebugViewerChain";
 import DebugAfterRun from "@/pages/DebugAfterRun";
 import WorkflowDeepLink from "@/pages/WorkflowDeepLink";
+import RunLanding from "@/pages/RunLanding";
 import CapabilitiesPage from "@/pages/capabilities";
 import { ModelsPanel } from "@/components/models";
 import { ConnectorsDialog } from "@/components/connectors-dialog";
@@ -769,6 +770,10 @@ function Router({
 {/* Deep link from chat connectors — loads a generated workflow by id and
           opens the workflow panel focused on it. See pages/WorkflowDeepLink.tsx. */}
       <Route path="/workflow/:id" component={WorkflowDeepLink} />
+
+      {/* Wave 4 — shareable pre-filled run landing (claim → panel Confirm & Run).
+          Distinct from /workflow/:id owner drafts. See pages/RunLanding.tsx. */}
+      <Route path="/run/:token" component={RunLanding} />
 
 {/* Root: platform for authenticated users, redirect to /login for guests */}
       <Route path="/">

@@ -118,6 +118,9 @@ export function RemoteSourcePicker({
           source: sourceId,
           path: remotePath,
           url: typeof e.url === "string" ? e.url : undefined,
+          // Scope the staged S3 key to this project so two users importing the
+          // same public FTP filename never share public-data/{filename}.
+          project_id: projectId,
         }),
       })
       const fetchBody = await fetchRes.json().catch(() => ({})) as {

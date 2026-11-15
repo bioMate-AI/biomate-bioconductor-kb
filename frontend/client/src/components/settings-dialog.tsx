@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { userSettingsService } from "@/lib/user-settings"
 import { notifyVoiceSettingsChanged } from "@/hooks/use-voice-settings"
 import { t, tOr, setLanguagePreference } from "@/lib/i18n"
+import { useLlmPolicy, modelGroups, effectivePick, pickRejected, INTL_DEFAULT_MODEL, CHINESE_MODELS } from "@/lib/llm-region"
 import type { UserSettings } from "@shared/schema"
 import {
   User,
@@ -139,12 +140,25 @@ function useApiKeys(open: boolean) {
 // LLM Provider selection (BioMate default or OpenRouter)
 // ---------------------------------------------------------------------------
 
+/** The server's reason for refusing a save (e.g. a non-Chinese model for a China-region user). */
+async function saveError(r: Response): Promise<Error> {
+  const body = await r.json().catch(() => null);
+  return new Error(body?.error || `HTTP ${r.status}`);
+}
+
 function useLlmApiKeys(open: boolean) {
   const [hasAnthropicKey, setHasAnthropicKey] = useState(false);
   const [hasOpenrouterKey, setHasOpenrouterKey] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('z-ai/glm-5.3-prime');
+  // Region policy (lib/llm-region.ts): China users are offered Chinese models only.
+  const policy = useLlmPolicy(open);
+  const [storedPick, setStoredPick] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState(INTL_DEFAULT_MODEL);
+  useEffect(() => { if (policy) setSelectedModel(effectivePick(policy, storedPick)); }, [policy, storedPick]);
+  const modelRejected = pickRejected(policy, selectedModel);
 
   const [provider, setProvider] = useState<'default' | 'anthropic' | 'openrouter'>('default');
+  // A China-region user's stored Anthropic key is never used (the server drops it), so its option is hidden.
+  useEffect(() => { if (policy?.anthropicKeyAllowed === false) setProvider(p => (p === 'anthropic' ? 'default' : p)); }, [policy]);
   const [anthropicInput, setAnthropicInput] = useState('');
   const [openrouterInput, setOpenrouterInput] = useState('');
   const [showKey, setShowKey] = useState(false);
@@ -161,7 +175,7 @@ function useLlmApiKeys(open: boolean) {
         if (!d) return;
         setHasAnthropicKey(!!d.anthropic);
         setHasOpenrouterKey(!!d.openrouter);
-        if (d.selected_model) setSelectedModel(d.selected_model);
+        if (d.selected_model) { setStoredPick(d.selected_model); setSelectedModel(d.selected_model); }
         if (d.openrouter) setProvider('openrouter');
         else if (d.anthropic) setProvider('anthropic');
         else setProvider('default');
@@ -178,7 +192,7 @@ function useLlmApiKeys(open: boolean) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ provider: 'anthropic', key: anthropicInput.trim() }),
       });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      if (!r.ok) throw await saveError(r);
       setHasAnthropicKey(true); setAnthropicInput('');
       setStatusMsg('Anthropic key saved — your chats use your own quota.');
     } catch (err: any) { setIsError(true); setStatusMsg(err.message); }
@@ -187,6 +201,7 @@ function useLlmApiKeys(open: boolean) {
 
   const saveOpenrouterKey = useCallback(async () => {
     if (!openrouterInput.trim()) { setIsError(true); setStatusMsg('Paste your OpenRouter API key first.'); return; }
+    if (modelRejected) { setIsError(true); setStatusMsg(t('settings.api.region_cn_model_rejected')); return; }
     setSaving(true); setStatusMsg(''); setIsError(false);
     try {
       const r = await fetch('/api/user/llm-api-keys', {
@@ -194,14 +209,15 @@ function useLlmApiKeys(open: boolean) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ provider: 'openrouter', key: openrouterInput.trim(), selected_model: selectedModel }),
       });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      if (!r.ok) throw await saveError(r);
       setHasOpenrouterKey(true); setOpenrouterInput('');
       setStatusMsg(`OpenRouter key saved — chats will use ${selectedModel}.`);
     } catch (err: any) { setIsError(true); setStatusMsg(err.message); }
     finally { setSaving(false); }
-  }, [openrouterInput, selectedModel]);
+  }, [openrouterInput, selectedModel, modelRejected]);
 
   const saveModelOnly = useCallback(async () => {
+    if (modelRejected) { setIsError(true); setStatusMsg(t('settings.api.region_cn_model_rejected')); return; }
     setSaving(true); setStatusMsg(''); setIsError(false);
     try {
       const r = await fetch('/api/user/llm-api-keys', {
@@ -209,11 +225,11 @@ function useLlmApiKeys(open: boolean) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ selected_model: selectedModel }),
       });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      if (!r.ok) throw await saveError(r);
       setStatusMsg(`Model updated to ${selectedModel}.`);
     } catch (err: any) { setIsError(true); setStatusMsg(err.message); }
     finally { setSaving(false); }
-  }, [selectedModel]);
+  }, [selectedModel, modelRejected]);
 
   const removeProvider = useCallback(async (prov: 'anthropic' | 'openrouter') => {
     setRemoving(true); setStatusMsg(''); setIsError(false);
@@ -242,6 +258,7 @@ function useLlmApiKeys(open: boolean) {
     saveAnthropicKey, saveOpenrouterKey, saveModelOnly,
     removeProvider,
     statusMsg, isError,
+    policy, modelRejected,
   };
 }
 
@@ -1107,10 +1124,18 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
 
                   {/* Provider radio group */}
                   <div className="space-y-2 mb-4">
+                  {llmKeys.policy?.region === 'cn' && (
+                    <p className="text-xs text-muted-foreground mb-3 rounded-md border bg-muted/40 px-3 py-2" data-testid="llm-region-note">
+                      {t('settings.api.region_cn_note')}
+                    </p>
+                  )}
                     {([
                       { value: 'default', label: t('settings.api.provider_default_label'), desc: t('settings.api.provider_default_desc') },
                       { value: 'openrouter', label: 'OpenRouter', desc: t('settings.api.provider_openrouter_desc') },
-                      { value: 'anthropic', label: t('settings.api.provider_anthropic_label'), desc: t('settings.api.provider_anthropic_desc') },
+                      // China-region users cannot use an Anthropic key (it only ever reaches Claude).
+                      ...(llmKeys.policy?.anthropicKeyAllowed === false ? [] : [
+                        { value: 'anthropic' as const, label: t('settings.api.provider_anthropic_label'), desc: t('settings.api.provider_anthropic_desc') },
+                      ]),
                     ] as const).map(opt => (
                       <button
                         key={opt.value}
@@ -1142,7 +1167,13 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
                             value={llmKeys.selectedModel}
                             onChange={e => llmKeys.setSelectedModel(e.target.value)}
                             data-testid="input-llm-model"
+                            aria-invalid={llmKeys.modelRejected || undefined}
                           />
+                          {llmKeys.modelRejected && (
+                            <p className="text-xs text-destructive" role="alert" data-testid="llm-model-region-error">
+                              {t('settings.api.region_cn_model_rejected')}
+                            </p>
+                          )}
                           {/* Quick-pick the models BioMate has been tested against,
                               so the panel reflects the backend's supported set instead
                               of an opaque free-text box. Click to fill; still editable.
@@ -1153,30 +1184,15 @@ export function SettingsDialog({ open, onOpenChange, onImportWorkflow }: Setting
                               cost); all are function-calling capable so they get the full
                               agentic pipeline (tools + workflows + run_code). */}
                           <div className="space-y-2 pt-0.5" data-testid="llm-model-quickpick">
-                            {([
-                              // Flagship-tier slugs only (no small/flash variants), each verified
-                              // against OpenRouter's live /models catalog on 2026-11-09.
-                              { label: t('settings.api.models_open'), slugs: [
-                                'z-ai/glm-5.3-prime',
-                                'deepseek/deepseek-v4-pro',
-                                'qwen/qwen3-235b-a22b-2507',
-                                'moonshotai/kimi-k3',
-                                'meta-llama/llama-4-maverick',
-                              ] },
-                              { label: t('settings.api.models_proprietary'), slugs: [
-                                'anthropic/claude-opus-5.5',
-                                'anthropic/claude-sonnet-5.5',
-                                'openai/gpt-6.1-sol-pro',
-                                'google/gemini-3.1-pro-preview',
-                                'x-ai/grok-4.7',
-                                'mistralai/mistral-large-4-0',
-                              ] },
-                            ] as const).map(group => (
+                            {modelGroups(llmKeys.policy?.region).map(g => ({
+                              label: t(g.key === 'chinese' ? 'settings.api.models_chinese' : g.key === 'open' ? 'settings.api.models_open' : 'settings.api.models_proprietary'),
+                              slugs: g.slugs,
+                            })).map(group => (
                               <div key={group.label}>
                                 <p className="text-fs-xs uppercase tracking-wide text-muted-foreground/70 mb-1">{group.label}</p>
                                 <div className="flex flex-wrap gap-1.5">
                                   {group.slugs.map(slug => {
-                                    const recommended = slug === 'z-ai/glm-5.3-prime';
+                                    const recommended = slug === (llmKeys.policy?.region === 'cn' ? (llmKeys.policy.defaultModel || CHINESE_MODELS[0]) : INTL_DEFAULT_MODEL);
                                     return (
                                       <button
                                         key={slug}
