@@ -1249,25 +1249,43 @@ async function _stageProjectFileToNextflow(
 async function resolveProjectFileParams(rawParams: Record<string, any>, projectId: string): Promise<void> {
   const srcBucket = process.env.S3_BUCKET_NAME || '';
   if (!srcBucket) return;
+  const destBucket = process.env.NEXTFLOW_S3_BUCKET || process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
+  const appPrefix = `s3://${srcBucket}/`;
   const looksBareFile = (v: any): boolean =>
     typeof v === 'string' && !!v &&
     !v.startsWith('s3://') && !v.startsWith('/') && !v.includes('://') &&
     !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-/i.test(v) &&  // not a UUID/dataset id
     /\.[A-Za-z0-9]{1,8}$/.test(v) && !/\s/.test(v);        // has a file extension, no spaces
-  if (!Object.values(rawParams).some(looksBareFile)) return;
+  // App-bucket URIs from project upload (s3_uri derived from s3_key). When the
+  // Batch bucket differs, stage into NEXTFLOW; when they share a bucket (DEV),
+  // the URI is already Batch-readable and needs no rewrite.
+  const looksAppS3 = (v: any): boolean =>
+    typeof v === 'string' && !!v && v.startsWith(appPrefix) && srcBucket !== destBucket;
+  if (!Object.values(rawParams).some((v) => looksBareFile(v) || looksAppS3(v))) return;
   const rows = await pool.query(`SELECT name, s3_key FROM project_files WHERE project_id = $1`, [projectId]);
   const byName = new Map<string, string>();
   for (const r of rows.rows) if (r.name && r.s3_key) byName.set(r.name, r.s3_key);
-  if (!byName.size) return;
   const stagedCache = new Map<string, string>();
   for (const [k, v] of Object.entries(rawParams)) {
-    if (!looksBareFile(v)) continue;
-    const s3Key = byName.get(v as string);
-    if (!s3Key) continue;
-    let uri = stagedCache.get(v as string);
+    let s3Key: string | undefined;
+    let fileName: string | undefined;
+    let cacheKey: string | undefined;
+    if (looksBareFile(v)) {
+      s3Key = byName.get(v as string);
+      fileName = v as string;
+      cacheKey = v as string;
+    } else if (looksAppS3(v)) {
+      s3Key = (v as string).slice(appPrefix.length);
+      fileName = s3Key.split('/').pop() || s3Key;
+      cacheKey = s3Key;
+    } else {
+      continue;
+    }
+    if (!s3Key || !fileName || !cacheKey) continue;
+    let uri = stagedCache.get(cacheKey);
     if (!uri) {
-      const got = await _stageProjectFileToNextflow(srcBucket, s3Key, projectId, v as string);
-      if (got) { uri = got; stagedCache.set(v as string, got); }
+      const got = await _stageProjectFileToNextflow(srcBucket, s3Key, projectId, fileName);
+      if (got) { uri = got; stagedCache.set(cacheKey, got); }
     }
     if (uri) {
       console.log(`[Execute] resolved project file param ${k}: "${v}" → ${uri}`);

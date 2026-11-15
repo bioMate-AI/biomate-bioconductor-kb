@@ -69,6 +69,7 @@ Hostname TLS (`https://dev-public.biomate.ai`). Login once + project `c7878fd2-�
 - Live Galaxy confirms `uploaded_datasets = request.session_datasets or request.available_datasets or None` (lines ~4184 / ~4706). Frontend `/app/dist/index.js` forwards `session_datasets`.
 - Generate `dataset` is the **attached project filename**, not a `tdc:*` alias and not a literal `s3://…` URI. Project upload API surfaces `s3_key` (`projects/<pid>/inputs/<file>`); execute staging resolves that key to Batch-readable S3. Residual vs the strictest pass-criteria wording (`dataset=s3://…`) — binding is by uploaded name/id, not URI string in the card params.
 - REINVENT TL TOML no longer emits `[logging] logfile=` (verified on live container). Batch remasure of Adapt generative not re-run this pass (route-only).
+- Harness logged `UPLOAD … s3 None keys […, 's3_key', …]` for every file — see root cause **#4** below (not IAM / disk / swallowed put).
 
 ## Root causes
 
@@ -82,17 +83,25 @@ Hostname TLS (`https://dev-public.biomate.ai`). Login once + project `c7878fd2-�
 3. **Optimise / DMTA**  
    Catalog seeds a design–make–test loop, but chat still template-reuses lead design. Matches prior committee note (Rounds read-only / no launch). Not a catalog typo; product gap.
 
+4. **Project upload public shape omitted `s3_uri`** (tip `28e3dac5` remasure)  
+   `POST /api/projects/:id/files/upload` **succeeded** (HTTP 201, objects present under `s3://biomate-nextflow-work/projects/<pid>/inputs/…`, content_hash set). `_publicFile` projected DB columns only (`s3_key`, …) and never derived `s3_uri`. Harness therefore sent session_datasets without URI → `select_training_dataset` fell back to the filename → attach criterion `dataset=s3://…` failed for potency/herg/solubility/finetune-property.  
+   Ruled out: IAM (put succeeded), DEV disk-full (local multer temp only; S3 put OK; EC2 root ~98% but orthogonal), sanitization of a failed URI (there was none to strip).  
+   Fix: `_withS3Uri` on upload/list public rows (`s3://${S3_BUCKET_NAME}/${s3_key}`); execute also stages app-bucket URIs when `S3_BUCKET_NAME ≠ NEXTFLOW` bucket.
+
 ## Fixes landed + synced
 
 | File | Change |
 |------|--------|
 | `backend/lib/galaxy/webapps/galaxy/api/ai_assistant.py` (+ packages mirror) | `uploaded_datasets = session_datasets or available_datasets` |
-| `frontend/server/routes.ts` | Forward `session_datasets` / fall back to `available_datasets` |
+| `frontend/server/routes.ts` | Forward `session_datasets` / fall back to `available_datasets`; stage app-bucket `s3://` params when Batch bucket differs |
 | `frontend/server/galaxy-api-proxy.ts` | Promote upload-shaped `datasets` (with `s3_uri`) to `session_datasets` |
+| `frontend/server/project-routes.ts` | Derive `s3_uri` on upload/list public file shape |
+| `frontend/server/project-routes.test.ts` | Contract: `_publicFile` / list emit `s3_uri` |
 | `backend/lib/galaxy/ai/drug_discovery/reinvent4_trainer.py` | Drop forbidden `[logging] logfile` from TL TOML |
 | `…/test_reinvent4_trainer.py` | Assert TL config omits logfile |
 
-Synced to DEV as tip `28e3dac5` (ancestry includes `3536d04b05` + `2c2233c042` + merge of live `cb472efe`). Layers: frontend + backend; `BIOMATE_SYNC_DB=0`.
+Synced to DEV as tip `28e3dac5` (ancestry includes `3536d04b05` + `2c2233c042` + merge of live `cb472efe`). Layers: frontend + backend; `BIOMATE_SYNC_DB=0`.  
+`s3_uri` public-shape fix: pending sync after this commit (see remasure § below once tip advances).
 
 ## Pass criteria (status after remasure)
 
@@ -100,8 +109,8 @@ Synced to DEV as tip `28e3dac5` (ancestry includes `3536d04b05` + `2c2233c042` +
 |-----------|--------|
 | Potency + fine-tune-property → `chemprop_train.nf`, not reinvent | **Met** |
 | `target_col=pIC50` on potency / fine-tune | **Met** |
-| herg/solubility → chemprop with **attached** data (not `tdc:*`) | **Met** (filename bind) |
-| Generate param is literal `s3://…` URI | **Not met** — filename/`s3_key` path; execute stages from project_files |
+| herg/solubility → chemprop with **attached** data (not `tdc:*`) | **Met** (filename bind on `28e3dac5`; literal `s3://` after `s3_uri` fix) |
+| Generate param is literal `s3://…` URI | **Not met on `28e3dac5`** — fixed in tree (`_withS3Uri`); remasure after frontend sync |
 | Adapt generative → reinvent4_finetune_rl | **Met** (route) |
 | Optimise → DMTA | **Open** product gap (still lead-design) |
 
@@ -109,4 +118,5 @@ Synced to DEV as tip `28e3dac5` (ancestry includes `3536d04b05` + `2c2233c042` +
 
 Focused Models coldstart wiring + REINVENT TL logfile fix: `3536d04b05`.  
 Related already on branch: `8493c1d891` / `2435bab3d2` (scaffold “diffusion train” re-arm); phase-map `2c2233c042`.  
-Sync merge tip on DEV: `28e3dac5`.
+Sync merge tip on DEV: `28e3dac5`.  
+Project upload `s3_uri` public-shape: this follow-up commit (see git log).

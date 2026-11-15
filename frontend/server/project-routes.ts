@@ -300,12 +300,26 @@ const _FILE_COLUMNS =
   "id, name, s3_key, size, content_type, source, run_id, workflow_name, step_name, input_context, content_hash, version_no, created_at";
 const _FILE_KEYS = _FILE_COLUMNS.split(", ");
 
+/**
+ * Derive the durable s3:// URI for a project_files row. The DB stores only
+ * s3_key; clients (cold-start remasure, chat attach, generate_workflow) need
+ * s3_uri to bind training datasets. Not an error/sanitization path — the key
+ * was always written; the public shape previously omitted the URI.
+ */
+function _withS3Uri<T extends { s3_key?: unknown }>(row: T): T & { s3_uri?: string } {
+  if (!row || typeof row !== "object") return row;
+  const key = typeof row.s3_key === "string" ? row.s3_key : "";
+  const bucket = process.env.S3_BUCKET_NAME || "";
+  if (!key || !bucket) return { ...row };
+  return { ...row, s3_uri: `s3://${bucket}/${key}` };
+}
+
 /** The client-facing shape of a file row (the columns every ingest endpoint responds with). */
 function _publicFile(row: any): any {
   if (!row) return row;
   const out: Record<string, unknown> = {};
   for (const k of _FILE_KEYS) if (k in row) out[k] = row[k];
-  return out;
+  return _withS3Uri(out);
 }
 
 /** Key reservations live 24 h: long enough for any upload's put, short enough that a crashed
@@ -904,7 +918,8 @@ export function registerProjectRoutes(app: Express): void {
         [id]
       );
       // profileSummary: the profiler's stored verdict for each file's CURRENT version (or null).
-      res.json({ files: await withProfileSummaries(_q, result.rows) });
+      // s3_uri: derived from s3_key + S3_BUCKET_NAME so clients can attach without re-deriving.
+      res.json({ files: await withProfileSummaries(_q, result.rows.map((r: any) => _withS3Uri(r))) });
     } catch (e: any) {
       console.error("[project_files] list failed:", e?.message ?? e);
       res.status(500).json({ error: "Failed to list files" });
