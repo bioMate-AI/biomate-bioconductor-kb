@@ -1788,7 +1788,7 @@
     "seed_prompt": "Run the {{name}} workflow.",
     "title_short": "Workflows",
     "tab_import": "Import Workflow",
-    "import_tip": "Upload your own workflow — Nextflow (.nf), or a .ga / .yml workflow file. Once imported it appears under My workflows and can be launched from any chat.",
+    "import_tip": "Upload your own Nextflow workflow (.nf, .yml, or .yaml). Once imported it appears under My workflows and can be launched from any chat. Galaxy .ga import is temporarily disabled.",
     "import_file_label": "Workflow file",
     "import_choose_file": "Choose file",
     "import_no_file": "No file chosen",
@@ -2297,12 +2297,12 @@
     "settings": {
       "api_keys": "Personal keys for connecting chat apps and MCP clients to BioMate, and the language-model provider used in chat.",
       "connectors": "Public data sources, your private databases, MCP servers and instrument connections.",
-      "import": "Add your own workflow file (Nextflow .nf, or .ga / .yml) so it can be run from any chat."
+      "import": "Add your own Nextflow workflow (.nf, .yml, or .yaml) so it can be run from any chat. Galaxy .ga import is temporarily disabled."
     },
     "workflows_library": {
       "browse": "Search the curated workflow catalog by task, method or data type.",
       "my": "Workflows you imported — launch any of them from a chat.",
-      "import": "Upload your own workflow file — Nextflow (.nf), or .ga / .yml."
+      "import": "Upload your own Nextflow workflow (.nf, .yml, or .yaml). Galaxy .ga import is temporarily disabled."
     },
     "dataset": {
       "preview": "Look inside the file — a table, image or text view of its contents.",

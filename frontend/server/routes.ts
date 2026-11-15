@@ -77,6 +77,11 @@ import { mockGalaxyAPI } from "./mock-galaxy-api";
 import { GalaxyAPIProxy } from "./galaxy-api-proxy";
 import { fetchGalaxyAsUser } from "./galaxy-user-fetch";
 import { ALLOWED_UPLOAD_EXTENSIONS, isAllowedUploadName, UnsupportedUploadTypeError } from "./upload-file-types";
+import {
+  PERSONAL_WORKFLOW_ACCEPT_LABEL,
+  PERSONAL_WORKFLOW_UNSUPPORTED_MESSAGE,
+  isAllowedPersonalWorkflowName,
+} from "@shared/personal-workflow-import";
 import { createPoller } from "./galaxy-state-poller";
 import { WorkflowSSEManager } from "./workflow-sse";
 import { createWorkflowNotificationService, type WorkflowNotificationService } from "./workflow-notification-service";
@@ -9756,15 +9761,19 @@ ${paramLines || '(none recorded)'}`;
 
   // Dedicated multer config for workflow definition files (small, text-based).
   // Stored in memory so we can read them without touching disk long-term.
+  // Nextflow-only: .ga (Galaxy JSON) is rejected — not executable as Nextflow.
   const workflowUploadMemory = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB max — workflow files are tiny
     fileFilter: (_req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase();
-      if (['.nf', '.ga', '.yml', '.yaml'].includes(ext)) {
+      if (isAllowedPersonalWorkflowName(file.originalname)) {
         cb(null, true);
       } else {
-        cb(new UnsupportedUploadTypeError('Only .nf, .ga, .yml, and .yaml workflow files are supported'));
+        const ext = path.extname(file.originalname).toLowerCase();
+        const msg = ext === '.ga'
+          ? PERSONAL_WORKFLOW_UNSUPPORTED_MESSAGE
+          : `Only ${PERSONAL_WORKFLOW_ACCEPT_LABEL} workflow files are supported`;
+        cb(new UnsupportedUploadTypeError(msg));
       }
     },
   });
