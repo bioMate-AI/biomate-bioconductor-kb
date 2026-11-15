@@ -1,0 +1,80 @@
+{
+  "study_info": {
+    "n_subjects": 2,
+    "dose": 100,
+    "route": "extravascular",
+    "time_unit": "h",
+    "conc_unit": "ng/mL",
+    "auc_unit": "ng*h/mL",
+    "cl_unit": "L/h",
+    "vd_unit": "L",
+    "analysis_method": "NCA (linear-up log-down trapezoidal)",
+    "software": "PKNCA 0.12.1",
+    "timestamp": "2026-11-15T12:03:05Z"
+  },
+  "population_summary": {
+    "AUClast": {
+      "n": 2,
+      "mean": 781.6776,
+      "sd": 32.9016,
+      "cv_pct": 4.2091,
+      "median": 781.6776,
+      "min": 758.4127,
+      "max": 804.9426
+    },
+    "AUCinf": {
+      "n": 2,
+      "mean": 838.9589,
+      "sd": 39.3151,
+      "cv_pct": 4.6862,
+      "median": 838.9589,
+      "min": 811.159,
+      "max": 866.7589
+    },
+    "Cmax": {
+      "n": 2,
+      "mean": 93.3,
+      "sd": 2.9698,
+      "cv_pct": 3.1831,
+      "median": 93.3,
+      "min": 91.2,
+      "max": 95.4
+    },
+    "Tmax": {
+      "n": 2,
+      "mean": 2,
+      "sd": 0,
+      "cv_pct": 0,
+      "median": 2,
+      "min": 2,
+      "max": 2
+    },
+    "t_half": {
+      "n": 2,
+      "mean": 7.2479,
+      "sd": 0.1199,
+      "cv_pct": 1.6543,
+      "median": 7.2479,
+      "min": 7.1631,
+      "max": 7.3327
+    },
+    "CL_F": {
+      "n": 0,
+      "mean": "NaN",
+      "sd": "NA",
+      "cv_pct": "NA",
+      "median": "NA",
+      "min": "Inf",
+      "max": "-Inf"
+    },
+    "Vd_F": {
+      "n": 0,
+      "mean": "NaN",
+      "sd": "NA",
+      "cv_pct": "NA",
+      "median": "NA",
+      "min": "Inf",
+      "max": "-Inf"
+    }
+  }
+}
