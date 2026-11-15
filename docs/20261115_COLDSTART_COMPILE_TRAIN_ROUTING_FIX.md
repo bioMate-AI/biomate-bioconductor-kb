@@ -17,8 +17,15 @@
 
 1. Escape bare `$` → `\$` in `script:`/`shell:`/`stub:` GStrings for: antibody, cox, deqms, seqvartools, atacseq stub, nonmem_poppk, wsi_he_nuclei_segmentation.
 2. `detect_training_intent`: structure-diffusion hints require a train/fine-tune verb; bare design/sample falls through to catalog.
-3. Keep Batch F binding residual + gromacs PY_CONTAINER / 1BXL / generative≠FEP hint (prior working tree).
-4. Unit tests: `test_diffusion.py` intent matrix; `attachment-binding.test.ts` still green (46).
+3. Strip UI `[Prepared inputs|/Attached files|/Uploaded datasets|/Routing hint]` blocks before intent detection — cold-start notes that said “diffusion train set dataset=…” were re-arming TRAIN (remeasure tip `cb472efe5c`: generate-bio-1/2, fold-complex-bio-0).
+4. Rewrite cold-start catalog peptide/biologics/enzyme notes to prefer design/co-fold workflows and explicitly avoid ml_training diffusion train for bare design prompts.
+5. Keep Batch F binding residual + gromacs PY_CONTAINER / 1BXL / generative≠FEP hint (prior working tree).
+6. Unit tests: `test_diffusion.py` intent matrix + prepared-inputs hijack; `attachment-binding.test.ts` still green (46).
+
+## Prep / remasure (2026-11-15 later)
+
+- Synced merge tip `aaaf2a6b59` (DEV absorb `104915eedd` + `$` escapes + TRAIN verb gate + gromacs pep-3) → healthy, `BIOMATE_SYNC_DB=0`. Live tip later `cb472efe5c` (ancestor includes `aaaf`).
+- Remasure vs `cb472`: Module-compile class closed for seqvartools path; domain-gen-2 now `example_sub.vcf` missing (runtime). TRAIN class still HONEST_FAIL until scaffold-strip + catalog rewrite sync.
 
 ## Verify
 
