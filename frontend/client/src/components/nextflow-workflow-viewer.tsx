@@ -3359,7 +3359,6 @@ export function NextflowWorkflowViewer({
     <div
       className="wf-panel"
       data-testid="workflow-artifact-panel"
-      data-debug-inline-params={JSON.stringify(workflowDefinition?.inline_parameters || null)}
       data-debug-rendered-param-count={renderedParameters.length}
       data-debug-rendered-param-ids={renderedParameters.map((p: any) => p.id).join(',')}
     >

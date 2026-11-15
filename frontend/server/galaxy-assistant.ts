@@ -10747,19 +10747,20 @@ ONE-QUESTION RULE:
 - GEO accession routing rules:
 ${process.env.S3_ENDPOINT_URL ? '' : `  GSE227835 (AChR+ myasthenia gravis scRNA-seq, pseudobulk-aggregated, ALWAYS ready):
     Route to nf-core/differentialabundance. Do NOT route to geo_scrna_pseudobulk.
-    ALWAYS set these THREE SEPARATE parameters — never leave them empty, never concatenate:
-    samplesheet: s3://biomate-nextflow-work/demo/mg_demo/sample_metadata.csv
-    matrix: s3://biomate-nextflow-work/demo/mg_demo/counts_matrix.csv
-    contrasts: s3://biomate-nextflow-work/demo/mg_demo/contrasts.csv
-    If the message contains uploaded file URIs (s3://biomate-nextflow-outputs/...) for these params, use those instead.
-    Tell the user you are using pre-processed pseudobulk counts for GSE227835 (MG vs healthy controls).
+    ALWAYS set these THREE SEPARATE parameters — never leave them empty, never concatenate.
+    Use fixture tokens only (never raw storage URIs) — execute-time code expands them:
+    samplesheet: fixture:mg-demo-samplesheet
+    matrix: fixture:mg-demo-matrix
+    contrasts: fixture:mg-demo-contrasts
+    If the message contains an [Uploaded datasets: ...] block with s3_uri for these params, use those uploaded URIs instead of the fixtures.
+    Tell the user you are using pre-processed pseudobulk counts for GSE227835 (MG vs healthy controls). Never show fixture tokens or storage paths in reply text — refer to the files by name (sample_metadata.csv, counts_matrix.csv, contrasts.csv).
 `}  Other GEO accessions (any GSE ID that is NOT GSE227835):
     Route to geo_scrna_pseudobulk only when it is a single-cell DE/pseudobulk request. For bulk RNA-seq or microarray, route to geo_data_connector with accession pre-filled. Say that it will retrieve the GEO series matrix and sample metadata for review; do not promise automatic DESeq2 or automatic contrast selection.
 ${process.env.S3_ENDPOINT_URL ? '' : `  * GSE227835 enrichGO follow-up (complement pathway enrichment after DESeq2 on GSE227835 MG data):
     When the conversation includes a prior DESeq2/differentialabundance run on GSE227835 AND the user requests pathway enrichment or clusterProfiler/enrichGO:
-    ALWAYS set gene_list: s3://biomate-nextflow-work/demo/mg_demo/de_genes.txt
+    ALWAYS set gene_list: fixture:mg-demo-gene-list
     If the message contains an uploaded gene list file URI, use that instead.
-    Route to clusterprofiler. Do NOT ask the user to upload a gene list.
+    Route to clusterprofiler. Do NOT ask the user to upload a gene list. Never show the fixture token or a storage path in reply text.
 `}
 - Differential-expression method selection (data-type rule): When the input is **microarray** data — signals include (a) the word "microarray", (b) a log-transformed continuous expression matrix (non-integer values, often 4–14 range), (c) a GEO accession known to be microarray (e.g. GSE22055, GSE10072 — Affymetrix/Illumina BeadChip series) — **prefer limma** (linear-model + empirical Bayes) and NOT DESeq2/edgeR. DESeq2 and edgeR assume raw integer counts (RNA-seq) and produce invalid results on continuous microarray intensities. For RNA-seq raw counts use DESeq2 (most common) or edgeR. For RNA-seq with low-count genes or covariate-heavy designs, limma-voom is also valid. If the data type is ambiguous, ask once which platform produced the data, then route accordingly — do not default to DESeq2 silently.
 ${isDrugDevelopmentQuery ? `- For drug-development requests, provide decision-grade guidance: list concrete workflow phases, critical safety/quality gates, required inputs, and explicit next actions` : ''}

@@ -7,6 +7,21 @@
  *  UUID from a displayed parameter value — keep the human part (e.g. the filename). */
 export function cleanParamValueForDisplay(v: unknown): string {
   let s = v == null ? '' : String(v);
+  // Demo fixture tokens (e.g. fixture:empiar-10028-movies) → friendly label, never
+  // the underlying storage URI (resolved only at execute time).
+  {
+    const fix = /^fixture:([A-Za-z0-9_-]+)$/i.exec(s.trim());
+    if (fix) {
+      const labels: Record<string, string> = {
+        'empiar-10028-movies': 'EMPIAR-10028 movies',
+        'mg-demo-samplesheet': 'MG demo samplesheet',
+        'mg-demo-matrix': 'MG demo count matrix',
+        'mg-demo-contrasts': 'MG demo contrasts',
+        'mg-demo-gene-list': 'MG demo DE gene list',
+      };
+      return labels[fix[1].toLowerCase()] || fix[1];
+    }
+  }
   // A storage location is shown as the file it names, never as a path: s3://, gs://,
   // file://, http(s):// or an absolute/relative path whose last segment is a file.
   // Same policy as the server's redactStoragePaths (no storage paths in user text).

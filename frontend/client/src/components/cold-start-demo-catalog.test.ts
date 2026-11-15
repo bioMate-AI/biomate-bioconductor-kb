@@ -114,15 +114,18 @@ describe('every cold-start path has prepared inputs', () => {
   it('does not silently attach a default dataset to a custom goal', () => {
     expect(coldDemoFor('Analyze my own experiment')).toBeUndefined();
   });
-  it('cryo demo exposes an absolute S3 movies_path for param binding', () => {
+  it('cryo demo seeds movies_path via fixture token (never raw s3:// in client assets)', () => {
     const demo = coldDemoFor('Process this cryo-EM dataset to a density map and report the resolution.');
     expect(demo).toBeTruthy();
-    expect(demo!.context).toMatch(/movies_path=s3:\/\/biomate-cryo-data\/empiar-10028\/Micrographs\//);
+    expect(demo!.context).toMatch(/movies_path=fixture:empiar-10028-movies/);
+    expect(demo!.context).not.toMatch(/s3:\/\//);
+    expect(demo!.context).not.toMatch(/biomate-cryo-data/);
     const cryoJson = JSON.parse(
       readFileSync(resolve(__dirname, '../../public/demo/cold-start/cryo_inputs.json'), 'utf8'),
     );
-    expect(cryoJson.movies_path).toBe('s3://biomate-cryo-data/empiar-10028/Micrographs/');
-    expect(cryoJson.staged_movies_s3).toBe(cryoJson.movies_path);
+    expect(cryoJson.movies_path).toBe('fixture:empiar-10028-movies');
+    expect(JSON.stringify(cryoJson)).not.toMatch(/s3:\/\//);
+    expect(cryoJson.staged_movies_s3).toBeUndefined();
   });
 });
 

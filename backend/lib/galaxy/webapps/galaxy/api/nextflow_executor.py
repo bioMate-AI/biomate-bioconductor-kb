@@ -3223,6 +3223,27 @@ def _local_path_size(p: Path) -> int:
     return total
 
 
+# Cold-start demo fixtures: UI / Prepared-inputs carry `fixture:<id>` so clients
+# never see raw seed-bucket URIs. Expand here (and in Node execute) before
+# validation / Batch launch.
+_DEMO_FIXTURE_PATHS = {
+    "empiar-10028-movies": "s3://biomate-cryo-data/empiar-10028/Micrographs/",
+    # GSE227835 MG pseudobulk demo (LLM prompts carry fixture: tokens only).
+    "mg-demo-samplesheet": "s3://biomate-nextflow-work/demo/mg_demo/sample_metadata.csv",
+    "mg-demo-matrix": "s3://biomate-nextflow-work/demo/mg_demo/counts_matrix.csv",
+    "mg-demo-contrasts": "s3://biomate-nextflow-work/demo/mg_demo/contrasts.csv",
+    "mg-demo-gene-list": "s3://biomate-nextflow-work/demo/mg_demo/de_genes.txt",
+}
+_FIXTURE_RE = re.compile(r"^fixture:([A-Za-z0-9_-]+)$", re.IGNORECASE)
+
+
+def _resolve_demo_fixture_value(value: str) -> str:
+    m = _FIXTURE_RE.match(str(value or "").strip())
+    if not m:
+        return value
+    return _DEMO_FIXTURE_PATHS.get(m.group(1).lower(), value)
+
+
 def _validate_input_paths(params: dict) -> None:
     """
     Validate all input path parameters before launching Nextflow.
@@ -3234,6 +3255,13 @@ def _validate_input_paths(params: dict) -> None:
 
     Raises HTTPException(422) on any violation.
     """
+    # Expand fixture:<id> tokens (cold-start demos) to real storage URIs first.
+    for _k in list(params.keys()):
+        _v = params.get(_k)
+        if isinstance(_v, str) and _FIXTURE_RE.match(_v.strip()):
+            params[_k] = _resolve_demo_fixture_value(_v)
+            log.info("[input] resolved demo fixture for --%s", _k)
+
     # Normalize bare S3 upload keys to full s3:// URIs so they validate + stage
     # like any other S3 input. MCP upload_file / the signed-url flow return a BARE
     # key (e.g. "users/<uid>/uploads/x.csv"); without this it is treated as a local
@@ -3722,7 +3750,7 @@ def _validate_s3_url(s3_url: str, check_object: bool = False) -> None:
     if not bucket:
         raise HTTPException(
             status_code=422,
-            detail={"error": f"Invalid S3 URL '{s3_url}': no bucket name"},
+            detail={"error": "Invalid storage URL: no bucket name"},
         )
 
     # Well-known public reference buckets — always accessible, skip pre-flight check
@@ -3744,11 +3772,10 @@ def _validate_s3_url(s3_url: str, check_object: bool = False) -> None:
             raise HTTPException(
                 status_code=422,
                 detail={
-                    "error": "AWS credentials not configured",
-                    "bucket": bucket,
+                    "error": "Cloud storage credentials are not configured",
                     "suggestion": (
-                        "Run 'aws configure' or set the AWS_ACCESS_KEY_ID / "
-                        "AWS_SECRET_ACCESS_KEY environment variables."
+                        "Ask an administrator to configure cloud storage access, "
+                        "or re-upload the input through BioMate."
                     ),
                 },
             )
@@ -3758,11 +3785,10 @@ def _validate_s3_url(s3_url: str, check_object: bool = False) -> None:
                 raise HTTPException(
                     status_code=422,
                     detail={
-                        "error": f"Access denied to S3 bucket '{bucket}'",
-                        "bucket": bucket,
+                        "error": "Access denied to the input storage location",
                         "suggestion": (
-                            "Ensure the IAM role/user has s3:GetObject, "
-                            "s3:PutObject, and s3:ListBucket on this bucket."
+                            "Ensure your cloud credentials can read the input files, "
+                            "or re-upload the file through BioMate."
                         ),
                     },
                 )
@@ -3770,9 +3796,11 @@ def _validate_s3_url(s3_url: str, check_object: bool = False) -> None:
                 raise HTTPException(
                     status_code=422,
                     detail={
-                        "error": f"S3 bucket '{bucket}' does not exist",
-                        "bucket": bucket,
-                        "suggestion": f"Create it with: aws s3 mb s3://{bucket} --region <region>",
+                        "error": "The input storage location was not found",
+                        "suggestion": (
+                            "Re-upload the input file through BioMate, or check that "
+                            "the file still exists in your project storage."
+                        ),
                     },
                 )
             # 301/400 = cross-region redirect — bucket exists in another region, treat as OK.
@@ -3783,8 +3811,10 @@ def _validate_s3_url(s3_url: str, check_object: bool = False) -> None:
                 raise HTTPException(
                     status_code=422,
                     detail={
-                        "error": f"Cannot access S3 bucket '{bucket}': {exc}",
-                        "bucket": bucket,
+                        "error": "Cannot access the input storage location",
+                        "suggestion": (
+                            "Re-upload the input through BioMate, or try again later."
+                        ),
                     },
                 )
 
@@ -3817,12 +3847,10 @@ def _validate_s3_url(s3_url: str, check_object: bool = False) -> None:
                 raise HTTPException(
                     status_code=422,
                     detail={
-                        "error": f"S3 input object not found: s3://{bucket}/{key}",
-                        "bucket": bucket,
-                        "key": key,
+                        "error": "Input file not found in storage",
                         "suggestion": (
-                            "Upload your input file first, or check the S3 path for typos. "
-                            f"List available files with: aws s3 ls s3://{bucket}/{'/'.join(key.split('/')[:-1])}/"
+                            "Upload your input file first, or pick it again from your "
+                            "project files / recent uploads."
                         ),
                     },
                 )
@@ -3831,8 +3859,11 @@ def _validate_s3_url(s3_url: str, check_object: bool = False) -> None:
                 raise HTTPException(
                     status_code=422,
                     detail={
-                        "error": f"Access denied to S3 object s3://{bucket}/{key}",
-                        "suggestion": "Ensure the IAM role has s3:GetObject on this key.",
+                        "error": "Access denied to the input file in storage",
+                        "suggestion": (
+                            "Re-upload the file through BioMate, or check that your "
+                            "cloud credentials can read project storage."
+                        ),
                     },
                 )
 

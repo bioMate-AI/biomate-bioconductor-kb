@@ -11,6 +11,7 @@ describe('cleanParamValueForDisplay — filename, never a storage path or UUID',
     ['/data/run/reads_R1.fastq.gz', 'reads_R1.fastq.gz'],
     ['https://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-5995/map/emd_5995.map.gz', 'emd_5995.map.gz'],
     ['s3://biomate-cryo-data/empiar-10028/Micrographs/', ''],
+    ['fixture:empiar-10028-movies', 'EMPIAR-10028 movies'],
   ])('%s → %s', (raw, want) => { expect(cleanParamValueForDisplay(raw)).toBe(want); });
   it.each(['2', '0.05', 'rnaseq', 'GRCh38', 'treated_vs_control', 'g4s3'])('leaves plain values alone: %s', (v) => {
     expect(cleanParamValueForDisplay(v)).toBe(v);
