@@ -556,7 +556,7 @@ kill -HUP $(pgrep -f "gunicorn.*8081" | head -1)
 ## Workflow Database
 
 - Location: `backend/database/galaxy_ai_tools.db`
-- **4,223 workflows** across 42 domain tags (~36 curated), indexed over 12,312 tools (catalog rechecked 2026-10-29; incremental indexing is documented in `docs/20261020_QA_POLISH_NOVELTY_INDEXING_SESSION.md`; 4,210 was the 2026-10-05 snapshot). **Validated subset = 1,092 workflows in the 2026-10-05 audit** with clean real-execution evidence (`real_exec_status IN ('ok','ok_warnings')`) — this historical validated subset is separate from the current catalog count. See `docs/20261004_CATALOG_COUNT_RECONCILIATION.md`.
+- **4,233 workflows** across 42 domain tags (~36 curated), indexed over 12,312 tools (catalog rechecked 2026-11-13 against the intended panelfix/review/DEV catalog; 4,223 was the 2026-10-29 novelty-indexing snapshot and 4,210 was the 2026-10-05 snapshot — see `docs/20261020_QA_POLISH_NOVELTY_INDEXING_SESSION.md` and `docs/20261113_INPUT_KINDS_ENRICHMENT_DIAGNOSIS.md`). **Validated subset = 1,092 workflows in the 2026-10-05 audit** with clean real-execution evidence (`real_exec_status IN ('ok','ok_warnings')`) — this historical validated subset is separate from the current catalog count. See `docs/20261004_CATALOG_COUNT_RECONCILIATION.md`.
 - Key domains: transcriptomics (1,695), genomics (756), epigenomics (265), drug_discovery (200), proteomics (186), variant_calling (181), single_cell (100), cryo_em (19)
 - `general` (153) = Bioconductor R utility packages — correct classification, not a data quality issue
 - The `workflow_ga` object returned by `/api/ai_assistant/generate_workflow` includes: `name`, `domain`, `description`, `required_params`, `optional_params`, `steps`, `nextflow_path`

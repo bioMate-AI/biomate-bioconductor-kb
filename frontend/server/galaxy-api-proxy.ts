@@ -841,9 +841,22 @@ export class GalaxyAPIProxy {
 
       // Single entry point: generate_workflow_unified handles chain lookup,
       // search (high/medium confidence), and composition (low confidence) internally.
+      // Chat passes session_datasets with s3_uri; the public generate_workflow
+      // route historically only forwarded `datasets` → available_datasets.
+      // Galaxy ml_training routing reads session_datasets (with available_datasets
+      // as fallback). When the caller only supplied datasets that already look
+      // like user uploads (s3_uri / s3Uri), also send them as session_datasets so
+      // Train coldstarts bind the attached table instead of falling through to
+      // reinvent4_finetune_rl.
+      const datasetList = request.datasets || [];
+      const sessionFromDatasets = !request.session_datasets?.length && datasetList.some(
+        (d: any) => d && (d.s3_uri || d.s3Uri || d.uri),
+      )
+        ? datasetList
+        : undefined;
       const backendRequest = {
         request_text: request.user_intent,
-        available_datasets: request.datasets || [],
+        available_datasets: datasetList,
         context: {
           ...(request.session_id ? { session_id: request.session_id } : {}),
         },
@@ -854,7 +867,9 @@ export class GalaxyAPIProxy {
         ...(request.key_terms?.length ? { key_terms: request.key_terms } : {}),
         // [] is meaningful ("the user states no input data" — suppresses text detection), so pass it through.
         ...(Array.isArray(request.user_input_kinds) ? { user_input_kinds: request.user_input_kinds } : {}),
-        ...(request.session_datasets?.length ? { session_datasets: request.session_datasets } : {}),
+        ...((request.session_datasets?.length ? request.session_datasets : sessionFromDatasets)
+          ? { session_datasets: request.session_datasets?.length ? request.session_datasets : sessionFromDatasets }
+          : {}),
         ...(request.credential_map ? { credential_map: request.credential_map } : {}),
         ...(request.selected_workflow ? { selected_workflow: request.selected_workflow } : {}),
       };

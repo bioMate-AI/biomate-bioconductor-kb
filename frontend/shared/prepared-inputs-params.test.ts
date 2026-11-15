@@ -3,14 +3,15 @@ import {
   applyPreparedInputParamsToWorkflow,
   parsePreparedInputParams,
 } from "./prepared-inputs-params";
+import { resolveDemoFixtureValue } from "./demo-fixture-paths";
 
 describe("parsePreparedInputParams", () => {
   it("reads movies_path from the Prepared inputs block", () => {
     const msg =
       "Process this cryo-EM dataset.\n" +
-      "[Prepared inputs: Set movies_path=s3://biomate-cryo-data/empiar-10028/Micrographs/. pixel size 0.885]";
+      "[Prepared inputs: Set movies_path=fixture:empiar-10028-movies. pixel size 0.885]";
     expect(parsePreparedInputParams(msg, ["movies_path", "pixel_size"])).toEqual({
-      movies_path: "s3://biomate-cryo-data/empiar-10028/Micrographs/",
+      movies_path: "fixture:empiar-10028-movies",
     });
   });
 
@@ -42,9 +43,9 @@ describe("parsePreparedInputParams", () => {
   });
 
   it("ignores keys not in the schema allow-list", () => {
-    const msg = "[Prepared inputs: movies_path=s3://x/ movies_fake=y]";
+    const msg = "[Prepared inputs: movies_path=fixture:empiar-10028-movies movies_fake=y]";
     expect(parsePreparedInputParams(msg, ["movies_path"])).toEqual({
-      movies_path: "s3://x/",
+      movies_path: "fixture:empiar-10028-movies",
     });
   });
 });
@@ -60,15 +61,15 @@ describe("applyPreparedInputParamsToWorkflow", () => {
     };
     const seeded = applyPreparedInputParamsToWorkflow(
       ga,
-      "[Prepared inputs: movies_path=s3://biomate-cryo-data/empiar-10028/Micrographs/ analysis=screening]",
+      "[Prepared inputs: movies_path=fixture:empiar-10028-movies analysis=screening]",
     );
     expect(seeded).toEqual(["movies_path"]);
-    expect(ga.required_params[0].value).toBe(
-      "s3://biomate-cryo-data/empiar-10028/Micrographs/",
-    );
+    expect(ga.required_params[0].value).toBe("fixture:empiar-10028-movies");
     expect(ga.required_params[0].autoFilled).toBe(true);
     expect(ga.required_params[1].value).toBe("targeted"); // not overwritten
-    expect(ga.inline_parameters.movies_path).toBe(
+    expect(ga.inline_parameters.movies_path).toBe("fixture:empiar-10028-movies");
+    // Execute-time expansion only — fixture token stays in the browser payload.
+    expect(resolveDemoFixtureValue(ga.inline_parameters.movies_path)).toBe(
       "s3://biomate-cryo-data/empiar-10028/Micrographs/",
     );
   });

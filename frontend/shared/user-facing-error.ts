@@ -10,7 +10,7 @@ export function userFacingErrorText(msg: unknown): string {
       const last = m.replace(/\/+$/, '').split('/').pop() || '';
       return /\.[A-Za-z0-9]{1,8}(?:\.gz)?$/.test(last) ? last : 'the stored data';
     })
-    .replace(/biomate-nextflow-work|biomate-uploads/gi, 'storage')
+    .replace(/biomate-nextflow-work|biomate-uploads|biomate-cryo-data|biomate-data|biomate-outputs/gi, 'storage')
     .replace(/\bAWS\s+Batch\b/gi, 'cloud compute')
     .replace(/\b(?:Amazon\s+)?S3\s+(?:bucket|object|path|location|key)s?\b/gi, 'storage')
     .replace(/\bS3\b/g, 'storage')

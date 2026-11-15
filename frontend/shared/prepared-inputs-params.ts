@@ -3,9 +3,12 @@
  *
  * Cold-start demos put explicit assignments in the hidden
  * `[Prepared inputs: …]` block (and sometimes in the user prompt), e.g.
- *   movies_path=s3://biomate-cryo-data/empiar-10028/Micrographs/
+ *   movies_path=fixture:empiar-10028-movies
  *   analysis=screening
  *   ligand_a=imatinib.sdf
+ *
+ * Seed paths use `fixture:<id>` tokens — never raw s3:// URIs in client copy.
+ * Execute-time code expands fixtures via resolveDemoFixtureValue.
  *
  * The LLM / schema-grounded extractor often leaves those required slots empty
  * even when the assignment is already in the message — Confirm stays blocked

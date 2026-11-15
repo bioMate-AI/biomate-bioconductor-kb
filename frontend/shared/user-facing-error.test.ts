@@ -12,6 +12,10 @@ describe('userFacingErrorText — run errors as the user reads them', () => {
   it('a folder URI becomes neutral words, not the bucket', () => {
     expect(userFacingErrorText('workDir: s3://biomate-nextflow-work/nextflow/work/u1/r9/')).toBe('workDir: the stored data');
   });
+  it('redacts cryo seed-bucket names even without a full URI', () => {
+    expect(userFacingErrorText('missing prefix biomate-cryo-data/empiar-10028')).toMatch(/storage/);
+    expect(userFacingErrorText('missing prefix biomate-cryo-data/empiar-10028')).not.toMatch(/biomate-cryo-data/);
+  });
 });
 
 describe('run-failure reply names files, not storage paths', () => {

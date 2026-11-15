@@ -270,6 +270,19 @@ describe("project-routes — file rename / move", () => {
     expect(alloc.includes("FROM project_object_key_reservations")).toBe(true);
     // Concurrent same-name uploads (S2) are behaviour-tested in project-files-integrity.test.ts.
   });
+
+  it("upload/list public file shape derives s3_uri from s3_key (Models coldstart attach)", () => {
+    // Remasure 2026-11-15: POST /files/upload returned 201 + s3_key but no s3_uri,
+    // so session_datasets could not bind chemprop dataset=s3://… . Not IAM/disk —
+    // _publicFile previously projected DB columns only.
+    const withUri = SRC.split("function _withS3Uri")[1]?.split("\n}")[0] ?? "";
+    expect(withUri.includes("S3_BUCKET_NAME")).toBe(true);
+    expect(withUri.includes("s3_uri")).toBe(true);
+    expect(withUri.includes("`s3://${bucket}/${key}`") || withUri.includes("s3://${bucket}/${key}")).toBe(true);
+    const publicFile = SRC.split("function _publicFile")[1]?.split("\n}")[0] ?? "";
+    expect(publicFile.includes("_withS3Uri(out)")).toBe(true);
+    expect(SRC.includes("result.rows.map((r: any) => _withS3Uri(r))")).toBe(true);
+  });
 });
 
 describe("project-routes — registered into main router", () => {

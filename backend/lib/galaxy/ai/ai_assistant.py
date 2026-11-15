@@ -3495,8 +3495,8 @@ Query (differentialabundance): "Run DESeq2 on these MG files. [Uploaded datasets
 
 FILE ACCESS RULE: Only use S3 URIs that appear inside an [Uploaded datasets:] block — these were provided by BioMate's upload system and are already accessible. If a user mentions an S3 path NOT in [Uploaded datasets:], do NOT assume it is accessible; instead respond: "To use files from an external location, please first upload them via the file upload button, or provide access credentials."
 
-Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 voltage=300 symmetry=D2"
-→ [{"name":"movies_path","value":"s3://biomate-cryo-data/empiar-10028/Micrographs","rationale":"S3 path in query"},
+Query: "run on fixture:empiar-10028-movies pixel_size=0.885 voltage=300 symmetry=D2"
+→ [{"name":"movies_path","value":"fixture:empiar-10028-movies","rationale":"demo fixture token in query (execute-time expands to staged movies)"},
    {"name":"pixel_size","value":0.885,"rationale":"explicit"},
    {"name":"voltage","value":300,"rationale":"explicit"},
    {"name":"symmetry","value":"D2","rationale":"explicit"}]"""

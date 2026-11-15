@@ -863,58 +863,97 @@ def _parse_nextflow_steps(nf_filename: str) -> Dict[str, Any]:
     return steps
 
 
-# ── CryoSPARC phase group mapping (step index → phase group + label) ──────────
+# ── CryoSPARC phase group mapping (process name → phase group + label) ────────
+# Name-keyed (not index) so reordering / inserting split-merge stubs in main.nf
+# does not shift A–E labels onto the wrong processes. Must cover EVERY process
+# declared in cryosparc_standard_spa/main.nf — unmapped names fall through and
+# the UI buckets them as "Other Steps".
+#
+# Phase boundaries follow CRYOSPARC_STANDARD_SPA wiring comments (~Phase 0 / A–E
+# around the workflow body). Split / merge / stub processes sit in the phase
+# they serve. Late SPA (VOLUME_TOOLS → SHARPEN) is Phase E, never Other.
+_PHASE_A = ('A', 'Phase A — Motion Correction & CTF')
+_PHASE_B = ('B', 'Phase B — Particle Picking')
+_PHASE_C = ('C', 'Phase C — 2D Classification')
+_PHASE_D = ('D', 'Phase D — 3D Reconstruction')
+_PHASE_E = ('E', 'Phase E — Validation & Post-processing')
+
 _CRYOSPARC_STEP_PHASES: dict = {
-    0:  ('A', 'Phase A — Motion Correction & CTF'),
-    1:  ('A', 'Phase A — Motion Correction & CTF'),
-    2:  ('A', 'Phase A — Motion Correction & CTF'),
-    3:  ('A', 'Phase A — Motion Correction & CTF'),
-    4:  ('A', 'Phase A — Motion Correction & CTF'),
-    5:  ('A', 'Phase A — Motion Correction & CTF'),
-    6:  ('B', 'Phase B — Particle Picking'),
-    7:  ('B', 'Phase B — Particle Picking'),
-    8:  ('B', 'Phase B — Particle Picking'),
-    9:  ('B', 'Phase B — Particle Picking'),
-    10: ('C', 'Phase C — 2D Classification'),
-    11: ('C', 'Phase C — 2D Classification'),
-    12: ('C', 'Phase C — 2D Classification'),
-    13: ('C', 'Phase C — 2D Classification'),
-    14: ('D', 'Phase D — 3D Reconstruction'),
-    15: ('D', 'Phase D — 3D Reconstruction'),
-    16: ('D', 'Phase D — 3D Reconstruction'),
-    17: ('D', 'Phase D — 3D Reconstruction'),
-    18: ('E', 'Phase E — Validation & Post-processing'),
-    19: ('E', 'Phase E — Validation & Post-processing'),
-    20: ('E', 'Phase E — Validation & Post-processing'),
-    21: ('E', 'Phase E — Validation & Post-processing'),
-    22: ('E', 'Phase E — Validation & Post-processing'),
+    # Phase 0 / A — init + motion / CTF (+ micrograph merge / denoise)
+    'INIT_CRYOSPARC_PROJECT': _PHASE_A,
+    'SPLIT_INTO_BATCHES': _PHASE_A,
+    'PATCH_MOTION_CORRECTION_BATCH': _PHASE_A,
+    'PATCH_CTF_ESTIMATION_BATCH': _PHASE_A,
+    'MERGE_MICROGRAPHS': _PHASE_A,
+    'MICROGRAPH_DENOISER': _PHASE_A,
+    # Phase B — blob pick + R1 extract (incl. particles-mode stub)
+    'BLOB_PICKER_BATCH': _PHASE_B,
+    'MERGE_PARTICLES': _PHASE_B,
+    'JUNK_2D_DETECTOR': _PHASE_B,
+    'INSPECT_PICKS': _PHASE_B,
+    'EXTRACT_PARTICLES_R1_BATCH': _PHASE_B,
+    'MERGE_PARTICLES_R1': _PHASE_B,
+    'PARTICLES_AS_R1': _PHASE_B,
+    # Phase C — 2D R1/R2 (+ template pick / R2 extract between rounds)
+    'SPLIT_PARTICLE_BATCHES': _PHASE_C,
+    'CLASSIFY_2D_R1_BATCH': _PHASE_C,
+    'MERGE_CLASSES': _PHASE_C,
+    'SELECT_2D_R1': _PHASE_C,
+    'TEMPLATE_PICKER': _PHASE_C,
+    'INSPECT_PICKS_R2': _PHASE_C,
+    'EXTRACT_PARTICLES_R2': _PHASE_C,
+    'SPLIT_PARTICLE_BATCHES_R2': _PHASE_C,
+    'CLASSIFY_2D_R2_BATCH': _PHASE_C,
+    'MERGE_CLASSES_R2': _PHASE_C,
+    'SELECT_2D_R2': _PHASE_C,
+    # Phase D — ab-initio + homo refine
+    'AB_INITIO_BATCH': _PHASE_D,
+    'MERGE_VOLUMES': _PHASE_D,
+    'HOMO_REFINEMENT_BATCH': _PHASE_D,
+    # Phase E — validation & post-processing (never Other)
+    'VOLUME_TOOLS': _PHASE_E,
+    'VALIDATION_FSC': _PHASE_E,
+    'LOCAL_CTF_REFINEMENT': _PHASE_E,
+    'NON_UNIFORM_REFINEMENT': _PHASE_E,
+    'LOCAL_RESOLUTION': _PHASE_E,
+    'SHARPEN': _PHASE_E,
 }
 
-# CryoSPARC per-step parameter lists (param names from workflow params.* declarations)
+# CryoSPARC per-step parameter lists (curated user-facing params; keyed by process name)
 _CRYOSPARC_STEP_PARAMS: dict = {
-    0:  ['movies_path', 'pixel_size', 'voltage', 'total_dose'],               # Import Movies
-    1:  ['pixel_size', 'motion_correction_dose_weighting', 'micrograph_batch_size'],  # Patch Motion Correction
-    2:  [],                                                                     # Merge Micrographs
-    3:  ['voltage', 'spherical_aberration'],                                   # Patch CTF Estimation
-    4:  [],                                                                     # Inspect CTF
-    5:  [],                                                                     # Micrograph Denoiser
-    6:  ['particle_diameter_angstroms', 'molecular_weight_kda'],               # Blob Particle Picker
-    7:  [],                                                                     # Inspect Picks Round 1
-    8:  ['particle_box_size', 'particle_diameter_angstroms'],                  # Template Picker
-    9:  [],                                                                     # Inspect Picks Round 2
-    10: ['particle_box_size', 'particle_batch_size'],                          # Extract Particles
-    11: [],                                                                     # 2D Classification
-    12: [],                                                                     # Select 2D Classes
-    13: [],                                                                     # Extract Selected Particles
-    14: ['num_ab_initio_classes', 'symmetry'],                                 # Ab-Initio Reconstruction
-    15: ['symmetry', 'num_gpu'],                                               # Heterogeneous Refinement
-    16: ['symmetry', 'num_gpu'],                                               # Homogeneous Refinement
-    17: [],                                                                     # Class Merge and Select
-    18: [],                                                                     # Local CTF Refinement
-    19: ['max_resolution_refinement', 'pixel_size'],                           # Non-Uniform Refinement
-    20: [],                                                                     # Local Resolution Estimation
-    21: ['max_resolution_refinement'],                                          # Map Sharpening
-    22: [],                                                                     # FSC Validation
+    'INIT_CRYOSPARC_PROJECT': ['movies_path', 'pixel_size', 'voltage', 'total_dose'],
+    'SPLIT_INTO_BATCHES': ['micrograph_batch_size'],
+    'PATCH_MOTION_CORRECTION_BATCH': ['pixel_size', 'motion_correction_dose_weighting', 'micrograph_batch_size'],
+    'PATCH_CTF_ESTIMATION_BATCH': ['voltage', 'spherical_aberration'],
+    'MERGE_MICROGRAPHS': [],
+    'MICROGRAPH_DENOISER': [],
+    'BLOB_PICKER_BATCH': ['particle_diameter_angstroms', 'molecular_weight_kda'],
+    'MERGE_PARTICLES': [],
+    'JUNK_2D_DETECTOR': [],
+    'INSPECT_PICKS': [],
+    'EXTRACT_PARTICLES_R1_BATCH': ['particle_box_size', 'particle_diameter_angstroms'],
+    'MERGE_PARTICLES_R1': [],
+    'PARTICLES_AS_R1': [],
+    'SPLIT_PARTICLE_BATCHES': ['particle_batch_size'],
+    'CLASSIFY_2D_R1_BATCH': ['num_gpu'],
+    'MERGE_CLASSES': [],
+    'SELECT_2D_R1': [],
+    'TEMPLATE_PICKER': ['particle_box_size', 'particle_diameter_angstroms'],
+    'INSPECT_PICKS_R2': [],
+    'EXTRACT_PARTICLES_R2': ['particle_box_size', 'particle_diameter_angstroms'],
+    'SPLIT_PARTICLE_BATCHES_R2': ['particle_batch_size'],
+    'CLASSIFY_2D_R2_BATCH': ['num_gpu'],
+    'MERGE_CLASSES_R2': [],
+    'SELECT_2D_R2': [],
+    'AB_INITIO_BATCH': ['num_ab_initio_classes', 'symmetry'],
+    'MERGE_VOLUMES': [],
+    'HOMO_REFINEMENT_BATCH': ['symmetry', 'num_gpu'],
+    'VOLUME_TOOLS': [],
+    'VALIDATION_FSC': [],
+    'LOCAL_CTF_REFINEMENT': ['num_gpu'],
+    'NON_UNIFORM_REFINEMENT': ['max_resolution_refinement', 'pixel_size', 'symmetry', 'num_gpu'],
+    'LOCAL_RESOLUTION': [],
+    'SHARPEN': ['max_resolution_refinement'],
 }
 
 # Generic phase group assignment via keyword matching (for non-CryoSPARC workflows)
@@ -1051,15 +1090,14 @@ def _enrich_steps_with_phase_info(
 
     # ── Assign phase groups and per-step params ──
     for idx_str, step in steps.items():
-        idx = int(idx_str)
         tool_id = step.get('tool_id', '').upper()
 
-        if is_cryosparc and idx in _CRYOSPARC_STEP_PHASES:
-            # CryoSPARC: keep existing hardcoded map (complex parallel structure)
-            pg, pl = _CRYOSPARC_STEP_PHASES[idx]
+        if is_cryosparc and tool_id in _CRYOSPARC_STEP_PHASES:
+            # CryoSPARC: name-keyed map (parallel batch + split/merge structure)
+            pg, pl = _CRYOSPARC_STEP_PHASES[tool_id]
             step['phase_group'] = pg
             step['phase_label'] = pl
-            param_names = _CRYOSPARC_STEP_PARAMS.get(idx, [])
+            param_names = _CRYOSPARC_STEP_PARAMS.get(tool_id, [])
         elif tool_id in inline_phase_map:
             # File-based annotation takes priority over keyword matching
             pg, pl = inline_phase_map[tool_id]
@@ -4135,13 +4173,18 @@ def generate_workflow_unified(
         raise HTTPException(status_code=503, detail="AI Assistant not available")
 
     try:
-        # uploaded_datasets = user's actual session-uploaded files (threaded from
-        # req.session.uploadedDatasets via enrichedContext.sessionDatasets → session_datasets).
-        # request.available_datasets contains BioMNI public reference datasets used for
-        # knowledge retrieval — NOT user input files.
-        uploaded_datasets = request.session_datasets or None
+        # uploaded_datasets = user's actual session-uploaded files.
+        # Prefer session_datasets (chat-stream: req.session.uploadedDatasets →
+        # enrichedContext.sessionDatasets). Fall back to available_datasets when
+        # callers only send that field (POST /api/ai_assistant/generate_workflow
+        # Node proxy, API harnesses). Without this fallback, "Train a potency
+        # predictor" + bace_assays.csv with s3_uri in available_datasets never
+        # reached ml_training and template-reused reinvent4_finetune_rl
+        # (Models coldstart audit 2026-11-15).
+        uploaded_datasets = request.session_datasets or request.available_datasets or None
         import sys
         print(f"[DEBUG generate_workflow] session_datasets={request.session_datasets}", file=sys.stderr, flush=True)
+        print(f"[DEBUG generate_workflow] available_datasets={request.available_datasets}", file=sys.stderr, flush=True)
         print(f"[DEBUG generate_workflow] uploaded_datasets={uploaded_datasets}", file=sys.stderr, flush=True)
 
         user_id = str(trans.user.id) if getattr(trans, "user", None) else None
@@ -4658,10 +4701,9 @@ def generate_workflow_multi_agent(
         raise HTTPException(status_code=503, detail="AI Assistant not available")
 
     try:
-        # uploaded_datasets = user's actual session-uploaded files (threaded from
-        # req.session.uploadedDatasets via enrichedContext.sessionDatasets → session_datasets).
-        # request.available_datasets contains BioMNI public reference datasets — not user files.
-        uploaded_datasets = request.session_datasets or None
+        # Same fallback as generate_workflow_unified: session_datasets first,
+        # then available_datasets (API / proxy callers that only send the latter).
+        uploaded_datasets = request.session_datasets or request.available_datasets or None
 
         # Generate session ID for audit tracking
         session_id = request.context.get('session_id') if request.context else None

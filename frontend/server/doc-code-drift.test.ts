@@ -9,7 +9,7 @@
  *
  * Bug classes locked in here (all real findings from the manual sweep):
  *   - Catalog size:   agent/user strings say "2,455 / 34 domains" (also an MCP
- *                     blurb "4,017 / 36") while the live DB holds 4,200 / 42 / 70.
+ *                     blurb "4,017 / 36") while the live DB holds 4,233 / 42 / 70.
  *   - QC thresholds:  the 7-domain tutorial doc states Salmon >=70% while the
  *                     enforcing code defaults to 50%; cryo tutorial/design ref
  *                     cite MotionCor2/Topaz + GSFSC 3.5/4.0A + CTF>0.2 while the
@@ -69,9 +69,11 @@ const TUTORIAL_DOC = path.join(
 const read = (p: string): string => fs.readFileSync(p, "utf-8");
 
 // ---------------------------------------------------------------------------
-// GROUND TRUTH, verified 2026-09-20 against the live DB and enforcing source.
+// GROUND TRUTH, verified 2026-11-13 against the intended catalog (panelfix /
+// review / DEV) and enforcing source. An older 4,200-row worktree copy is a
+// known wrong-worktree trap — do not encode that count as truth.
 //
-//   sqlite3 galaxy_ai_tools.db "SELECT COUNT(*) FROM workflows"           -> 4200
+//   sqlite3 galaxy_ai_tools.db "SELECT COUNT(*) FROM workflows"           -> 4233
 //   sqlite3 galaxy_ai_tools.db "SELECT COUNT(DISTINCT domain) FROM ..."   ->   42
 //   sqlite3 galaxy_ai_tools.db "SELECT COUNT(*) FROM workflow_chains"     ->   70
 //
@@ -119,7 +121,7 @@ const liveCount = (sql: string): number =>
 // ===========================================================================
 describe("doc<->code drift: catalog counts (live DB is the truth)", () => {
   it.skipIf(db === null)(
-    "live DB holds exactly 4,223 workflows / 42 domains / 70 chains",
+    "live DB holds exactly 4,233 workflows / 42 domains / 70 chains",
     () => {
       // If any of these change, the fix is: update these numbers AND every
       // user/agent-facing string that quotes the catalog size in the same PR.
@@ -131,9 +133,11 @@ describe("doc<->code drift: catalog counts (live DB is the truth)", () => {
       // domains (42) and chains (69) unchanged. Verified against the live DB.
       // 2026-10-29 reconciliation: the 2026-10-20 incremental indexing added
       // the documented novelty/FTO and other real workflows (4211 -> 4223).
-      // See docs/20261020_QA_POLISH_NOVELTY_INDEXING_SESSION.md. This is a
-      // verified catalog change, not permission to relax the equality guard.
-      expect(liveCount("SELECT COUNT(*) AS c FROM workflows")).toBe(4223);
+      // See docs/20261020_QA_POLISH_NOVELTY_INDEXING_SESSION.md.
+      // 2026-11-13 reconciliation: intended catalog on panelfix/review/DEV is
+      // 4,233 workflows (docs/20261113_INPUT_KINDS_ENRICHMENT_DIAGNOSIS.md).
+      // A 4,200-row worktree copy is not the catalog — restore the 4,233 DB.
+      expect(liveCount("SELECT COUNT(*) AS c FROM workflows")).toBe(4233);
       expect(liveCount("SELECT COUNT(DISTINCT domain) AS c FROM workflows")).toBe(42);
       // 2026-11-07 reconciliation: the November 1 Vina bench addition
       // (backend/scripts/add_vina_bench_chain.py, commit 4f7f69544) restored
@@ -203,13 +207,13 @@ describe("doc<->code drift: catalog counts (live DB is the truth)", () => {
     () => {
       // The dangerous class: a file claims a number AND that number equals the
       // real DB size, so it reads as authoritative while being coincidentally
-      // right today and wrong tomorrow. The live total (4,200) must never be
-      // hard-coded as a bare "4,200"/"4200" WORKFLOW claim in these prompts --
+      // right today and wrong tomorrow. The live total must never be
+      // hard-coded as a bare WORKFLOW claim in these prompts --
       // the prompt should describe the catalog qualitatively or read live.
-      const live = liveCount("SELECT COUNT(*) AS c FROM workflows"); // 4200
+      const live = liveCount("SELECT COUNT(*) AS c FROM workflows"); // 4233
       const liveStrs = [
         `${live}`,
-        `${live.toLocaleString("en-US")}`, // "4,200"
+        `${live.toLocaleString("en-US")}`, // "4,233"
       ];
       for (const { file, label } of AGENT_FACING) {
         const txt = read(file);
@@ -225,17 +229,15 @@ describe("doc<->code drift: catalog counts (live DB is the truth)", () => {
   );
 
   it("CLAUDE.md carries the live catalog count, not the stale 2,455/34 figure", () => {
-    // CLAUDE.md line ~557 is the canonical source of the catalog figure. The
-    // repo-wide correction completed 2026-10-05: it now records the live
-    // 4,210 / 42-domain count. Assert the stale figure is gone AND a live
-    // ~4,2xx count is present, so a regression to a hard-coded stale number fails.
+    // CLAUDE.md Workflow Database section is the canonical source of the catalog
+    // figure. Assert the stale figure is gone AND the live exact count is present.
     const txt = read(CLAUDE_MD);
     expect(
       txt.includes("2,455 workflows across 34 biological domains"),
       "CLAUDE.md regressed to the stale 2,455/34 catalog line",
     ).toBe(false);
     expect(
-      txt.includes('4,223 workflows'),
+      txt.includes('4,233 workflows'),
       "CLAUDE.md should record the exact current workflow count",
     ).toBe(true);
   });

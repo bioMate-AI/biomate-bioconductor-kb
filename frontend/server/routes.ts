@@ -33,6 +33,7 @@ import { registerVoiceRoutes } from "./voice-routes";
 import { registerLiteratureFulltextRoutes } from "./literature-fulltext-routes";
 import { titleSourceText, fallbackTitle, stripSystemBlocks } from "@shared/chat-system-blocks";
 import { redactStoragePaths, redactUserFacingReply } from "./execution-integrity";
+import { resolveDemoFixtureParams } from "@shared/demo-fixture-paths";
 import { chatOutputFolderName } from "./chat-output-folder";
 import { searchQueryForCatalog } from "./search-query-translation";
 import { memoryProjectAccess, memoryProjectUpdate } from "./memory-project-access";
@@ -1248,25 +1249,43 @@ async function _stageProjectFileToNextflow(
 async function resolveProjectFileParams(rawParams: Record<string, any>, projectId: string): Promise<void> {
   const srcBucket = process.env.S3_BUCKET_NAME || '';
   if (!srcBucket) return;
+  const destBucket = process.env.NEXTFLOW_S3_BUCKET || process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
+  const appPrefix = `s3://${srcBucket}/`;
   const looksBareFile = (v: any): boolean =>
     typeof v === 'string' && !!v &&
     !v.startsWith('s3://') && !v.startsWith('/') && !v.includes('://') &&
     !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-/i.test(v) &&  // not a UUID/dataset id
     /\.[A-Za-z0-9]{1,8}$/.test(v) && !/\s/.test(v);        // has a file extension, no spaces
-  if (!Object.values(rawParams).some(looksBareFile)) return;
+  // App-bucket URIs from project upload (s3_uri derived from s3_key). When the
+  // Batch bucket differs, stage into NEXTFLOW; when they share a bucket (DEV),
+  // the URI is already Batch-readable and needs no rewrite.
+  const looksAppS3 = (v: any): boolean =>
+    typeof v === 'string' && !!v && v.startsWith(appPrefix) && srcBucket !== destBucket;
+  if (!Object.values(rawParams).some((v) => looksBareFile(v) || looksAppS3(v))) return;
   const rows = await pool.query(`SELECT name, s3_key FROM project_files WHERE project_id = $1`, [projectId]);
   const byName = new Map<string, string>();
   for (const r of rows.rows) if (r.name && r.s3_key) byName.set(r.name, r.s3_key);
-  if (!byName.size) return;
   const stagedCache = new Map<string, string>();
   for (const [k, v] of Object.entries(rawParams)) {
-    if (!looksBareFile(v)) continue;
-    const s3Key = byName.get(v as string);
-    if (!s3Key) continue;
-    let uri = stagedCache.get(v as string);
+    let s3Key: string | undefined;
+    let fileName: string | undefined;
+    let cacheKey: string | undefined;
+    if (looksBareFile(v)) {
+      s3Key = byName.get(v as string);
+      fileName = v as string;
+      cacheKey = v as string;
+    } else if (looksAppS3(v)) {
+      s3Key = (v as string).slice(appPrefix.length);
+      fileName = s3Key.split('/').pop() || s3Key;
+      cacheKey = s3Key;
+    } else {
+      continue;
+    }
+    if (!s3Key || !fileName || !cacheKey) continue;
+    let uri = stagedCache.get(cacheKey);
     if (!uri) {
-      const got = await _stageProjectFileToNextflow(srcBucket, s3Key, projectId, v as string);
-      if (got) { uri = got; stagedCache.set(v as string, got); }
+      const got = await _stageProjectFileToNextflow(srcBucket, s3Key, projectId, fileName);
+      if (got) { uri = got; stagedCache.set(cacheKey, got); }
     }
     if (uri) {
       console.log(`[Execute] resolved project file param ${k}: "${v}" → ${uri}`);
@@ -8156,7 +8175,7 @@ ${paramLines || '(none recorded)'}`;
   // Workflow generation endpoint - proxies to Galaxy backend
   app.post("/api/ai_assistant/generate_workflow", optionalAuth, checkBillingQuota('AI generation'), async (req, res) => {
     try {
-      const { request_text, available_datasets, context, preferred_tools, constraints } = req.body;
+      const { request_text, available_datasets, session_datasets, context, preferred_tools, constraints } = req.body;
 
       if (!request_text) {
         return res.status(400).json({ error: "request_text is required" });
@@ -8170,9 +8189,17 @@ ${paramLines || '(none recorded)'}`;
       // record / api_keys row is missing or rotated (verified live today:
       // admin key `f17c618a…` returns 401 from /api/whoami, while per-user
       // keys provisioned at registration succeed).
+      // Forward user uploads as session_datasets. Galaxy ml_training routing
+      // historically only read session_datasets; callers of this public route
+      // only sent available_datasets — potency Train then fell through to
+      // reinvent4_finetune_rl (Models coldstart audit 2026-11-15).
+      const uploads = (Array.isArray(session_datasets) && session_datasets.length)
+        ? session_datasets
+        : (Array.isArray(available_datasets) && available_datasets.length ? available_datasets : undefined);
       const response = await userProxy(req).generateWorkflow({
         user_intent: request_text,
         datasets: available_datasets,
+        session_datasets: uploads,
         max_tools_search: constraints?.max_tools_search,
       });
 
@@ -12559,8 +12586,10 @@ ${paramLines || '(none recorded)'}`;
           if (!csParams.movies_path && !csParams.movie_dir) {
             const m = userCtx.match(/movies_path\s*=\s*(\S+)/);
             if (m) {
-              csParams.movies_path = m[1].replace(/,$/, '');
-              console.log('[CryoSPARC Direct] Extracted movies_path from userContext:', csParams.movies_path);
+              // May be fixture:<id> from cold-start; expand before launch.
+              const { resolveDemoFixtureValue: resolveFix } = await import('@shared/demo-fixture-paths');
+              csParams.movies_path = resolveFix(m[1].replace(/,$/, ''));
+              console.log('[CryoSPARC Direct] Extracted movies_path from userContext (fixture-resolved)');
             }
           }
           if (!csParams.pixel_size) {
@@ -12808,6 +12837,9 @@ ${paramLines || '(none recorded)'}`;
             request.workflowDefinition,
             request.params,
           );
+          // Cold-start demos seed fixture:<id> tokens (never raw s3:// in the
+          // client). Expand to real storage URIs only at launch time.
+          resolveDemoFixtureParams(rawParams);
           const paramProfile =
             rawParams.profile ??
             request.executionConfig?.nextflow_profile ??
@@ -13198,11 +13230,18 @@ ${paramLines || '(none recorded)'}`;
                 reason = d?.detail?.violations || d?.detail?.error || d?.error || d?.message || '';
               }
             } catch { /* non-JSON body → generic message */ }
+            // Never forward raw s3:// / bucket / aws-cli internals from Galaxy
+            // validation errors (e.g. _validate_s3_url) into the browser.
+            const safeReason = reason ? redactStoragePaths(String(reason))
+              .replace(/biomate-nextflow-work|biomate-cryo-data|biomate-data|biomate-uploads|biomate-outputs/gi, 'storage')
+              .replace(/\baws\s+s3\s+\S+/gi, '')
+              .replace(/\s{2,}/g, ' ')
+              .trim() : '';
             return res.status(_securityBlock ? 422 : _httpStatus).json({
               error: _securityBlock ? 'workflow_blocked_security' : 'workflow_rejected',
               message: _securityBlock
-                ? `This uploaded workflow was blocked by the security pre-check and was not run.${reason ? ` Reason: ${reason}` : ''}`
-                : `The workflow could not be started.${reason ? ` ${reason}` : ''}`,
+                ? `This uploaded workflow was blocked by the security pre-check and was not run.${safeReason ? ` Reason: ${safeReason}` : ''}`
+                : `The workflow could not be started.${safeReason ? ` ${safeReason}` : ''}`,
               runId: executionRun?.id,
             });
           }
@@ -13566,10 +13605,34 @@ ${paramLines || '(none recorded)'}`;
       // fallback). See resolveInlineFindings for the ns → cache → sidecar cascade.
       const inlineFindings = await resolveInlineFindings(run, ns, (id) => _findingsCache.get(id));
 
+      // Browser-egress: sanitize status + strip raw storage URIs from file lists
+      // before this payload reaches DevTools / MCP consumers.
+      const safeNs = sanitizeNextflowStatusForClient(ns);
+      const scrubOut = (f: any) => {
+        if (!f || typeof f !== 'object') return f;
+        const { s3_uri, s3_bucket, s3_key, path, uri, ...rest } = f;
+        return rest;
+      };
       const response: any = {
         ...run,
+        execution: run.execution ? {
+          ...run.execution,
+          nextflowStatus: safeNs,
+          nextflowWorkDir: typeof (run.execution as any).nextflowWorkDir === 'string'
+            && String((run.execution as any).nextflowWorkDir).startsWith('s3://')
+            ? '[storage]' : (run.execution as any).nextflowWorkDir,
+          nextflowOutputDir: typeof (run.execution as any).nextflowOutputDir === 'string'
+            && String((run.execution as any).nextflowOutputDir).startsWith('s3://')
+            ? '[storage]' : (run.execution as any).nextflowOutputDir,
+          error: typeof (run.execution as any).error === 'string'
+            ? redactInternalText((run.execution as any).error)
+            : (run.execution as any).error,
+          errorMessage: typeof (run.execution as any).errorMessage === 'string'
+            ? redactInternalText((run.execution as any).errorMessage)
+            : (run.execution as any).errorMessage,
+        } : run.execution,
         // Canonical file list: prefer S3-backed files, fall back to local.
-        output_files: ns.s3_output_files || ns.output_files || [],
+        output_files: (safeNs?.s3_output_files || safeNs?.output_files || []).map(scrubOut),
         // AI findings / key results — see Fix #5b note above (mirrors findings_data.json).
         inline_findings: inlineFindings,
       };
@@ -13605,8 +13668,36 @@ ${paramLines || '(none recorded)'}`;
     } else if (typeof out.log_tail === "string") {
       out.log_tail = redactInternalText(out.log_tail);
     }
-    for (const k of ["error", "errorMessage", "error_message", "message"]) {
+    for (const k of ["error", "errorMessage", "error_message", "message", "error_summary"]) {
       if (typeof out[k] === "string") out[k] = redactInternalText(out[k]);
+    }
+    // Internal work/output locations — never ship raw s3:// to the browser.
+    for (const k of ["outdir", "work_dir", "workdir", "workDir", "s3_outdir", "s3_work_dir"]) {
+      if (typeof out[k] === "string" && out[k].startsWith("s3://")) out[k] = "[storage]";
+    }
+    // Output file listings: keep filename/size/download_endpoint; drop raw URIs.
+    const scrubFile = (f: any) => {
+      if (!f || typeof f !== "object") return f;
+      const { s3_uri, s3_bucket, s3_key, path, uri, ...rest } = f;
+      if (typeof rest.name !== "string" && typeof s3_uri === "string") {
+        rest.name = s3_uri.split("/").pop() || rest.filename;
+      }
+      return rest;
+    };
+    if (Array.isArray(out.s3_output_files)) out.s3_output_files = out.s3_output_files.map(scrubFile);
+    if (Array.isArray(out.output_files)) out.output_files = out.output_files.map(scrubFile);
+    if (Array.isArray(out.processes)) {
+      out.processes = out.processes.map((p: any) => {
+        if (!p || typeof p !== "object") return p;
+        const proc = { ...p };
+        for (const k of ["work_dir", "workdir", "workDir"]) {
+          if (typeof proc[k] === "string" && proc[k].startsWith("s3://")) proc[k] = "[storage]";
+        }
+        for (const k of ["error", "error_message", "errorMessage"]) {
+          if (typeof proc[k] === "string") proc[k] = redactInternalText(proc[k]);
+        }
+        return proc;
+      });
     }
     return out;
   };
@@ -15233,10 +15324,18 @@ Rules:
         }
       }
 
+      // Strip raw storage URIs / bucket keys from the browser payload. Downloads
+      // go through download_endpoint / download_url (presigned or proxy).
+      const clientOutputFiles = outputFiles.map((f: any) => {
+        if (!f || typeof f !== 'object') return f;
+        const { s3_uri, s3_bucket, s3_key, path, uri, ...rest } = f;
+        return rest;
+      });
+
       res.json({
         workflow_id: runId,
         status: run.execution?.status || 'unknown',
-        output_files: outputFiles,
+        output_files: clientOutputFiles,
       });
     } catch (error: any) {
       console.error('[output_files] Error:', error);
