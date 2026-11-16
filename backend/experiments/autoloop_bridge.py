@@ -48,6 +48,10 @@ _DOMAIN_KEYWORDS: dict[str, set[str]] = {
         "PBPK_SIMULATION", "PBPK_PEDIATRIC", "PK_SIM_PBPK", "SIMCYP_PBPK",
         "PBPK", "PHYSIOLOGICALLY_BASED_PK",
     },
+    "survival": {
+        "SURVIVAL_COX", "COX_PROPORTIONAL_HAZARDS", "COXPH", "COX_PH",
+        "BIOC_SURVIVAL", "SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION",
+    },
 }
 
 
@@ -179,12 +183,29 @@ def _adapt_pbpk(raw: dict) -> dict:
     }
 
 
+def _adapt_survival(raw: dict) -> dict:
+    """
+    Pass survival_qc.json fields (emitted by the Cox workflow) through to
+    SurvivalQCEvaluator. Keys: schoenfeld_global_p, ph_violating_covariates,
+    omitted_confounders (list of {name, hr, p}), naive/adjusted_primary_hr.
+    Missing values default so the evaluator skips that gate gracefully.
+    """
+    return {
+        "schoenfeld_global_p":     raw.get("schoenfeld_global_p", raw.get("zph_global_p")),
+        "ph_violating_covariates": raw.get("ph_violating_covariates") or [],
+        "omitted_confounders":     raw.get("omitted_confounders") or [],
+        "naive_primary_hr":        raw.get("naive_primary_hr"),
+        "adjusted_primary_hr":     raw.get("adjusted_primary_hr"),
+    }
+
+
 _ADAPTERS: dict[str, Callable[[dict], dict]] = {
-    "admet":   _adapt_admet,
-    "docking": _adapt_docking,
-    "cyp_ddi": _adapt_cyp_ddi,
-    "nca_pk":  _adapt_nca_pk,
-    "pbpk":    _adapt_pbpk,
+    "admet":    _adapt_admet,
+    "docking":  _adapt_docking,
+    "cyp_ddi":  _adapt_cyp_ddi,
+    "nca_pk":   _adapt_nca_pk,
+    "pbpk":     _adapt_pbpk,
+    "survival": _adapt_survival,
 }
 
 # ── Phase routing ─────────────────────────────────────────────────────────────
@@ -207,6 +228,7 @@ _DOMAIN_DEFAULT_PHASE: dict[str, str] = {
     "nca_pk":       "phase_1_nca_analysis",
     "pbpk":         "phase_1_pbpk_simulation",
     "pharmacology": "phase_6_poppk",
+    "survival":     "phase_1_cox",
 }
 
 
@@ -235,6 +257,7 @@ _DOMAIN_DEFAULT_PROFILE: dict[str, str] = {
     "nca_pk":       "nca_standard",
     "pbpk":         "pbpk_screening",   # advisory-only default; opt-in to pbpk_ind_submission
     "pharmacology": "poppk_standard",
+    "survival":     "survival_standard",
 }
 
 # ── In-memory suggestion store ─────────────────────────────────────────────────
@@ -481,6 +504,12 @@ def _load_components(domain: str) -> tuple:
         from experiments.pbpk_autoloop.enriched_tuner import KnowledgeEnrichedPBPKTuner
         from experiments.pbpk_autoloop.params import PBPKParams
         return PBPKQCEvaluator, KnowledgeEnrichedPBPKTuner, PBPKParams
+
+    if domain == "survival":
+        from experiments.survival_autoloop.qc_evaluator import SurvivalQCEvaluator
+        from experiments.survival_autoloop.param_tuner import SurvivalParamTuner
+        from experiments.survival_autoloop.params import SurvivalParams
+        return SurvivalQCEvaluator, SurvivalParamTuner, SurvivalParams
 
     raise ValueError(f"Unknown domain: {domain!r}")
 

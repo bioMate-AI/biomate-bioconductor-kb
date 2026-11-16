@@ -393,6 +393,7 @@ class BioMateClient:
         # The old bare-envelope form was broken both ways: a numeric id ran
         # `nextflow run /app` (no main.nf), and a nextflow_path string was rejected 400.
         # (Fix 2026-10-05, committee review.)
+        params = params or {}
         try:
             s = self.session.post(
                 self._url("/api/workflows/search"),
@@ -406,10 +407,30 @@ class BioMateClient:
         if not workflow_def:
             return {"error": f"No workflow found matching '{workflow_id}'. "
                              f"Use search_workflow first to find the correct workflow."}
+        # Merge caller params over any workflow defaults in the parameters{} map.
+        merged_params = {**(workflow_def.get("parameters") or {}), **params}
         if params:
-            workflow_def["parameters"] = {**(workflow_def.get("parameters") or {}), **params}
+            workflow_def["parameters"] = merged_params
+
+        # Populate the caller's values into required_params[].value /
+        # optional_params[].value by name — the key the server-side required-input
+        # gate validates. Sending values only under parameters{} previously tripped
+        # `missing_required_params` even when the value was supplied.
+        def _is_empty(v: Any) -> bool:
+            return v is None or (isinstance(v, str) and v.strip() == "")
+
+        for key in ("required_params", "optional_params"):
+            plist = workflow_def.get(key)
+            if isinstance(plist, list):
+                for p in plist:
+                    if isinstance(p, dict) and p.get("name") in merged_params \
+                            and not _is_empty(merged_params[p["name"]]):
+                        p["value"] = merged_params[p["name"]]
+
         payload: Dict[str, Any] = {"workflowDefinition": workflow_def}
         if params:
+            # Also pass the openapi top-level `params` map (merged on top of
+            # workflow defaults server-side) as a redundant, authoritative source.
             payload["params"] = params
         if session_message:
             payload["message"] = session_message
