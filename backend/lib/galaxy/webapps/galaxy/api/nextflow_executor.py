@@ -2781,9 +2781,27 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
     # `// Input:` header) are unaffected.
     if "/bioconductor/" not in nf_path.as_posix() and not _BIOC_INPUT_DECL_RE.search(text):
         return None
-    # An anonymous workflow already provides a runnable entry — leave it alone.
+    # An anonymous `workflow { }` provides a runnable entry — normally leave it alone.
+    # EXCEPTION: when the nf ALSO declares `// Input:` data inputs AND the caller has
+    # actually supplied at least one of them (e.g. S3 URIs), prefer the declared-input
+    # wrapper so those inputs are downloaded to LOCAL files — the anonymous
+    # `Channel.fromPath(s3://…)` path throws "Exception thrown downloading S3 object".
+    # A no-input run (none of the declared inputs supplied) falls through to the
+    # anonymous workflow unchanged, so a local/mg_demo demo path keeps working and the
+    # deploy smoke test is unaffected.
     if re.search(r"(?m)^\s*workflow\s*\{", text):
-        return None
+        _decl = _BIOC_INPUT_DECL_RE.search(text)
+        _supplied = False
+        if _decl:
+            for _n in re.split(r"[,\s]+", _decl.group(1)):
+                _n = re.split(r"\s*\(", _n)[0].strip()
+                if not _n:
+                    continue
+                if params.get(_n) or ("." in _n and params.get(_n.rsplit(".", 1)[0])):
+                    _supplied = True
+                    break
+        if not _supplied:
+            return None
     proc_m = re.search(r"(?m)^\s*process\s+([A-Z][A-Z0-9_]+)\s*\{", text)
     if not proc_m:
         return None
