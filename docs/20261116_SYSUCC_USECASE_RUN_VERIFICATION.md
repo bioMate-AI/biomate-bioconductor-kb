@@ -253,3 +253,114 @@ including the new remediation set.
   easierData to the runtime dep list. Re-run after redeploy. NOTE: the demo input is a
   synthetic 206-gene real-symbol matrix (responder-enriched); it tests the pipeline + output
   gate, but biologically meaningful scores need the real easierData IMvigor210 counts.
+
+---
+
+## Session 2 (2026-11-16, continued): finalize re-runs + UC4/UC5
+
+Deploy state confirmed before re-runs: dev deploy-ledger last full `sync_to_dev.sh` =
+commit `8f0374ff9f` (06:15:34Z), which contains both prior fixes (`8ce52b2144`
+cfdna-image repoint + orphan-finalizer output-publish, and `04b2b52d6a` easier deps).
+So both fixes were LIVE on dev for these re-runs.
+
+### UC1 — EBV cfDNA MRD — **PASS** (re-run `79754c38-b30f-4d81-912e-30edf9a0bfae`)
+- Container repoint fix VERIFIED: the run got past the 1.1s container-start failure
+  (`biomate/biomni-tools:x86`) and completed with **6 outputs persisted in the stored
+  `output_files` list** — i.e. the orphan-finalizer persistence fix also fired here.
+- Output gate PASS — downloaded `mrd_report.json` (HTTP 200, 2963 B, non-empty).
+- Science (all quantitative pass criteria met): LoB=2.53, **LoD=7.10, lod_source=empirical_ep17**
+  (empirically derived from blanks + low-positive replicates, NOT the fallback). Monotone
+  molecular response: baseline 3611 → post_induction 569 → end_of_treatment 41.7 copies/mL
+  (all `positive`, > LoD). **surveillance_m3 (8 reads, 5.556 copies/mL) called
+  `indeterminate`** — it sits between LoB (2.53) and LoD (7.10). The "refuses to cry wolf on
+  8 reads" self-correction is EXECUTED inside QUANTIFY_MRD (computed LoD present), not narrated.
+
+### UC2 — Cox adjusted — **PASS** (re-run `8dec4cd9-fa93-40aa-84b3-879d22b8bb14`)
+- Output gate PASS — downloaded `cox_hazard_ratios.csv` (HTTP 200, 377 B, non-empty) via the
+  `/api/workflows/runs/{id}/output_files` → `/api/runs/{id}/output/{file}` work-dir recovery
+  path. (Stored `output_files` list was empty on this run — finalized via the in-memory path,
+  not the orphan path, so the persistence fix did not populate it; the dedicated endpoint still
+  recovers the work-dir files and the download gate passes.)
+- Science: adjusted biomarker **HR 0.979, 95% CI 0.816–1.173 (spans 1 → attenuated to null)**;
+  the real prognostic drivers are ebv_dna_load (HR 1.208), stage (1.121), liver_met (1.430).
+  Exactly the "looked significant until it adjusted for EBV-DNA load" story. Self-correction
+  remains NARRATED/operator-driven (two models by hand; confirms bug #3).
+
+### UC3 — easier ICB response — RE-RUN IN FLIGHT AT HANDBACK (output gate PENDING)
+> Final re-run `58ea78f9-e927-4edf-bbe1-99b2521847cf` was still `running` at handback (poll later).
+> Both root-cause fixes are DEPLOYED and VERIFIED LIVE on dev; the prior re-run proved the pipeline
+> now reaches genome-wide deconvolution successfully and only fell over at the DESeq2 NA step that
+> commit `9513768b42` fixes. Output gate NOT yet verified — do not mark PASS until a real score file
+> (`easier_derived_scores.csv`) is fetched.
+Three sequential root causes, each fixed and verified by the next re-run getting further:
+1. **Dep closure (prior fix `04b2b52d6a`) VERIFIED WORKING:** re-run
+   `662fdb9a-66e9-40b9-a7ac-4ed28645ef21` no longer dies on "no package called 'viper'"; it
+   installed viper/dorothea/progeny/easierData and executed easier end-to-end, failing at
+   prediction with `'predictions' contains NA | Execution halted`. NOT a missing dep.
+2. **Sparse input (commit `fa651c0ad1`):** the SYSUCC demo's synthetic **206-gene** matrix is far
+   too sparse for easier's genome-wide signatures → `predict_immune_response()` all-NA. Fix: when
+   the staged counts matrix is not genome-wide (< 2000 genes), is absent, or
+   `params.use_builtin_demo` is set, easier loads the reproducible public cohort the Requirements
+   block names — IMvigor210 atezolizumab urothelial bundled in easierData (`dataset_mariathasan`:
+   genome-wide counts+TPM, best-overall-response→R/NR, TMB, cancertype=BLCA). Verified by re-run
+   `05504b59-f1bb-4e53-bdbd-6d7125ba3328`: "Signature genes found: 137/138 (99.28%)",
+   "Deconvolution successful! Cell fractions computed!" — then failed deeper at
+   `compute_pathway_activity → DESeqDataSet: NA values are not allowed in the count matrix`.
+3. **NA counts for DESeq2 (commit `9513768b42`):** easierData's bundled `counts` assay carries NA
+   for some genes; DESeq2 (inside compute_pathway_activity) rejects NA/non-integer. Fix: drop
+   NA-count genes + coerce to integer, zero NA in TPM, before the descriptor section. Deployed on
+   dev (sync `result=healthy`, workflows layer). Final re-run `58ea78f9-e927-4edf-bbe1-99b2521847cf`.
+
+### UC4 — class-II arm (CD4 help) — **PASS**
+- **Correction to the prior gap note and to a stale in-code comment.** The prior doc said
+  `nf-core/epitopeprediction` is "NOT in the deploy." In fact the REAL pipeline IS vendored on
+  the dev host at `/app/nf-core-workflows/epitopeprediction` (like sarek/airrflow — not in the
+  git worktree, but present on dev; the resolver's `nf-core-workflows/` root finds it). So
+  `nfcore/epitopeprediction/main.nf` resolves and runs.
+- **License gate (precise):** `_validate_epitope_netmhc_params` (nextflow_executor.py ~L3693)
+  rejects an epitopeprediction run whose `tools` include `netmhcpan`/`netmhciipan` without a
+  `netmhcpan_path`/`netmhciipan_path` → HTTP 422. NetMHCpan/NetMHCIIpan are DTU-licensed and
+  non-redistributable; the BYOL path (L8260) injects a user-supplied tarball URI from
+  Settings → Credentials → NetMHC into the params so class II runs on THEIR licensed binary.
+- **License-free class-II path DOES exist** (contradicting the 422 message's "there is no
+  license-free class-II alternative"): the deployed epitopeprediction's `tools` enum includes
+  **`mhcnuggetsii` = MHCnuggets class II (MIT, bundled models)**, and ships a ready
+  `-profile test_mhcnuggets` (`tools='mhcnuggets,mhcnuggetsii'`). `mhcnuggetsii` does NOT trip
+  the NetMHC licence gate.
+- **Ran class II for real** — run `4d3b2c3c-a549-4670-8f96-674e1afc72fa` (`nfcore/epitopeprediction/main.nf`,
+  `tools=mhcnuggetsii`, 15-mers) on a samplesheet of HPV16 E6 (P03126) + E7 (P03129) proteins ×
+  common Han-Chinese HLA-DR alleles (DRB1*09:01 / *15:01 / *12:02), mhc_class=II. **completed**, 31 outputs.
+- **Output gate PASS** — downloaded `HPV16_E6E7_classII.tsv` (HTTP 200, 64,249 B, non-empty):
+  **684 class-II predictions** (cols: sequence, protein_ids, counts, allele, rank, BA, binder,
+  predictor), all 3 DR alleles present, predictor=`mhcnuggetsii`, both E6 (432) and E7 (252) tiled,
+  **82 binders** (DRB1*12:02=38, *15:01=27, *09:01=17). Top E6 binder TGRCMSCCRSSRTRR/DRB1*12:02
+  rank 0.0024. The storyboard's class-I→class-II (CD4-help) re-route now produces a real class-II
+  panel operator-driven (the prior class-I MHCflurry run `bcf3e43e` + this class-II run), WITHOUT a
+  NetMHCIIpan licence.
+- Residual: the code comment at L3719–3721 still asserts "there is no license-free class-II
+  alternative" — recommend updating it, since `mhcnuggetsii` is deployed and license-free.
+
+### UC5 — sarek somatic tumor-normal — RUNNABLE CONFIRMED; live run NOT launched (cost-deferred)
+> No billable sarek Batch run was launched (cost discipline). Runnability proven by `-preview` only.
+- **Runnable confirmed (corrects prior "stub present" note):** the real nf-core/sarek pipeline
+  is vendored on dev at `/app/nf-core-workflows/sarek` (the `biomni_workflows/nfcore/sarek`
+  file is a display-only param stub). `nextflow run <sarek> -profile test,docker --outdir … -preview`
+  **completes successfully** on dev (DAG + param/schema validation pass, no Batch cost).
+- Smallest valid somatic config: `-profile test` + a tumor-normal samplesheet
+  (`tests/csv/3.0/fastq_pair.csv`; somatic CSVs present: fastq_pair, recalibrated_somatic,
+  ascat_somatic, …), `tools=strelka`, downsampled nf-core test data, per-process caps
+  cpus:4 / mem:15GB / time:1h.
+- **Cost:** BioMate's own cost model (nextflow_executor.py ~L13149) rates sarek at
+  **c5.9xlarge, 4–12 h (~$6–18)** for a real-reference run — the full tumor-normal WES/WGS the
+  task says NOT to run.
+- **Decision — cost-aware, live run deferred (specific blocker):** the cheap path is nf-core's own
+  `-profile test` (tiny downsampled data, per-process caps cpus:4/mem:15GB/time:1h). But the demo's
+  `/api/workflows/execute` path resolves `-profile aws` via `_default_nf_profile()` and does NOT
+  expose nf-core's `test` profile; passing `profile` as a workflow param is documented to break
+  nf-core (dup `-profile` vs `--profile`, nextflow_executor L7964). So a launch through the demo API
+  would run sarek against full GRCh38/iGenomes references = the 4–12 h / ~$6–18 job the cost rule
+  forbids running speculatively. A cost-safe sarek test run needs the executor's `profile` field set
+  to `test,aws` (available on the lower-level `/api/nextflow/execute` request model, not the public
+  execute route). Reproducible minimal somatic command once that's wired:
+  `nextflow run <sarek> -profile test,aws --input tests/csv/3.0/fastq_pair.csv --tools strelka --outdir s3://…`.
+  Runnability itself is PROVEN by the successful `-preview` (DAG + schema validation pass) on dev.
