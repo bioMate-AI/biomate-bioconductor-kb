@@ -42,6 +42,7 @@ from typing import Iterable, Optional
 from .assay_schema import (
     CENSORING_OPERATORS, AssayCSVValidator, SUPPORTED_ASSAY_TYPES, read_assay_csv,
     structure_identity,
+    _entity_identity,
 )
 
 # Exported ranking contract: the key of each ranked compound's observed score
@@ -106,8 +107,9 @@ _SAFETY_PENALTY = 0.3
 
 
 class AssayIngestionService:
-    def __init__(self, db_path: str):
+    def __init__(self, db_path: str, modality: str = "small_molecule"):
         self.db_path = db_path
+        self.modality = modality
         self._validator = AssayCSVValidator()
         self.ensure_schema()
 
@@ -201,7 +203,8 @@ class AssayIngestionService:
         replacing = {(r.get("source_system"), str(r["source_record_id"]))
                      for r in raw_rows if r.get("source_record_id") not in (None, "")}
         known, forms = self._known_structures(campaign_id, exclude_records=replacing)
-        validation = self._validator.validate_rows(raw_rows, known_structures=known, known_forms=forms)
+        validation = self._validator.validate_rows(raw_rows, known_structures=known, known_forms=forms,
+                                                   modality=self.modality)
         errors = list(extra_errors or []) + validation.errors
         ingested = updated = unchanged = 0
         now = datetime.now(timezone.utc).isoformat()
@@ -337,7 +340,7 @@ class AssayIngestionService:
         for cid, smiles, system, record_id in stored:
             if record_id is not None and (system, record_id) in exclude:
                 continue
-            ident, _ = structure_identity(smiles)
+            ident, _ = _entity_identity(smiles, self.modality)
             # An unparseable stored SMILES still identifies the compound by its text.
             known.setdefault(cid, set()).add(ident.parent if ident else smiles.strip())
             forms.setdefault(cid, set()).add(ident.submitted if ident else smiles.strip())
@@ -532,7 +535,7 @@ class AssayIngestionService:
                 entry = {**dict(row), **coverage.get(row["compound_id"], unmeasured)}
                 if not entry.get("parent_smiles") and entry.get("smiles"):
                     # Rows stored before parent_smiles existed.
-                    ident, _ = structure_identity(entry["smiles"])
+                    ident, _ = _entity_identity(entry["smiles"], self.modality)
                     entry["parent_smiles"] = ident.parent if ident else None
                     entry["structure_flags"] = list(ident.flags) if ident else []
                 else:

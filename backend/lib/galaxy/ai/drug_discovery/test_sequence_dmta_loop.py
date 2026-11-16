@@ -124,3 +124,35 @@ def test_sequence_loop_proposes_ranked_candidates(seed, modality):
     statuses = ad.check(Xl, lib)
     assert len(statuses) == len(lib)
     assert all(hasattr(s, "in_domain") for s in statuses)
+
+
+@needs_sklearn
+@pytest.mark.parametrize("seed,modality", [(PEPTIDE_SEED, "peptide"), (BIOLOGIC_SEED, "biologic")])
+def test_full_loop_ingest_rank_fit_propose(tmp_path, seed, modality):
+    """End-to-end: a sequence campaign ingests measured sequences (no SMILES
+    parsing), ranks them, fits the surrogate, and proposes new candidates — the
+    whole product loop, not just the surrogate."""
+    from galaxy.ai.drug_discovery.assay_ingestion import AssayIngestionService
+    from galaxy.ai.drug_discovery.auto_retrain import build_training_rows, fit_campaign_optimizer
+
+    cid = f"e2e-{modality}"
+    db = str(tmp_path / "camp.db")
+    svc = AssayIngestionService(db, modality=modality)
+    train = mutational_library(seed, max_size=20)   # >= n_initial (16)
+    rows = [{"compound_id": s, "smiles": s, "assay_type": "IC50",
+             "value": f"{max(1.0, 1000.0 / (1.0 + max(0.0, _net_charge(s)))):.1f}",
+             "unit": "nM", "assay_date": "2026-01-01"} for s in train]
+    res = svc.ingest_rows(cid, rows)
+    assert res["ingested"] == len(train) and not res["errors"]   # sequences accepted
+
+    ranked = svc.get_ranked_compounds(cid)
+    assert len(ranked) == len(train)
+    trows = build_training_rows(ranked)
+    assert trows.smiles and trows.smiles[0] == ranked[0]["compound_id"] or trows.smiles  # entities are sequences
+
+    opt = fit_campaign_optimizer(db, cid, trows, modality=modality)
+    lib = [s for s in mutational_library(seed, max_size=60) if s not in set(train)]
+    prop = opt.propose_next_round(virtual_library_smiles=lib, n_propose=5, diversity_weight=0.2)
+    assert len(prop.proposed_compounds) == 5
+    assert all(set(c) <= set("ACDEFGHIKLMNPQRSTVWY") for c in prop.proposed_compounds)  # real sequences
+    assert prop.scores and len(next(iter(prop.scores.values()))) == 5

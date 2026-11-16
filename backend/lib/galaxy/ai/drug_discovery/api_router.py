@@ -280,8 +280,29 @@ def _registry_conn():
             created_at    TEXT NOT NULL
         )
     """)
+    # Migration: modality selects the DMTA engine (small_molecule | peptide | biologic).
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(campaigns)")}
+    if "modality" not in cols:
+        conn.execute("ALTER TABLE campaigns ADD COLUMN modality TEXT NOT NULL DEFAULT 'small_molecule'")
     conn.commit()
     return conn
+
+
+def _campaign_modality(campaign_id: str) -> str:
+    """The campaign's DMTA modality (default small_molecule if unknown)."""
+    try:
+        conn = _registry_conn()
+        row = conn.execute("SELECT modality FROM campaigns WHERE campaign_id = ?",
+                           (campaign_id,)).fetchone()
+        return (row["modality"] if row and row["modality"] else "small_molecule")
+    except Exception:
+        return "small_molecule"
+
+
+def _campaign_service(campaign_id: str):
+    """AssayIngestionService bound to the campaign's modality, so sequence
+    (peptide/biologic) entities validate and rank without SMILES parsing."""
+    return AssayIngestionService(_campaign_db(campaign_id), modality=_campaign_modality(campaign_id))
 
 
 def _campaign_db(campaign_id: str) -> str:
@@ -457,7 +478,7 @@ async def ingest_assay(
         tmp_path = tmp.name
 
     try:
-        svc = AssayIngestionService(_campaign_db(campaign_id))
+        svc = _campaign_service(campaign_id)
         result = svc.ingest(campaign_id, tmp_path)
     except Exception as exc:
         log.exception("assay ingestion failed for campaign %s", campaign_id)
@@ -485,7 +506,7 @@ async def get_compounds(campaign_id: str, limit: int = Query(50, ge=1, le=500)):
         raise HTTPException(status_code=503, detail=str(exc))
 
     try:
-        svc = AssayIngestionService(_campaign_db(campaign_id))
+        svc = _campaign_service(campaign_id)
         ranks = svc.get_ranked_compounds(campaign_id)[:limit]
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
@@ -517,7 +538,7 @@ async def export_cro_order(
         raise HTTPException(status_code=503, detail=str(exc))
 
     try:
-        svc = AssayIngestionService(_campaign_db(campaign_id))
+        svc = _campaign_service(campaign_id)
         ranks = svc.get_ranked_compounds(campaign_id)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
@@ -693,7 +714,7 @@ async def run_model(
 
     if not smiles_list:
         try:
-            svc = AssayIngestionService(_campaign_db(campaign_id))
+            svc = _campaign_service(campaign_id)
             ranks = svc.get_ranked_compounds(campaign_id)
             smiles_list = [r["smiles"] for r in ranks if r.get("smiles")]
         except Exception as exc:
@@ -916,7 +937,7 @@ async def propose_next_round(
         )
 
     try:
-        svc = AssayIngestionService(_campaign_db(campaign_id))
+        svc = _campaign_service(campaign_id)
         ranked = svc.get_ranked_compounds(campaign_id)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to load campaign data: {exc}")
@@ -933,7 +954,7 @@ async def propose_next_round(
     try:
         rows = build_training_rows(ranked)
         opt = fit_campaign_optimizer(_campaign_db(campaign_id), campaign_id, rows,
-                                     modality=body.modality)
+                                     modality=_campaign_modality(campaign_id))
         proposal = opt.propose_next_round(
             virtual_library_smiles=body.virtual_library_smiles,
             n_propose=body.n_propose,
@@ -1064,7 +1085,7 @@ async def poll_lims(
         raise HTTPException(status_code=502, detail=f"Benchling API error: {exc}")
 
     try:
-        svc = AssayIngestionService(db_path)
+        svc = AssayIngestionService(db_path, modality=_campaign_modality(campaign_id))
         result = svc.ingest_rows(campaign_id, polled.rows)
         retracted = 0
         if polled.archived_result_ids:
@@ -2315,6 +2336,7 @@ class CampaignCreateRequest(BaseModel):
     objective: str = "balance"   # "potency" | "admet" | "balance"
     user_id: str = ""
     virtual_library_smiles: list[str] = []
+    modality: str = "small_molecule"   # "small_molecule" | "peptide" | "biologic"
 
 
 @router.post("/campaigns")
@@ -2372,8 +2394,8 @@ async def create_campaign(body: CampaignCreateRequest):
         conn.execute(
             """
             INSERT OR REPLACE INTO campaigns
-                (campaign_id, user_id, molecule_name, target, indication, sponsor, objective, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (campaign_id, user_id, molecule_name, target, indication, sponsor, objective, created_at, modality)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 campaign_id,
@@ -2384,6 +2406,7 @@ async def create_campaign(body: CampaignCreateRequest):
                 body.sponsor,
                 body.objective,
                 created_at,
+                getattr(body, "modality", "small_molecule") or "small_molecule",
             ),
         )
         conn.commit()

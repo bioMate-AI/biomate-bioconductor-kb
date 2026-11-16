@@ -187,6 +187,29 @@ class StructureIdentity:
         return FLAG_MULTI_COMPONENT in self.flags
 
 
+#: Modalities whose entity column holds an amino-acid sequence, not a SMILES.
+SEQUENCE_MODALITIES = ("peptide", "biologic")
+
+
+def sequence_identity(seq: str) -> "tuple[Optional[StructureIdentity], Optional[str]]":
+    """Identity for a peptide/biologic entity: the (uppercased, non-alpha-
+    stripped) sequence is its own parent key — no chemical parsing. Mirrors the
+    no-RDKit branch of structure_identity, so the whole pipeline (dedup,
+    known-structure checks, ranking, build_training_rows) is reused unchanged.
+    """
+    s = "".join(c for c in (seq or "").upper() if c.isalpha())
+    if not s:
+        return None, None
+    return StructureIdentity(submitted=s, parent=s), None
+
+
+def _entity_identity(entity: str, modality: str):
+    """Dispatch to sequence or chemical identity by modality."""
+    if modality in SEQUENCE_MODALITIES:
+        return sequence_identity(entity)
+    return structure_identity(entity)
+
+
 def structure_identity(smiles: str) -> "tuple[Optional[StructureIdentity], Optional[str]]":
     """Return (StructureIdentity, error). Empty input → (None, None)."""
     smiles = (smiles or "").strip()
@@ -384,6 +407,7 @@ class AssayCSVValidator:
         raw_rows: "Iterable[dict]",
         known_structures: "Optional[dict[str, set[str]]]" = None,
         known_forms: "Optional[dict[str, set[str]]]" = None,
+        modality: str = "small_molecule",
     ) -> AssayValidationResult:
         """Validate rows given as dicts with the CSV column names.
 
@@ -399,7 +423,7 @@ class AssayCSVValidator:
             row = {k: _clean(v) for k, v in raw.items() if k}
             label = row.get("source_row", index)
             row_errors = self._validate_row(row, label)
-            ident, structure_error = structure_identity(str(row.get("smiles", "") or ""))
+            ident, structure_error = _entity_identity(str(row.get("smiles", "") or ""), modality)
             if structure_error:
                 row_errors.append(f"Row {label}: {structure_error}.")
             if row_errors:
