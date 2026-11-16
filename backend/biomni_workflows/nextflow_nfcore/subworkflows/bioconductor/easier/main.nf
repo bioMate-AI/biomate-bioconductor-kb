@@ -208,6 +208,18 @@ process BIOC_EASIER_EASIER_IMMUNE_PREDICTION {
                     length(common_genes), ncol(RNA_tpm), cancer_type,
                     sum(patient_response == "R"), sum(patient_response == "NR")))
 
+    # Sanitize matrices before the descriptor functions. compute_pathway_activity() runs
+    # DESeq2 normalization, which REJECTS NA / non-integer counts — and easierData's bundled
+    # `counts` assay carries NA for some genes (reproduced live: deconvolution succeeded, then
+    # "DESeqDataSet: NA values are not allowed in the count matrix"). Drop NA-count genes and
+    # coerce to integer; zero out any NA in TPM so the TPM-based descriptors stay defined.
+    .keep <- stats::complete.cases(RNA_counts)
+    RNA_counts <- RNA_counts[.keep, , drop = FALSE]
+    RNA_counts[] <- lapply(RNA_counts, function(.x) as.integer(round(as.numeric(.x))))
+    RNA_tpm[is.na(RNA_tpm)] <- 0
+    message(sprintf("[easier] sanitized counts: kept %d non-NA integer genes (of %d)",
+                    nrow(RNA_counts), length(.keep)))
+
     # ==========================================
     # --- Compute Quantitative Descriptors ---
     # ==========================================
