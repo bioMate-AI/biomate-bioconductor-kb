@@ -302,6 +302,7 @@ def _campaign_modality(campaign_id: str) -> str:
 def _campaign_service(campaign_id: str):
     """AssayIngestionService bound to the campaign's modality, so sequence
     (peptide/biologic) entities validate and rank without SMILES parsing."""
+    from .assay_ingestion import AssayIngestionService
     return AssayIngestionService(_campaign_db(campaign_id), modality=_campaign_modality(campaign_id))
 
 
