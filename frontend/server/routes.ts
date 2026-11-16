@@ -5939,7 +5939,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
     internalRequest: requestInternalModelRegistry,
   };
-  const modelRegistrationFailure = (res: any, error: any) => res.status(error instanceof TrainingRegistrationError ? error.status : 502).json({ error: error instanceof TrainingRegistrationError ? error.message : 'Central model registry is unavailable. Please retry.' });
+  const modelRegistrationFailure = (res: any, error: any) => res.status(error instanceof TrainingRegistrationError ? error.status : 502).json({ error: error instanceof TrainingRegistrationError ? error.message : "Couldn't reach your saved models right now — this is usually temporary. Try again in a moment." });
   app.post("/api/model-training-activity/:runId/register", authenticateToken, async (req: any, res) => {
     if (req.body && Object.keys(req.body).length) return res.status(400).json({ error: 'Model registration accepts no client-supplied settings.' });
     const run = await resolveAuthorizedRun(req, res, req.params.runId);

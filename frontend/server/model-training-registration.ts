@@ -67,12 +67,12 @@ export async function readOwnedTrainingVersions(userId: string | undefined | nul
 /** Privileged bridge: credentials come only from server configuration, never the user request. */
 export async function requestInternalModelRegistry(path: string, body?: unknown): Promise<{status: number;body: any}> {
  const key = process.env.GALAXY_API_KEY;
- if (!key) throw new TrainingRegistrationError(503, 'Central model registry is not configured.');
+ if (!key) throw new TrainingRegistrationError(503, "Saved models aren't set up on this environment yet.");
  const response = await fetch(`${process.env.GALAXY_URL || 'http://localhost:8081'}${path}`, {
   method: body === undefined ? 'GET' : 'POST',
   headers: { 'X-API-Key': key, ...(body === undefined ? {} : {'Content-Type': 'application/json'}) },
   ...(body === undefined ? {} : { body: JSON.stringify(body) }), signal: AbortSignal.timeout(120000),
  });
- const result = await response.json().catch(() => ({ error: 'Central model registry returned an invalid response.' }));
+ const result = await response.json().catch(() => ({ error: "Couldn't read the saved-models response — try again in a moment." }));
  return { status: response.status, body: result };
 }

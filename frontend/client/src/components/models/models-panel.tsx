@@ -272,6 +272,16 @@ export function TrainingRuns({ data, onOpenModel }: { data?: TrainData; onOpenMo
             {t("models.training_runs_empty")}
           </p>
         )}
+        {runs.length > 0 && (
+          <button
+            type="button"
+            className="text-fs-xs text-muted-foreground hover:underline"
+            data-testid="train-runs-manage-hint"
+            onClick={() => openRunManager()}
+          >
+            {t("models.runs_manage_hint")} →
+          </button>
+        )}
       </CardContent>
     </Card>
   )
@@ -380,6 +390,9 @@ export function ModelsPanel({
               {t("models.registered_count", { count: models?.length ?? 0 })}
             </Badge>
           </div>
+          <p className="text-fs-xs text-muted-foreground" data-testid="models-panel-subtitle">
+            {t("models.panel_subtitle")}
+          </p>
         </CardHeader>
         <CardContent>
           <Tabs value={String(activeTab)} onValueChange={(v) => setTab(Number(v))}>

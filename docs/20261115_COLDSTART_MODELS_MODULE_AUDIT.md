@@ -112,7 +112,7 @@ Synced to DEV as tip `28e3dac5` (ancestry includes `3536d04b05` + `2c2233c042` +
 | herg/solubility → chemprop with **attached** data (not `tdc:*`) | **Met** (filename bind on `28e3dac5`; literal `s3://` after `s3_uri` fix) |
 | Generate param is literal `s3://…` URI | **Not met on `28e3dac5`** — fixed in tree (`_withS3Uri`); remasure after frontend sync |
 | Adapt generative → reinvent4_finetune_rl | **Met** (route) |
-| Optimise → DMTA | **Open** product gap (still lead-design) |
+| Optimise → DMTA | **Met & verified on DEV `77969b9c`** (deep-link to `/models?tab=molecular`, no reinvent4 card) — superseded the old "Open" verdict, which was measured on pre-`029383bad6` tip `28e3dac5`. See CORRECTION section. |
 
 ## Commits
 
@@ -120,3 +120,42 @@ Focused Models coldstart wiring + REINVENT TL logfile fix: `3536d04b05`.
 Related already on branch: `8493c1d891` / `2435bab3d2` (scaffold “diffusion train” re-arm); phase-map `2c2233c042`.  
 Sync merge tip on DEV: `28e3dac5`.  
 Project upload `s3_uri` public-shape: this follow-up commit (see git log).
+
+---
+
+## CORRECTION (2026-11-15, later session) — Option A DMTA UX IS deployed on DEV
+
+**The "Optimise → DMTA: Open product gap (still lead-design)" verdict above is STALE.** It was measured on DEV tip `28e3dac5`, which predates the Option A DMTA wiring commit `029383bad6` ("restore Option A DMTA UX and seed propose fixtures") by three deploys. On that old tip Optimise still returned `reinvent4_lead_design` — expected, because the deep-link/refuse code did not yet exist.
+
+**Deployment proof (not the ledger title — the actual sync payload):**
+
+- DEV advanced to `77969b9c` at **2026-11-15T16:49:28Z** via `sync_to_dev.sh`.
+- That sync used **diff base `a5ace834 → 77969b9c` (25 code files), `Layers: frontend=true backend=true workflows=true db=false`**, health-verified, ledger recorded at 10:49:33 local (`/tmp/sync_coldstart_scfv_cyclic_20261115j.log`).
+- `029383bad6` sits **between** `a5ace834` and `77969b9c`, so **every file `029383bad6` touched (21 files; ~19 Models-related)** is inside `git diff --name-only a5ace834ed 77969b9c6a` — all of `components/models/*` (incl. `dmta-rounds.tsx`, `dmta-loop-fixtures.ts`, `models-panel.tsx`, `training-logic.ts`, `run-pretrained.tsx`, `training-launcher.tsx`), plus `routing-authority.ts`, `galaxy-assistant.ts`, `routes.ts`, `ai_assistant.py`, `cold-start-demo-catalog.ts`, locales, and 5 Models test files. The whole Option A payload shipped under `frontend=true backend=true`.
+- The 2026-11-15 ~12:44 "all layers false" sync attempt was a **no-op because DEV was already at `77969b9c`** (`/tmp/biomate_models_sync.log`: "ancestry verified: 77969b9c -> 77969b9c", Diff base `77969b9c → 77969b9c` (1 file), all layers false), not a failed Models deploy. The 20261115 takeoff doc's "Models UX not deployed" premise is therefore incorrect.
+
+**Confirmed this session:** DEV reachable (HTTP 200); `GET /build-info.json` on DEV returns `{"commit":"77969b9c…"}` (frontend bundle live at that tip); the `77969b9c` sync log shows the frontend image **built + promoted** ("verified public build commit 77969b9c…") and the backend gunicorn **restarted with a fresh module load** (bytecode cache cleared) — so the deployed code is actually running, not an inert/cached copy. No feature flag gates the DMTA path (`MODELS_DMTA_HREF` is a plain constant; `isDmtaLoopQuery` / `_is_dmta_loop_task` are regex with no env check). Local pre-sync checklist green on the tree containing `029383bad6`: `tsc` no errors (empty log; `TSC_EXIT=0` in-shell), `vitest` 4016 passed / 0 failed, `galaxy.ai.ai_assistant` import OK (in-shell).
+
+**This correction was independently audited this session by a 3-agent adversarial committee** (deployment-claim / reasoning-gaps / doc-accuracy); all three confirmed the deployment and that the deployed commit == the good 293-line `dmta-rounds.tsx` (not a degraded stash restore).
+
+### Behavioral remasure on live DEV (`77969b9c`) — NOW DONE, GREEN
+
+Ran against `https://dev-public.biomate.ai` with the canonical fixture (one login, one project per probe; `/api/chat/stream`). Evidence dirs under `/tmp/models_optimise_remasure_*` and `/tmp/reinvent_route_*`.
+
+| Probe | Query | Result | Verdict |
+|-------|-------|--------|---------|
+| Optimise seed 1 | "Run the design–make–test loop … under a 96-assay budget." | `state:chat_only`, `workflow:null`, **no** `workflow_ready`, message deep-links to `/models?tab=molecular`; reasoning "DMTA loop → Models Rounds (not reinvent4_lead_design)" | **PASS** (needed 180s client budget — heavier intent decomposition; routing itself is deterministic regex) |
+| Optimise seed 2 | "Propose the next round and refit on the results." | same as above; completed in ~5.7s | **PASS** |
+| Reinvent4 routing (complement) | "Use REINVENT4 to generate 100 novel drug-like analogs … de novo generative lead design." | `state:workflow_ready`, full **REINVENT4 Generative Lead Design** card (Validate → Generate → BRICS → Filter/Rank → Report) | **PASS** — genuine generative intent still reaches reinvent4; distinction works both ways |
+
+So the Optimise→DMTA deep-link and the invent4 refuse path are confirmed **live on DEV**, not just deployed. (One test-design note: a query literally containing the word "DMTA" trips the deep-link regex regardless of generative intent — expected.)
+
+### Reinvent4 execution fixes — verified on DEV (minimal Batch run)
+
+All six fixes are ancestors of the deployed `77969b9c`: `82cccf5565` (procps), `dc5ebab226` (`prior_path` optional), `de208a32bb`/`4867407ddb` (`"""` scrub from Nextflow script), `c0fe0249ea` (reinvent4-nf layout bridge), `3536d04b05` (TL logfile). Launched `reinvent4_lead_design` via `POST /api/workflows/execute` with minimized params (`n_steps=20`, `batch_size=16`, `top_n=20`, CPU):
+
+- **runId** `388bb16a-b12e-442e-b720-89308668854d` — **completed, 5/5 steps**, ~4.5 min.
+- **13 real S3 outputs** (`biomate-nextflow-work`): `top_compounds.csv` (real SMILES + score/qed/sa/mw/scaffold, e.g. rank 1 `N#Cc1ccc(N2CCC(C(=O)Nc3ccncc3)CC2)cc1F` score 0.905), `top_compounds.sdf` (41 KB), `raw_molecules.csv` (generated pool), `score_trajectory.png`, `reinvent.log`, `report.html` (3 MB), `design_report.html`, `design_summary.json`, `filter_stats.json`, `qc_events.json`, etc.
+- Proves the workflow now parses and the Generate step runs to completion with genuine generative output (the failure modes those commits fixed no longer occur). Test project `b09747ee-…` left intact as the evidence trail.
+
+**Remaining open item:** DEV **behavioral** remasure of the two Optimise seeds on the live `77969b9c` build — confirm no `reinvent4_lead_design` card and a deep-link/guidance to `/models?tab=molecular`. Code is deployed but the live behavior has not been re-measured since the old-tip audit. Verdict pending (this session).

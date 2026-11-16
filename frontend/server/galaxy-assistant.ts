@@ -5772,7 +5772,7 @@ Rules:
     if (_routing.dmtaLoop) {
       const _dmtaMsg =
         'That is a **design–make–test–analyse (DMTA)** campaign loop — Bayesian propose / refit under an assay budget — not generative lead design (REINVENT4).\n\n' +
-        `Open **[Models → Molecular learning → Rounds](${MODELS_DMTA_HREF})** to create a campaign for this project and start, stop, or propose the next round. ` +
+        `Open **[Models → Molecular models → Rounds](${MODELS_DMTA_HREF})** to create a campaign for this project and start, stop, or propose the next round. ` +
         'Attach assay results and a candidate library in the project first; the loop will not invent measurements.\n\n' +
         'If you instead wanted **de novo / scaffold-hop generative design**, say so explicitly (e.g. “generate analogs with REINVENT4”).';
       return {
@@ -6381,7 +6381,7 @@ Rules:
       || _msgLower.includes('cro order')
       || isDmtaLoopQuery(message);
     if (_isDmtaSurfaceQuery && !finalMessage.includes(MODELS_DMTA_HREF) && !finalMessage.includes('/models?tab=molecular')) {
-      finalMessage += `\n\n→ Open [Models → Molecular learning → Rounds](${MODELS_DMTA_HREF}) to run the design–make–test campaign loop (propose / refit).`;
+      finalMessage += `\n\n→ Open [Models → Molecular models → Rounds](${MODELS_DMTA_HREF}) to run the design–make–test campaign loop (propose / refit).`;
     }
 
     // Ground LLM-extracted keys against the workflow schema so the panel
