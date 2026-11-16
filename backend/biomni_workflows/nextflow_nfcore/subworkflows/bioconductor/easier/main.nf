@@ -37,8 +37,13 @@ process BIOC_EASIER_EASIER_IMMUNE_PREDICTION {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     #!/usr/bin/env Rscript
-    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment
-    .bm_deps <- c("easier")
+    # [biomate-deps] resolve declared dependencies so the workflow runs in any environment.
+    # NOTE: the slim container ships `easier` itself but NOT its full dependency closure —
+    # compute_TF_activity() needs `viper` + `dorothea`, compute_pathway_activity() needs
+    # `progeny`, and predict/retrieve need the `easierData` model weights. A guard that
+    # checks only for `easier` finds it present and never installs these, so the run dies
+    # mid-pipeline with "there is no package called 'viper'". List them explicitly.
+    .bm_deps <- c("easier", "viper", "dorothea", "progeny", "easierData")
     .bm_miss <- .bm_deps[!vapply(.bm_deps, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.bm_miss)) {
       if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")
