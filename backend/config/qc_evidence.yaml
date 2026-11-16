@@ -1418,6 +1418,40 @@ epigenomics:
 # threshold override happens through the profile / modifiers system from
 # Track 1. Citations marked NEEDS_VERIFY have not yet been PubMed-checked
 # from inside the session — flag for audit-grade review.
+survival:
+  cox_ph_schoenfeld:
+    - paper_ref: "Grambsch PM, Therneau TM. Biometrika 1994; 81:515"
+      paper_doi: "10.1093/biomet/81.3.515"
+      provenance: GOLD
+      paper_supports: >
+        Grambsch & Therneau 1994 define the Schoenfeld-residual test for the
+        proportional-hazards assumption (the cox.zph test). A significant
+        GLOBAL test (p < 0.05) means at least one covariate's effect is not
+        proportional over time, so a single hazard ratio is misleading.
+      rule_text: >
+        schoenfeld_global_p >= 0.05 = pass; < 0.05 = FAIL (PH violated);
+        remediate by stratifying on the non-proportional covariate or adding
+        a time-transform, then re-fitting.
+      finding: >
+        Cox proportional-hazards run; PH assumption checked on Schoenfeld
+        residuals and remediated by the survival auto-loop.
+  cox_confounding:
+    - paper_ref: "Grambsch PM, Therneau TM. Biometrika 1994; 81:515 (model-selection context)"
+      paper_doi: "10.1093/biomet/81.3.515"
+      provenance: SILVER
+      paper_supports: >
+        Standard multivariable-adjustment principle: a prognostic covariate
+        associated with the exposure that is omitted from the model confounds
+        the exposure's hazard ratio. Operationally, an omitted covariate that
+        is itself significant (p < 0.05) when added signals confounding of the
+        naive estimate.
+      rule_text: >
+        No omitted covariate significant at p < 0.05 = pass; otherwise FAIL;
+        remediate by re-fitting adjusted for the omitted prognostic covariate(s).
+      finding: >
+        Naive Cox model audited for omitted prognostic covariates; the
+        survival auto-loop re-fits with them (confounder -> adjusted re-fit).
+
 bioconductor_qc:
   bioc_missing_value_handling:
     - paper_ref: "Lazar C et al. Nucleic Acids Res 2013; 41:e131 (NEEDS_VERIFY)"
@@ -1519,6 +1553,27 @@ bioconductor_qc:
         kBET_acceptance_rate > 0.75 OR iLISI > 1.5 = pass.
       finding: >
         Workflow declares 'batch-effect correction' (n=21).
+
+  bioc_deseq2_design_blocking:
+    - paper_ref: "Love MI, Huber W, Anders S. Genome Biol 2014; 15:550 (DESeq2)"
+      paper_doi: "10.1186/s13059-014-0550-8"
+      provenance: GOLD
+      paper_supports: >
+        Love 2014 (DESeq2 §'Multi-factor designs') — when samples are
+        paired or share a blocking factor (cell line, donor, batch), the
+        factor must enter the design formula (~block + condition) so the
+        condition effect is estimated within block. Omitting a balanced
+        covariate that explains real variance confounds the test and
+        biases the differential-expression result. Canonical worked
+        example: the airway dataset, ~cell + dex vs ~dex.
+      rule_text: >
+        An unmodeled covariate that is balanced across the contrast AND
+        is significant by LRT (~block+condition vs ~condition, any gene
+        padj < qval threshold over ≥2% of tested genes) = design FAIL;
+        remediate by re-fitting with the blocking factor in the formula.
+      finding: >
+        DESeq2 differential-abundance run with a naive single-factor
+        design; design-QC self-correction re-fits with the blocking factor.
 
   bioc_hvg_selection:
     - paper_ref: "Stuart T et al. Cell 2019; 177:1888 (Seurat v3)"
