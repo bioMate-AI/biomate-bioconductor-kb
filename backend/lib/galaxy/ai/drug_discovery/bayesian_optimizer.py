@@ -35,6 +35,9 @@ try:
         expected_improvement,
         tanimoto_similarity,
     )
+    # Sequence (peptide / biologic) featuriser + Matern GP — same interface as
+    # MorganFeaturizer / TanimotoGP, selected per modality in __init__.
+    from .sequence_surrogate import SequenceFeaturizer, SequenceGP
     _SKLEARN_AVAILABLE = True
 except ImportError:
     _SKLEARN_AVAILABLE = False
@@ -97,11 +100,16 @@ class BayesianOptimizer:
     predict); ``fit`` rejects datasets whose features were built otherwise.
     """
 
+    #: Modalities whose entities are amino-acid sequences (dense-descriptor GP)
+    #: rather than small-molecule SMILES (Morgan/Tanimoto GP).
+    SEQUENCE_MODALITIES = ("peptide", "biologic")
+
     def __init__(
         self,
         campaign_id: str,
         db_path: str = "galaxy_ai_tools.db",
         n_initial: int = 16,
+        modality: str = "small_molecule",
     ):
         if not _NUMPY_AVAILABLE:
             raise ImportError(
@@ -113,7 +121,19 @@ class BayesianOptimizer:
                 "scikit-learn and scipy are required for BayesianOptimizer. "
                 "Install them with: pip install scikit-learn scipy"
             )
-        self._featurizer = MorganFeaturizer()
+        self.modality = modality
+        # Featuriser + GP are selected by modality; both expose the same
+        # featurise()/fit()/predict() contract, so everything downstream
+        # (featurise, _fit_surrogates, propose_next_round, discrimination,
+        # acquisition) is modality-agnostic.
+        if modality in self.SEQUENCE_MODALITIES:
+            self._featurizer = SequenceFeaturizer(modality)
+            self._gp_class = SequenceGP
+            self._entity_kind = "sequence"
+        else:
+            self._featurizer = MorganFeaturizer()
+            self._gp_class = TanimotoGP
+            self._entity_kind = "smiles"
 
         self.campaign_id = campaign_id
         self.db_path = db_path
@@ -124,12 +144,13 @@ class BayesianOptimizer:
             hashlib.sha256(campaign_id.encode("utf-8")).digest()[:4], "big") % (2 ** 31)
         self._rng = np.random.RandomState(self._seed)
 
-        self._gp_models: dict[str, TanimotoGP] = {}
+        self._gp_models: dict = {}  # str -> TanimotoGP | SequenceGP (by modality)
         self._observed_scaled: dict[str, "np.ndarray"] = {}
         self._objective_directions: dict[str, str] = {}
         self._dataset: Optional[CampaignDataset] = None
         self._round_number: int = 0
-        self._n_features: int = self._featurizer.n_bits
+        # MorganFeaturizer exposes n_bits; SequenceFeaturizer exposes N_FEATURES.
+        self._n_features: int = getattr(self._featurizer, "n_bits", None) or self._featurizer.N_FEATURES
 
         self._ensure_schema()
 
@@ -253,7 +274,7 @@ class BayesianOptimizer:
                 y_scaled = 1.0 - y_scaled
             self._observed_scaled[obj_name] = y_scaled
 
-            gp = TanimotoGP(random_state=self._rng.randint(0, 2 ** 31 - 1))
+            gp = self._gp_class(random_state=self._rng.randint(0, 2 ** 31 - 1))
             gp.fit(X, y_scaled)
             for msg in gp.fit_warnings:
                 log.warning("BayesianOptimizer.fit[%s/%s]: %s", self.campaign_id, obj_name, msg)

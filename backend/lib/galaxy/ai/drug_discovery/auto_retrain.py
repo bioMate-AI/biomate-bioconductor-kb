@@ -448,13 +448,16 @@ def list_auto_proposals(db_path: str, campaign_id: str, limit: int = 20) -> list
 # ---------------------------------------------------------------------------
 
 def fit_campaign_optimizer(db_path: str, campaign_id: str, rows: CampaignTrainingRows,
-                           n_initial: Optional[int] = None):
-    """Fit a BayesianOptimizer on observed campaign labels (CAMPAIGN_OBJECTIVE)."""
+                           n_initial: Optional[int] = None, modality: str = "small_molecule"):
+    """Fit a BayesianOptimizer on observed campaign labels (CAMPAIGN_OBJECTIVE).
+
+    ``modality`` selects the featuriser + GP: "small_molecule" (SMILES/Morgan/
+    Tanimoto, default) or "peptide"/"biologic" (sequence descriptors/Matern)."""
     import numpy as np
     from .bayesian_optimizer import BayesianOptimizer, CampaignDataset
 
     kwargs = {} if n_initial is None else {"n_initial": n_initial}
-    opt = BayesianOptimizer(campaign_id=campaign_id, db_path=db_path, **kwargs)
+    opt = BayesianOptimizer(campaign_id=campaign_id, db_path=db_path, modality=modality, **kwargs)
     dataset = CampaignDataset(
         compound_ids=rows.compound_ids,
         smiles_list=rows.smiles,

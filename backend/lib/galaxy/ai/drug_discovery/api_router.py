@@ -866,9 +866,10 @@ async def list_model_comparisons(campaign_id: str, model_name: str):
 # ---------------------------------------------------------------------------
 
 class ProposeRequest(BaseModel):
-    virtual_library_smiles: list[str]
+    virtual_library_smiles: list[str]   # entity strings: SMILES, or sequences for peptide/biologic
     n_propose: int = 10
     diversity_weight: float = 0.2
+    modality: str = "small_molecule"    # "small_molecule" | "peptide" | "biologic"
 
 
 @router.post("/{campaign_id}/propose")
@@ -931,7 +932,8 @@ async def propose_next_round(
 
     try:
         rows = build_training_rows(ranked)
-        opt = fit_campaign_optimizer(_campaign_db(campaign_id), campaign_id, rows)
+        opt = fit_campaign_optimizer(_campaign_db(campaign_id), campaign_id, rows,
+                                     modality=body.modality)
         proposal = opt.propose_next_round(
             virtual_library_smiles=body.virtual_library_smiles,
             n_propose=body.n_propose,
