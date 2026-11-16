@@ -12156,8 +12156,22 @@ ${paramLines || '(none recorded)'}`;
       {
         const isEmptyVal = (v: any) =>
           v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
-        const providedParams =
+        // Close the connector class: values may arrive EITHER as a top-level
+        // `params` map (openapi contract) OR under
+        // `workflowDefinition.parameters` (what the MCP server / standalone
+        // connector / BioMateClient.run_workflow all send). Previously only the
+        // former was honoured, so every connector that filled parameters{} hit
+        // `missing_required_params` even though it supplied the value. Merge both,
+        // with the explicit top-level `params` winning on conflict.
+        const defParams =
+          request.workflowDefinition &&
+          typeof request.workflowDefinition.parameters === 'object' &&
+          request.workflowDefinition.parameters
+            ? request.workflowDefinition.parameters
+            : {};
+        const topParams =
           request.params && typeof request.params === 'object' ? request.params : {};
+        const providedParams: Record<string, any> = { ...defParams, ...topParams };
         const reqParams: any[] = Array.isArray(request.workflowDefinition?.required_params)
           ? request.workflowDefinition.required_params
           : [];
@@ -13643,7 +13657,37 @@ ${paramLines || '(none recorded)'}`;
       // ── Inline convenience fields for MCP / headless consumers ────────────
       // MCP tools/get_run clients should not need a second round-trip to
       // /output_files or /status to get findings and files. Surface them here.
-      const ns = (run.execution?.nextflowStatus as any) || {};
+      let ns = (run.execution?.nextflowStatus as any) || {};
+
+      // Self-heal the output-resolution gap: a COMPLETED Nextflow run whose stored
+      // nextflowStatus carries no real output files (e.g. runs that finished before
+      // the work-dir-fallback fix, or whose completion stored [] under the old key)
+      // would otherwise surface output_files: [] forever. Re-resolve once via the
+      // live status endpoint (which now runs the canonical outdir→work-dir resolver)
+      // and persist the result so the next read is cheap.
+      try {
+        const terminalOk = ['completed', 'succeeded'].includes(
+          String(run.execution?.status || '').toLowerCase()
+        );
+        const hasFiles = Array.isArray(ns.s3_output_files) && ns.s3_output_files.length > 0;
+        const isNf =
+          run.execution?.executionEngine === 'nextflow' || !!run.execution?.nextflowRunId;
+        const nfId = run.execution?.nextflowRunId || run.execution?.galaxyInvocationId;
+        if (terminalOk && !hasFiles && isNf && nfId) {
+          const fresh = await galaxyAPIProxy.getNextflowStatus(nfId).catch(() => null);
+          if (fresh && Array.isArray(fresh.s3_output_files) && fresh.s3_output_files.length > 0) {
+            ns = { ...ns, ...fresh };
+            run = await storage.updateExecutionRun(run.id, {
+              execution: { ...run.execution, nextflowStatus: ns },
+            }) || run;
+          } else if (fresh) {
+            // keep manifest/gap fields even if still empty, for diagnosis
+            ns = { ...ns, ...fresh };
+          }
+        }
+      } catch (e: any) {
+        console.warn('[ExecutionRun] output re-resolve failed:', e?.message || e);
+      }
 
       // Fix #5b: inline_findings mirrors the run's findings_data.json sidecar — the
       // same key_results the UI Findings tab shows. Best-effort (never throws; []
@@ -13680,6 +13724,10 @@ ${paramLines || '(none recorded)'}`;
         output_files: (safeNs?.s3_output_files || safeNs?.output_files || []).map(scrubOut),
         // AI findings / key results — see Fix #5b note above (mirrors findings_data.json).
         inline_findings: inlineFindings,
+        // Phase 0 publishing contract — standardized manifests + loud gap flag.
+        results_manifest: ns.results_manifest || null,
+        design: ns.design || null,
+        output_resolution_gap: !!ns.output_resolution_gap,
       };
 
       res.json(response);
