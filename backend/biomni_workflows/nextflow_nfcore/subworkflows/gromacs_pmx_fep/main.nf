@@ -166,9 +166,24 @@ process FEP_PRODUCTION {
 // Workflow
 // ============================================================================
 
+// Map catalog/coldstart receptor values to the bundled asset (ported from the stub):
+// bare "1BXL.pdb" / empty / an unexpanded ${projectDir} CLI echo must resolve to the
+// workflow asset, NOT a CWD-relative miss that fails Channel.fromPath on Batch.
+def _resolveReceptor(raw) {
+    def bundled = "${projectDir}/assets/1BXL.pdb"
+    def s = (raw == null) ? '' : raw.toString().trim()
+    if (!s || s.equalsIgnoreCase('null') || s.equalsIgnoreCase('none')) return bundled
+    if (s.contains('${projectDir}') || s.contains('sample_data/peptides/1BXL')) return bundled
+    if (s.equalsIgnoreCase('1BXL.pdb') || s.equalsIgnoreCase('1BXL')) return bundled
+    if (!s.contains('/') && !s.contains('\\') && s.toLowerCase().endsWith('.pdb')) {
+        def cand = file("${projectDir}/assets/${s}")
+        if (cand.exists()) return cand.toString()
+    }
+    return s
+}
+
 workflow {
-    // Config may set receptor=null; fall back to the bundled control receptor (1BXL).
-    def receptor_path = params.receptor ?: "${projectDir}/assets/1BXL.pdb"
+    def receptor_path = _resolveReceptor(params.receptor)
     ch_receptor   = Channel.fromPath(receptor_path, checkIfExists: true)
     ch_entrypoint = Channel.fromPath("${projectDir}/bin/run_gromacs_pmx_fep.py", checkIfExists: true)
 
