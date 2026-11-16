@@ -519,7 +519,9 @@ class BayesianOptimizer:
         can = any(o["discrimination"]["can_discriminate"] for o in objectives.values())
         return {
             "model": "gaussian_process",
-            "kernel": "1.0 * Tanimoto + White(noise)",
+            "kernel": ("1.0 * Matern(nu=2.5) + White(noise)"
+                       if self.modality in self.SEQUENCE_MODALITIES
+                       else "1.0 * Tanimoto + White(noise)"),
             "featurizer": self._featurizer.signature,
             "score_scale": "observed range min-max normalised, higher = better",
             "acquisition": acquisition_kind,
