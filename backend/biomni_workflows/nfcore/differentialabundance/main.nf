@@ -215,6 +215,7 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
     data_mat <- data_mat[, as.character(metadata[[sample_col]]), drop=FALSE]
 
     all_results <- list()
+    design_info <- list()   # per-contrast design-QC self-correction records (DESeq2 path)
 
     # ── shared volcano helper (res_df must have log2FoldChange, pvalue, padj) ─────
     volcano_plot <- function(res_df, cid) tryCatch({
@@ -304,8 +305,59 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
         # Use a SAFE design-variable name — GEO condition columns like "disease state:ch1"
         # (spaces/colons) are invalid in an R formula. Keep original cvar for labelling.
         col_data\$condition_grp <- relevel(factor(as.character(col_data[[cvar]])), ref=cref)
+
+        # ── Design-QC self-correction ─────────────────────────────────────────
+        # A naive ~condition_grp design ignores any blocking/paired factor in the
+        # metadata. If a non-contrast factor (cell line / donor / batch) is BALANCED
+        # across the two contrast groups AND explains real variance (DESeq2 LRT
+        # ~block+condition_grp vs ~condition_grp), leaving it out confounds the test.
+        # We DETECT it, flag the bioc_deseq2_design_blocking gate, and RE-FIT
+        # ~block+condition_grp — publishing naive-vs-corrected (mirrors how the
+        # survival cox.nf publishes naive-vs-remediated). An explicit 'blocking'
+        # column in the contrasts CSV (nf-core convention) is honoured directly.
+        .block_var <- NA_character_; .n_sig_block <- 0L; .confounded <- FALSE
+        if ("blocking" %in% names(ct) && !is.na(ct[["blocking"]]) && nzchar(as.character(ct[["blocking"]]))) {
+          .bv <- strsplit(as.character(ct[["blocking"]]), "[;,]")[[1]][1]
+          if (.bv %in% names(col_data)) { .block_var <- .bv; .confounded <- TRUE }
+        } else {
+          .cands <- setdiff(names(col_data), c(sample_col, cvar, "condition_grp"))
+          for (.bc in .cands) {
+            .f <- factor(as.character(col_data[[.bc]]))
+            if (nlevels(.f) < 2 || nlevels(.f) >= nrow(col_data)) next
+            if (!all(rowSums(table(.f, col_data\$condition_grp) > 0) >= 2)) next  # each block level spans both groups
+            .cd2 <- col_data; .cd2[[.bc]] <- .f
+            .ddf <- tryCatch(DESeqDataSetFromMatrix(cmat_c, .cd2, design=as.formula(paste0("~", .bc, "+condition_grp"))), error=function(e) NULL)
+            if (is.null(.ddf)) next
+            .ddf <- tryCatch(DESeq(.ddf, test="LRT", reduced=~condition_grp, quiet=TRUE), error=function(e) NULL)
+            if (is.null(.ddf)) next
+            .rb <- results(.ddf); .nb <- sum(!is.na(.rb\$padj) & .rb\$padj < ${max_qval})
+            if (.nb > .n_sig_block) { .n_sig_block <- .nb; .block_var <- .bc }
+          }
+          .confounded <- !is.na(.block_var) && .n_sig_block >= max(1, ceiling(0.02 * nrow(cmat_c)))
+          if (!.confounded) .block_var <- NA_character_
+        }
+        .final_design <- if (.confounded && !is.na(.block_var)) paste0("~", .block_var, "+condition_grp") else "~condition_grp"
+        if (!is.na(.block_var)) col_data[[.block_var]] <- factor(as.character(col_data[[.block_var]]))
+        # Naive (~condition_grp) fit for the before/after delta, only when correcting.
+        .n_sig_naive <- NA_integer_
+        if (.confounded && !is.na(.block_var)) {
+          .ddn <- tryCatch(DESeqDataSetFromMatrix(cmat_c, col_data, design=~condition_grp), error=function(e) NULL)
+          if (!is.null(.ddn)) {
+            .ddn <- tryCatch(DESeq(.ddn, quiet=TRUE),
+                             error=function(e) tryCatch(DESeq(.ddn, fitType="local", quiet=TRUE), error=function(e2) NULL))
+            if (!is.null(.ddn)) {
+              .rn <- results(.ddn, contrast=c("condition_grp", ctgt, cref), alpha=${max_qval})
+              .n_sig_naive <- sum(!is.na(.rn\$padj) & .rn\$padj < ${max_qval} & abs(.rn\$log2FoldChange) >= log2(${min_fc}))
+              write.csv(as.data.frame(.rn[order(.rn\$padj, na.last=TRUE), ]), paste0(cid, "_DESeq2_results_naive.csv"), row.names=TRUE)
+            }
+          }
+        }
+        message("[design-qc] contrast '", cid, "': naive ~condition_grp",
+                if (.confounded) paste0(" -> CONFOUNDED by '", .block_var, "' (", .n_sig_block, " genes); re-fit ", .final_design)
+                else " (no blocking confounder detected)")
+
         dds <- tryCatch(
-          DESeqDataSetFromMatrix(countData=cmat_c, colData=col_data, design=~condition_grp),
+          DESeqDataSetFromMatrix(countData=cmat_c, colData=col_data, design=as.formula(.final_design)),
           error=function(e) stop("DESeq2 setup failed for contrast '", cid, "': ", e\$message)
         )
         dds <- estimateSizeFactors(dds)
@@ -331,6 +383,25 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
         res_df <- res_df[order(res_df\$padj, na.last=TRUE), ]
         write.csv(res_df, paste0(cid, "_DESeq2_results.csv"), row.names=TRUE)
         all_results[[cid]] <- res_df
+
+        # Record the design-QC self-correction + publish naive-vs-corrected summary.
+        .n_sig_corr <- sum(!is.na(res_df\$padj) & res_df\$padj < ${max_qval} & abs(res_df\$log2FoldChange) >= log2(${min_fc}))
+        design_info[[cid]] <- list(
+          blocking_var = if (is.na(.block_var)) NA else .block_var,
+          confounded   = isTRUE(.confounded),
+          naive_design = "~condition_grp",
+          final_design = .final_design,
+          n_sig_block  = as.integer(.n_sig_block),
+          n_sig_naive  = .n_sig_naive,
+          n_sig_corrected = as.integer(.n_sig_corr)
+        )
+        if (isTRUE(.confounded) && !is.na(.block_var)) {
+          write.csv(
+            data.frame(metric=c("design","n_significant","blocking_factor","blocking_significant_genes"),
+                       naive=c("~condition_grp", ifelse(is.na(.n_sig_naive), NA, .n_sig_naive), .block_var, .n_sig_block),
+                       corrected=c(.final_design, .n_sig_corr, .block_var, .n_sig_block)),
+            paste0(cid, "_design_naive_vs_corrected.csv"), row.names=FALSE)
+        }
 
         sig_genes <- rownames(res_df)[!is.na(res_df\$padj) & res_df\$padj < ${max_qval} &
                                        abs(res_df\$log2FoldChange) >= log2(${min_fc})]
@@ -375,8 +446,28 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
           status      = paste0(.n_sig_total, " features significant at padj<${max_qval}, |FC|>=${min_fc} (", de_method, ")")
         )
       ),
-      harness_version  = "0.4.0-deseq2-limma"
+      design_qc        = lapply(names(design_info), function(.c) design_info[[.c]]),
+      harness_version  = "0.5.0-deseq2-limma-designqc"
     )
+    if (length(design_info)) names(.qc\$design_qc) <- names(design_info)
+    # Surface the design-formula self-correction as a gate the harness renders.
+    .conf <- Filter(function(x) isTRUE(x\$confounded), design_info)
+    if (length(.conf) > 0) {
+      .d <- .conf[[1]]
+      .qc\$gates_by_label[["design formula"]] <- list(
+        gate_row    = "bioc_deseq2_design_blocking",
+        metric_name = "blocked_covariate_significant_genes",
+        metric_value = as.integer(.d\$n_sig_block),
+        passes      = FALSE,
+        blocking_var = .d\$blocking_var,
+        status      = paste0("Confounder '", .d\$blocking_var, "' omitted from naive design ",
+                             .d\$naive_design, "; re-fit as ", .d\$final_design,
+                             " (", .d\$n_sig_block, " genes vary by '", .d\$blocking_var,
+                             "'; significant genes ", ifelse(is.null(.d\$n_sig_naive) || is.na(.d\$n_sig_naive), "NA", .d\$n_sig_naive),
+                             " -> ", .d\$n_sig_corrected, ")"),
+        remediation = paste0("add blocking factor '", .d\$blocking_var, "' to the design formula")
+      )
+    }
     cat(jsonlite::toJSON(.qc, auto_unbox=TRUE, pretty=TRUE, null="null"), file="qc_metrics.json")
 
     .ver <- if (de_method == "limma") as.character(packageVersion('limma')) else as.character(packageVersion('DESeq2'))
