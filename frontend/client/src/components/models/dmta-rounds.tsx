@@ -47,6 +47,7 @@ export function RoundsSection({
   const [actionError, setActionError] = useState("")
   const [actionOk, setActionOk] = useState("")
   const [localCampaign, setLocalCampaign] = useState(campaignId)
+  const [modality, setModality] = useState<"small_molecule" | "peptide" | "biologic">("small_molecule")
 
   const refresh = useCallback(() => {
     qc.invalidateQueries({ queryKey: ["/api/model-tracks/optimise"] })
@@ -67,20 +68,26 @@ export function RoundsSection({
           molecule_name: "Models DMTA loop",
           objective: "balance",
           user_id: "",
+          modality,
         }),
       })
       // 409 = already exists for this project id — still seed fixtures so propose works.
       if (!res.ok && res.status !== 409) throw new Error(await errorDetail(res))
       setLocalCampaign(campaignId)
-      const seed = await seedLoopFixturesForCampaign(campaignId)
-      setActionOk(
-        t("models.rounds_created_seeded", {
-          assays: String(seed.assaysIngested),
-          library: String(seed.librarySize),
-        }),
-      )
-      if (seed.warnings.length) {
-        setActionError(seed.warnings.join("; "))
+      if (modality === "small_molecule") {
+        // Only the small-molecule demo (real public BACE data) is bundled. We do
+        // NOT fabricate peptide/biologic assay values — those campaigns start
+        // empty and the user ingests their own measured sequences.
+        const seed = await seedLoopFixturesForCampaign(campaignId)
+        setActionOk(
+          t("models.rounds_created_seeded", {
+            assays: String(seed.assaysIngested),
+            library: String(seed.librarySize),
+          }),
+        )
+        if (seed.warnings.length) setActionError(seed.warnings.join("; "))
+      } else {
+        setActionOk(t("models.rounds_created_sequence", { modality: t(`models.rounds_modality_${modality}`) }))
       }
       refresh()
     } catch (e) {
@@ -118,6 +125,16 @@ export function RoundsSection({
   const controls = (
     <div className="space-y-2" data-testid="optimise-controls">
       <p className="text-fs-xs text-muted-foreground">{t("models.rounds_controls_hint")}</p>
+      <div className="flex flex-wrap items-center gap-1.5" data-testid="optimise-modality" role="group" aria-label={t("models.rounds_modality_label")}>
+        <span className="text-fs-xs text-muted-foreground">{t("models.rounds_modality_label")}</span>
+        {(["small_molecule", "peptide", "biologic"] as const).map((m) => (
+          <Button key={m} type="button" size="sm" variant={modality === m ? "default" : "outline"}
+            className="h-7 text-xs" disabled={!!busy} onClick={() => setModality(m)}
+            data-testid={`optimise-modality-${m}`}>
+            {t(`models.rounds_modality_${m}`)}
+          </Button>
+        ))}
+      </div>
       <div className="flex flex-wrap gap-1.5">
         <Button type="button" size="sm" variant="outline" className="h-7 text-xs"
           disabled={!!busy || !campaignId} onClick={createCampaign}
