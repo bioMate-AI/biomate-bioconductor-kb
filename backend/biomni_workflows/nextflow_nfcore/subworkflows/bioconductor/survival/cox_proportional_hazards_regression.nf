@@ -32,6 +32,7 @@ process BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION {
     tuple val(meta), path("*.pdf"),  emit: plots,  optional: true
     tuple val(meta), path("*.rds"),  emit: objects, optional: true
     tuple val(meta), path("*.json"), emit: reports, optional: true
+    tuple val(meta), path("survival_qc.json"), emit: qc_metrics, optional: true
     path "versions.yml",             emit: versions
 
     when:
@@ -332,6 +333,47 @@ process BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION {
         writeLines(c("{", paste(.jlines, collapse = ",\n"), "}"), "cox_remediation_summary.json")
         cat("\\n[self-correction] PH-violation remediation status: ", remediation\$status, "\\n", sep = "")
 
+        # 4. Emit survival_qc.json for the survival QC gate / auto-loop.
+        #    The first covariate column (after time/status) is the primary biomarker.
+        #    We report: the naive biomarker-only HR vs the adjusted HR, the Schoenfeld
+        #    global PH p-value, and every other covariate as a candidate confounder
+        #    (name/HR/p). The survival_autoloop evaluator reads these: a significant
+        #    omitted covariate -> confounding gate -> re-fit adjusted; a Schoenfeld
+        #    global p < 0.05 -> PH gate -> stratify.
+        tryCatch({
+          if (!requireNamespace("jsonlite", quietly=TRUE))
+            install.packages("jsonlite", repos="https://packagemanager.posit.co/cran/__linux__/jammy/latest")
+          covs    <- setdiff(colnames(clinical_data), c("time", "status"))
+          primary <- covs[1]
+          coefs <- as.data.frame(fit_summary\$coefficients)   # cols: coef, exp(coef), se, z, Pr(>|z|)
+          ci    <- as.data.frame(fit_summary\$conf.int)
+          hr_of <- function(v) if (!is.null(v) && v %in% rownames(ci))    unname(ci[v, "exp(coef)"]) else NA
+          p_of  <- function(v) if (!is.null(v) && v %in% rownames(coefs)) unname(coefs[v, ncol(coefs)]) else NA
+          naive_hr <- tryCatch({
+            nf <- coxph(as.formula(paste0("Surv(time, status) ~ ", primary)), data = clinical_data)
+            unname(summary(nf)\$conf.int[primary, "exp(coef)"])
+          }, error = function(e) NA)
+          omitted <- list()
+          for (v in setdiff(covs, primary)) {
+            pv <- p_of(v)
+            if (!is.na(pv)) omitted[[length(omitted) + 1]] <- list(name = v, hr = round(hr_of(v), 4), p = pv)
+          }
+          cz_tab <- as.data.frame(cz\$table)
+          gp   <- if ("GLOBAL" %in% rownames(cz_tab)) unname(cz_tab["GLOBAL", "p"]) else NA
+          viol <- rownames(cz_tab)[!is.na(cz_tab\$p) & cz_tab\$p < 0.05 & rownames(cz_tab) != "GLOBAL"]
+          qc <- list(
+            process                 = "BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION",
+            domain                  = "survival",
+            primary_covariate       = primary,
+            naive_primary_hr        = if (is.na(naive_hr))        NULL else round(naive_hr, 4),
+            adjusted_primary_hr     = if (is.na(hr_of(primary)))  NULL else round(hr_of(primary), 4),
+            schoenfeld_global_p     = if (is.na(gp))              NULL else gp,
+            ph_violating_covariates = as.list(viol),
+            omitted_confounders     = omitted
+          )
+          cat(jsonlite::toJSON(qc, auto_unbox = TRUE, null = "null", pretty = TRUE), file = "survival_qc.json")
+        }, error = function(e) message("survival_qc emit failed: ", conditionMessage(e)))
+
     writeLines(c(
         '"BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION":',
         paste0('    survival: ', as.character(packageVersion('survival')))
@@ -353,9 +395,10 @@ workflow BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION_WORKFLOW {
     BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION(ch_input)
 
     emit:
-    tables   = BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION.out.tables
-    plots    = BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION.out.plots
-    objects  = BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION.out.objects
-    reports  = BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION.out.reports
-    versions = BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION.out.versions
+    tables     = BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION.out.tables
+    plots      = BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION.out.plots
+    objects    = BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION.out.objects
+    reports    = BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION.out.reports
+    qc_metrics = BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION.out.qc_metrics
+    versions   = BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION.out.versions
 }

@@ -2766,11 +2766,20 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
     Returns the wrapper .nf path, or None if not applicable (caller keeps the normal `-entry`
     path). Mutates `params`: Style-A declared-input keys are popped (they become staged files,
     not CLI `--flags`)."""
-    if "/bioconductor/" not in nf_path.as_posix():
-        return None
     try:
         text = nf_path.read_text(errors="replace")
     except OSError:
+        return None
+    # Engage for the bioconductor subworkflow tree, OR for ANY nf that declares its
+    # inputs with an explicit `// Input:` header (the declared-input contract). The
+    # latter lets declared-input nfcore stubs (e.g. differentialabundance / deseq2)
+    # stage their CSVs via backend-managed download instead of raw
+    # `Channel.fromPath(s3://…)`, which throws "Exception thrown downloading S3 object"
+    # on the orchestrator. The shape checks below (no anonymous workflow, a named
+    # `take:` workflow, a single process, a `path()` input) still gate engagement, so
+    # ordinary nfcore pipelines (anonymous `workflow { }`, nf-schema samplesheets, no
+    # `// Input:` header) are unaffected.
+    if "/bioconductor/" not in nf_path.as_posix() and not _BIOC_INPUT_DECL_RE.search(text):
         return None
     # An anonymous workflow already provides a runnable entry — leave it alone.
     if re.search(r"(?m)^\s*workflow\s*\{", text):
