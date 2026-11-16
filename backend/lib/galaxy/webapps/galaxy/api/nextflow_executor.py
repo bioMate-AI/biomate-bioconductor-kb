@@ -6727,7 +6727,12 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
         # matching (bioc + cryo-EM chain templates both key on the nf path
         # basename).  Runs in the same completion thread — failures are silently
         # swallowed so they cannot block billing / LTM writes below.
-        if final_status == "completed" and _inv_id:
+        # NOTE: a successful Nextflow run sets final_status="succeeded" (L6654),
+        # NOT "completed" — gating this block on "completed" alone meant the
+        # chain-suggestion / proactive / UC4 class-II hooks NEVER fired on the
+        # in-memory completion path (only the orphan-poller path, whose gate is
+        # "succeeded"). Match both so the hooks fire from whichever path finalizes.
+        if final_status in ("succeeded", "completed") and _inv_id:
             with _runs_lock:
                 _wf_name = _runs.get(run_id, {}).get("nextflow_path", "")
             # Cross-worker safety: if this worker's in-memory _runs lost the entry
