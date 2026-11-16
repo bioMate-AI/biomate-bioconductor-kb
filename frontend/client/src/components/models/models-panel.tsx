@@ -63,6 +63,14 @@ export type TrainPath = "ui" | "code"
  */
 export const HOUSE_STYLE_HIDDEN = true
 
+/**
+ * The Code sandbox path is hidden for now (not deleted). It is a bare run_code
+ * textarea with no catalog/model awareness, redundant with chat's run_code tool
+ * (which has the LLM + knows the catalog and data). CodeSandboxPath and its tests
+ * remain; flip this to false to restore the No-code ↔ Code toggle on the Train tab.
+ */
+export const CODE_PATH_HIDDEN = true
+
 /** Tab ids, in display order. */
 export const MODELS_TRACKS = ["train", "library", "molecular"] as const
 export type ModelsTrack = (typeof MODELS_TRACKS)[number]
@@ -472,32 +480,34 @@ export function ModelsPanel({
               <p className="text-fs-xs text-muted-foreground" data-testid="tab-purpose-train">
                 {t("models.tab_purpose_train")}
               </p>
-              <div className="flex flex-wrap gap-1" data-testid="train-path-toggle" role="group" aria-label={t("models.path_toggle_label")}>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={trainPath === "ui" ? "default" : "outline"}
-                  className="h-7 text-xs"
-                  onClick={() => setTrainPath("ui")}
-                  data-testid="train-path-ui"
-                >
-                  {t("models.path_ui")}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={trainPath === "code" ? "default" : "outline"}
-                  className="h-7 text-xs"
-                  onClick={() => setTrainPath("code")}
-                  data-testid="train-path-code"
-                >
-                  {t("models.path_code")}
-                </Button>
-              </div>
+              {!CODE_PATH_HIDDEN && (
+                <div className="flex flex-wrap gap-1" data-testid="train-path-toggle" role="group" aria-label={t("models.path_toggle_label")}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={trainPath === "ui" ? "default" : "outline"}
+                    className="h-7 text-xs"
+                    onClick={() => setTrainPath("ui")}
+                    data-testid="train-path-ui"
+                  >
+                    {t("models.path_ui")}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={trainPath === "code" ? "default" : "outline"}
+                    className="h-7 text-xs"
+                    onClick={() => setTrainPath("code")}
+                    data-testid="train-path-code"
+                  >
+                    {t("models.path_code")}
+                  </Button>
+                </div>
+              )}
               <p className="text-fs-xs text-muted-foreground" data-testid="train-path-hint">
-                {trainPath === "ui" ? t("models.path_ui_hint") : t("models.path_code_hint")}
+                {CODE_PATH_HIDDEN || trainPath === "ui" ? t("models.path_ui_hint") : t("models.path_code_hint")}
               </p>
-              {trainPath === "ui" ? (
+              {CODE_PATH_HIDDEN || trainPath === "ui" ? (
                 <>
                   <TrainingLauncher family="general" />
                   <TrackRequestState query={trainQuery} overridden={trainData !== undefined}>

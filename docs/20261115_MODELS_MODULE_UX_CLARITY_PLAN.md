@@ -19,6 +19,9 @@ Direct user pushback on two P0 boundary-hints — correctly identifying that hon
 - **Sandbox dead-end framing removed.** Deleted the "Exploratory run — won't appear under Your trained models" hint (`code_sandbox_boundary`) that read as "why bother." Sandbox outputs are still returned and downloadable; the `code_intro` ("quick exploration") conveys purpose without discouraging. Open follow-up: a "Save outputs to project" action would make the sandbox persist results (addresses the deeper "is it worth it" concern) — not built this pass.
 tsc clean; full vitest 4016 pass / 0 fail.
 
+### P0.8 — Code sandbox sub-tab hidden (2026-11-15)
+User challenged the Code path's rationale: a bare `run_code` textarea with no catalog/model awareness and no code assistance, redundant with chat's `run_code` tool (which has the LLM + knows the catalog/data). Added 2026-11-12 (`2f7e8b2dc9`) only as a fallback for broken Galaxy Interactive Tools. Decision: **hide it for now** behind `CODE_PATH_HIDDEN = true` (same reversible pattern as `HOUSE_STYLE_HIDDEN`) — the Train tab now shows only the No-code launcher; the toggle and `CodeSandboxPath` (and its component tests) remain so a flag flip restores it. Panel-wiring test updated to branch on the flag. Open question for a later IA pass: remove entirely vs. demote behind "Advanced". tsc clean; full vitest 4016 pass / 0 fail.
+
 ---
 
 ## 1. Evidence (what actually confused a real user)
