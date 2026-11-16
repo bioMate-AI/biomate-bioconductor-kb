@@ -2915,6 +2915,16 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
                 src = params.get(_no_ext)
                 if src:
                     _pop_key = _no_ext
+            if not src:
+                # nf-core alias: a `samplesheet` declared input is commonly supplied
+                # (and canonicalized by the backend) under `input`, and vice-versa.
+                # Resolve across the pair so a declared `samplesheet.csv` finds
+                # params["input"] (the value the samplesheet was normalized to).
+                _alias = {"samplesheet": "input", "input": "samplesheet"}.get(
+                    name.rsplit('.', 1)[0] if '.' in name else name)
+                if _alias and params.get(_alias):
+                    src = params.get(_alias)
+                    _pop_key = _alias
             if not src and n_path <= 1 and _freestyle_pool:
                 # Prefer semantic/basename match. For a single declared name, the whole
                 # remaining pool is the list-style input (omics). For multi-name headers,

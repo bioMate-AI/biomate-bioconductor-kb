@@ -91,6 +91,28 @@ def test_diffab_routes_through_bioc_wrapper():
             assert k not in params, f"{k} should be popped after staging"
 
 
+def test_diffab_samplesheet_alias_input():
+    """The backend canonicalizes the samplesheet to `input` (samplesheet=None). The
+    wrapper must still resolve the declared `samplesheet.csv` from params['input']."""
+    ns = _load_helpers()
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td); src_dir = td / "src"; src_dir.mkdir()
+        (src_dir / "ss.csv").write_text("sample,cell,dex\nSRR1,N61311,untrt\nSRR2,N61311,trt\n")
+        (src_dir / "mx.csv").write_text("gene_id,SRR1,SRR2\nENSG1,10,200\n")
+        (src_dir / "ct.csv").write_text("id,variable,reference,target\nd,dex,untrt,trt\n")
+        run_dir = td / "run"; run_dir.mkdir()
+        # Mirror the REAL resolved params: samplesheet is None, value under `input`.
+        params = {"samplesheet": None, "input": str(src_dir / "ss.csv"),
+                  "matrix": str(src_dir / "mx.csv"), "contrasts": str(src_dir / "ct.csv")}
+        wrapper = ns["_build_bioc_entry_wrapper"](STUB_NF, params, run_dir, "t3")
+        assert wrapper is not None, "alias resolution failed -> fell back to Channel.fromPath"
+        wtext = Path(wrapper).read_text()
+        assert "Channel.fromPath" not in wtext
+        for fn in ("samplesheet.csv", "matrix.csv", "contrasts.csv"):
+            assert (run_dir / fn).exists(), f"{fn} not staged"
+        assert "input" not in params, "`input` alias should be popped after staging"
+
+
 def test_diffab_no_input_falls_through_to_mg_demo():
     """A NO-INPUT run must NOT engage the wrapper (returns None) so the anonymous
     mg_demo `workflow {}` path runs — this is what the deploy smoke test exercises."""
