@@ -13,6 +13,12 @@ Server messages: `routes.ts` 502 registry error humanized; `model-training-regis
 Components: `models-panel.tsx` renders `panel_subtitle` + a Run-Manager `runs_manage_hint` footer under training runs; `code-sandbox-path.tsx` shows `code_sandbox_boundary` in the result.
 Not done: P0.6 telemetry (no existing hook found — flagged for follow-up); full navigate-button on the chemical empty-state (copy + correct tab-name shipped; button is a small follow-up).
 
+### P0.7 — User feedback follow-up (2026-11-15, same session)
+Direct user pushback on two P0 boundary-hints — correctly identifying that honestly *labeling* an over-complicated design still leaves it over-complicated. Fixed the design, not the label:
+- **Run management brought into the Train tab.** Added inline **Rename** + **Delete** on each run in the Train-tab runs list (`RunManageControls` in `models-panel.tsx`), so users no longer need to discover a separate Run Manager. Delete is two-step (confirm) and destructive-safe; both invalidate the train-track query on success. Removed the "Rename or delete runs in the Run Manager" footer hint (now redundant). Backend: `DELETE /api/workflows/runs/:id` already existed; **rename** required extending `legacyRunUpdateSchema` (a security-reviewed owner-gated whitelist) with **`workflowName` only** — a bounded display label (1–200 chars), never a path/status/ownership/launch field — with a matching assertion in `legacy-run-access.test.ts`. The Train-tab run label *is* `run.workflowName`, so the rename shows immediately.
+- **Sandbox dead-end framing removed.** Deleted the "Exploratory run — won't appear under Your trained models" hint (`code_sandbox_boundary`) that read as "why bother." Sandbox outputs are still returned and downloadable; the `code_intro` ("quick exploration") conveys purpose without discouraging. Open follow-up: a "Save outputs to project" action would make the sandbox persist results (addresses the deeper "is it worth it" concern) — not built this pass.
+tsc clean; full vitest 4016 pass / 0 fail.
+
 ---
 
 ## 1. Evidence (what actually confused a real user)

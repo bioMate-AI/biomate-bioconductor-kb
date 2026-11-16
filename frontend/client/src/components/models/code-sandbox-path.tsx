@@ -216,9 +216,6 @@ export function CodeSandboxPath() {
             >
               {t("models.code_exit", { code: String(result.exit_code) })}
             </Badge>
-            <span className="text-fs-xs text-muted-foreground" data-testid="code-sandbox-boundary">
-              {t("models.code_sandbox_boundary")}
-            </span>
           </div>
           {result.stdout ? (
             <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded bg-muted/40 p-2" data-testid="code-stdout">

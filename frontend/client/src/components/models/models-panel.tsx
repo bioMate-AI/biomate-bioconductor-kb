@@ -21,6 +21,7 @@ import { originLabel } from "./model-origin"
  */
 
 import { useEffect, useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { t, tOr } from "@/lib/i18n"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -202,8 +203,74 @@ function gateLabel(r: TrainRun): string {
     : t(key)
 }
 
+// Inline rename + delete for a training run, so the user can manage runs right
+// here in the Train tab instead of discovering a separate Run Manager.
+function RunManageControls({ runId, currentName, onChanged }: { runId: string; currentName: string; onChanged: () => void }) {
+  const [mode, setMode] = useState<"idle" | "rename" | "confirmDelete">("idle")
+  const [name, setName] = useState(currentName)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState("")
+
+  const save = async () => {
+    const next = name.trim()
+    if (!next || next === currentName) { setMode("idle"); return }
+    setBusy(true); setError("")
+    try {
+      const res = await fetch(`/api/workflows/runs/${encodeURIComponent(runId)}`, {
+        method: "PATCH", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workflowName: next }),
+      })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || t("models.run_rename_failed"))
+      setMode("idle"); onChanged()
+    } catch (cause) { setError((cause as Error).message || t("models.run_rename_failed")) } finally { setBusy(false) }
+  }
+  const remove = async () => {
+    setBusy(true); setError("")
+    try {
+      const res = await fetch(`/api/workflows/runs/${encodeURIComponent(runId)}`, { method: "DELETE", credentials: "include" })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || t("models.run_delete_failed"))
+      onChanged()
+    } catch (cause) { setError((cause as Error).message || t("models.run_delete_failed")); setBusy(false) }
+  }
+
+  if (mode === "rename") {
+    return (
+      <span className="inline-flex flex-wrap items-center gap-1">
+        <input
+          className="rounded border bg-background px-1 py-0.5 text-fs-xs" value={name} autoFocus disabled={busy}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") { setMode("idle"); setName(currentName) } }}
+          data-testid={`train-run-rename-input-${runId}`} aria-label={t("models.run_rename")}
+        />
+        <button type="button" className="text-primary hover:underline" disabled={busy} onClick={save} data-testid={`train-run-rename-save-${runId}`}>{t("models.run_rename_save")}</button>
+        <button type="button" className="text-muted-foreground hover:underline" disabled={busy} onClick={() => { setMode("idle"); setName(currentName) }}>{t("models.cancel")}</button>
+        {error && <span className="text-destructive">{error}</span>}
+      </span>
+    )
+  }
+  if (mode === "confirmDelete") {
+    return (
+      <span className="inline-flex flex-wrap items-center gap-1">
+        <span className="text-muted-foreground">{t("models.run_delete_confirm")}</span>
+        <button type="button" className="text-destructive hover:underline" disabled={busy} onClick={remove} data-testid={`train-run-delete-confirm-${runId}`}>{t("models.run_delete")}</button>
+        <button type="button" className="text-muted-foreground hover:underline" disabled={busy} onClick={() => setMode("idle")}>{t("models.cancel")}</button>
+        {error && <span className="text-destructive">{error}</span>}
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-2">
+      <button type="button" className="text-muted-foreground hover:underline" onClick={() => { setName(currentName); setMode("rename") }} data-testid={`train-run-rename-${runId}`}>{t("models.run_rename")}</button>
+      <button type="button" className="text-muted-foreground hover:underline" onClick={() => setMode("confirmDelete")} data-testid={`train-run-delete-${runId}`}>{t("models.run_delete")}</button>
+    </span>
+  )
+}
+
 export function TrainingRuns({ data, onOpenModel }: { data?: TrainData; onOpenModel: (id: string) => void }) {
   const runs = data?.runs ?? []
+  const queryClient = useQueryClient()
+  const refreshRuns = () => queryClient.invalidateQueries({ queryKey: ["/api/model-tracks/train"] })
   return (
     <Card data-testid="train-runs">
       <CardHeader className="pb-2">
@@ -264,6 +331,9 @@ export function TrainingRuns({ data, onOpenModel }: { data?: TrainData; onOpenMo
                   </button>
                 )}
               </div>
+              {r.runId && (
+                <RunManageControls runId={r.runId} currentName={r.name} onChanged={refreshRuns} />
+              )}
               {r.version && <p className="text-fs-xs text-muted-foreground">{r.version}</p>}
             </div>
           ))
@@ -271,16 +341,6 @@ export function TrainingRuns({ data, onOpenModel }: { data?: TrainData; onOpenMo
           <p className="text-fs-xs text-muted-foreground" data-testid="train-runs-empty">
             {t("models.training_runs_empty")}
           </p>
-        )}
-        {runs.length > 0 && (
-          <button
-            type="button"
-            className="text-fs-xs text-muted-foreground hover:underline"
-            data-testid="train-runs-manage-hint"
-            onClick={() => openRunManager()}
-          >
-            {t("models.runs_manage_hint")} →
-          </button>
         )}
       </CardContent>
     </Card>

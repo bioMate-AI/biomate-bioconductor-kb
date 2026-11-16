@@ -46,6 +46,10 @@ describe('legacy run endpoint boundary', () => {
 });
 it('allows real parameter overrides but rejects forged output/owner/launch records', () => {
  expect(legacyRunUpdateSchema.safeParse({ parameters: { version: 2, toolParameters: { train: { alpha: 0.05 } } } }).success).toBe(true);
+ // workflowName is an allowed display-label edit (owner-gated), but must be non-empty and bounded.
+ expect(legacyRunUpdateSchema.safeParse({ workflowName: 'My BACE potency model' }).success).toBe(true);
+ expect(legacyRunUpdateSchema.safeParse({ workflowName: '' }).success).toBe(false);
+ expect(legacyRunUpdateSchema.safeParse({ workflowName: 'x'.repeat(201) }).success).toBe(false);
  for (const key of ['userId','projectId','workflowDefinition','execution','inputBindings','id']) {
   expect(legacyRunUpdateSchema.safeParse({ [key]: key === 'execution' ? { outputs: { private: 's3://other/private' }, trainingLaunchParameters: {} } : 'forged' }).success).toBe(false);
  }

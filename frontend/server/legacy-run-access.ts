@@ -33,4 +33,7 @@ export function createLegacyRunGuard(deps: LegacyRunAccessDependencies, access: 
 export const legacyRunUpdateSchema = z.object({
  parameters: versionedParametersSchema.optional(),
  dataScope: dataScopeSchema.optional(),
+ // User-editable display label only. Owner-gated by createLegacyRunGuard('write');
+ // never a path/status/ownership field, so it cannot forge the records above.
+ workflowName: z.string().trim().min(1).max(200).optional(),
 }).strict();
