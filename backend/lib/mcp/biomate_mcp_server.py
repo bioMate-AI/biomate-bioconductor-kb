@@ -389,15 +389,59 @@ class BioMateClient:
         # workflow_id should be the nextflow_path from search_workflow (e.g.
         # "pharmacology/herg_cardiac_safety_qsar/main.nf").
         # POST /api/workflows/execute expects a workflowDefinition envelope.
-        payload: Dict[str, Any] = {
-            "workflowDefinition": {
-                "nextflow_path": workflow_id,
-                "workflow_type": "nextflow",
-                "parameters": params or {},
-            }
-        }
+        params = params or {}
+        # Fetch the spec so we can send a COMPLETE, self-describing envelope and,
+        # critically, fill the caller's values into required_params[].value — the
+        # key the server-side required-input gate validates. Sending values only
+        # under parameters{} previously tripped `missing_required_params` even
+        # when the value was supplied. Best-effort: a spec-fetch failure falls
+        # back to the minimal envelope (the server also merges parameters{} now).
+        spec: Dict[str, Any] = {}
+        try:
+            spec = self.get_workflow_spec(workflow_id) or {}
+            if spec.get("error"):
+                spec = {}
+        except Exception:
+            spec = {}
+
+        wf_def: Dict[str, Any] = dict(spec.get("workflow_ga") or {})
+        for k in ("name", "annotation", "description", "nextflow_path",
+                  "format", "workflow_type", "tags"):
+            if not wf_def.get(k) and spec.get(k) is not None:
+                wf_def[k] = spec[k]
+        wf_def["nextflow_path"] = workflow_id
+        wf_def["workflow_type"] = wf_def.get("workflow_type") or "nextflow"
+        if not wf_def.get("name"):
+            wf_def["name"] = workflow_id
+
+        # Merge caller params over any spec defaults in the parameters{} map.
+        merged_params = dict(wf_def.get("parameters") or {})
+        merged_params.update(params)
+        wf_def["parameters"] = merged_params
+
+        # Populate values into required_params[].value / optional_params[].value
+        # by name, so the required-input gate sees them as satisfied.
+        def _is_empty(v: Any) -> bool:
+            return v is None or (isinstance(v, str) and v.strip() == "")
+
+        for key in ("required_params", "optional_params"):
+            plist = spec.get(key)
+            if isinstance(plist, list):
+                for p in plist:
+                    if isinstance(p, dict) and p.get("name") in merged_params \
+                            and not _is_empty(merged_params[p["name"]]):
+                        p["value"] = merged_params[p["name"]]
+                wf_def[key] = plist
+
         if session_message:
-            payload["workflowDefinition"]["description"] = session_message
+            wf_def["description"] = session_message
+
+        payload: Dict[str, Any] = {
+            "workflowDefinition": wf_def,
+            # Also pass the openapi top-level `params` map (merged on top of
+            # workflow defaults server-side) as a redundant, authoritative source.
+            "params": params,
+        }
         try:
             r = self.session.post(
                 self._url("/api/workflows/execute"),

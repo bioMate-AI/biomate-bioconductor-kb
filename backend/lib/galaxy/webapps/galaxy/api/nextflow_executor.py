@@ -921,6 +921,19 @@ def _read_run_nextflow_log_text(log_dir: Path) -> tuple[str, list[str]]:
         "Unable to ",
         "Unexpected token",
         "syntax error",
+        # nf-schema / nf-validation detail lines. Without these the top-level
+        # "ERROR ~ Validation of pipeline parameters failed!" surfaces but its
+        # actionable detail ("-> Entry 6: Error for field 'fastq_1' ... does not
+        # exist") is dropped — leaving the run undiagnosable (2026-11 rnaseq
+        # incident: errorMessage truncated, log_tail empty). Capture the whole
+        # validation block so the real cause is retrievable via the status API.
+        "invalid input values",
+        "Validation of file failed",
+        "Error for field",
+        "-> Entry",
+        "does not exist",
+        "must be provided",
+        "Validation of pipeline parameters failed",
     )
     err_lines = [l for l in cleaned_lines if any(m in l for m in err_markers)][-15:]
     if err_lines:
@@ -1202,12 +1215,21 @@ def _apply_disk_timing_terminal_state(info: Dict[str, Any], run_id: str) -> Dict
 
 
 def _non_pipeline_info_s3_outputs(s3_output_files: Optional[list]) -> list:
-    """Drop nf-core pipeline_info/ artifacts — they are written even when no tasks run."""
+    """Drop nf-core pipeline_info/ artifacts — they are written even when no tasks run.
+
+    Also drop the Phase 0 manifest files (results_manifest.json / design.json): they
+    are metadata we write INTO the outdir, so counting them as "real outputs" would
+    make a later outdir listing look non-empty and suppress the work-dir fallback —
+    losing the actual scientific outputs. They must never gate the resolver."""
+    _manifest_names = {_RESULTS_MANIFEST_NAME, _DESIGN_MANIFEST_NAME}
     kept: list = []
     for f in s3_output_files or []:
         uri = str(f.get("s3_uri", ""))
-        name = str(f.get("filename", ""))
+        name = str(f.get("filename", "")) or str(f.get("name", ""))
+        base = (name or uri).rstrip("/").rsplit("/", 1)[-1]
         if "/pipeline_info/" in uri or name.startswith("pipeline_info/"):
+            continue
+        if base in _manifest_names:
             continue
         kept.append(f)
     return kept
@@ -3731,6 +3753,249 @@ def _list_s3_work_output_files(work_s3_uri: str) -> list:
         return []
 
 
+# ── Phase 0 output-publishing contract ────────────────────────────────────────
+# Completed runs MUST attach their produced files to the run record in a standard
+# place, regardless of how the pipeline published them. Two landmines made
+# `output_files: []` surface silently on COMPLETED runs:
+#   (1) Bioconductor subworkflows carry NO `publishDir`, so their outputs only ever
+#       land in the Nextflow WORK dir — never in `outdir`. Resolution must fall back
+#       to scanning the work dir.
+#   (2) The launch record stored the real S3 work dir under key "work_dir" while the
+#       completion resolver read "workdir" (no underscore) → the fallback never fired
+#       → every bioc run published zero outputs.
+# Both the completion path (_stream_logs) AND the status endpoint funnel through the
+# ONE resolver below so neither can regress independently.
+
+_MANIFEST_SCHEMA_VERSION = "1.0"
+_RESULTS_MANIFEST_NAME = "results_manifest.json"
+_DESIGN_MANIFEST_NAME = "design.json"
+
+
+def _default_nextflow_bucket() -> str:
+    return (
+        os.environ.get("AWS_S3_BUCKET")
+        or os.environ.get("NEXTFLOW_S3_BUCKET")
+        or "biomate-nextflow-work"
+    )
+
+
+def _sanitize_uid_for_path(user_id: str) -> str:
+    return (user_id or "unknown").replace("/", "_").replace("..", "_")
+
+
+def _reconstruct_s3_work_dir(user_id: str, run_id: str) -> str:
+    """Deterministic S3 work dir for a Batch run:
+    s3://<bucket>/nextflow/work/<sanitized user_id>/<run_id>.
+    Mirrors the `-w` path built at dispatch (see the awsbatch branch of
+    _execute_nextflow_impl). Used to recover a work dir when the in-memory run
+    record was lost (gunicorn restart / orphan finalize) or never carried one."""
+    if not run_id:
+        return ""
+    return (
+        f"s3://{_default_nextflow_bucket()}/nextflow/work/"
+        f"{_sanitize_uid_for_path(user_id)}/{run_id}"
+    )
+
+
+def _resolve_run_workdir(info: Optional[Dict[str, Any]], run_id: str) -> str:
+    """Canonical S3 work dir for a run record. Accepts BOTH the canonical
+    'work_dir' key (written by the launch record) and the legacy 'workdir' key
+    (written by the fast-path pre-record), and reconstructs the deterministic S3
+    path for Batch runs when the record carries no usable value. This is the fix
+    for the key-name mismatch that silently dropped every bioc run's outputs."""
+    info = info or {}
+    wd = str(info.get("work_dir") or info.get("workdir") or "")
+    if wd.startswith("s3://"):
+        return wd
+    if info.get("is_batch"):
+        return _reconstruct_s3_work_dir(str(info.get("user_id", "")), run_id)
+    return wd
+
+
+def _resolve_s3_outputs(info: Optional[Dict[str, Any]], run_id: str) -> list:
+    """ONE canonical S3 output resolver for a completed run — the single source
+    both the completion path and the status endpoint use.
+
+    Order:
+      1. List the published `outdir` (nf-core pipelines publishDir here).
+      2. If that yields no REAL outputs (pipeline_info/ reports don't count), fall
+         back to scanning the Nextflow WORK dir — where bioc subworkflow outputs
+         (no publishDir) exclusively live.
+    Returns a list of {s3_uri, name, size, extension} dicts (possibly empty)."""
+    info = info or {}
+    outdir = str(info.get("outdir") or "")
+    files: list = []
+    if outdir.startswith("s3://"):
+        try:
+            files = _list_s3_output_files(outdir)
+        except Exception:
+            files = []
+    if not _non_pipeline_info_s3_outputs(files):
+        work_dir = _resolve_run_workdir(info, run_id)
+        if work_dir.startswith("s3://"):
+            try:
+                work_files = _list_s3_work_output_files(work_dir)
+            except Exception:
+                work_files = []
+            if work_files:
+                files = work_files
+    return files
+
+
+# Output file extension → coarse role, for the results manifest and any downstream
+# consumer (a scientific-judgment/critic layer) that needs file semantics without
+# re-deriving them. Generic across domains; unknown extensions → "data".
+_OUTPUT_ROLE_BY_EXT = {
+    "csv": "table", "tsv": "table", "txt": "table", "xlsx": "table",
+    "pdf": "figure", "png": "figure", "jpg": "figure", "jpeg": "figure", "svg": "figure",
+    "html": "report",
+    "rds": "model", "rdata": "model", "h5": "model", "h5ad": "model",
+    "json": "metadata", "yml": "metadata", "yaml": "metadata",
+    "vcf": "variants", "bed": "intervals", "bam": "alignment",
+    "fastq": "reads", "fq": "reads", "fa": "sequence", "fasta": "sequence",
+}
+
+
+def _infer_output_role(name: str, ext: str) -> str:
+    low = (name or "").lower()
+    if low.endswith("versions.yml") or low == "versions.yml":
+        return "provenance"
+    if "qc" in low and ext in ("json", "csv", "html"):
+        return "qc"
+    return _OUTPUT_ROLE_BY_EXT.get((ext or "").lower(), "data")
+
+
+def _manifest_file_entry(f: Dict[str, Any]) -> Dict[str, Any]:
+    name = (
+        f.get("name")
+        or f.get("filename")
+        or (str(f.get("s3_uri", "")).rstrip("/").rsplit("/", 1)[-1])
+    )
+    ext = (f.get("extension") or (name.rsplit(".", 1)[-1].lower() if "." in name else ""))
+    return {
+        "name": name,
+        "s3_uri": f.get("s3_uri", ""),
+        "size": f.get("size"),
+        "extension": ext,
+        "role": _infer_output_role(name, ext),
+    }
+
+
+def _build_results_manifest(
+    run_id: str, info: Optional[Dict[str, Any]], s3_output_files: list
+) -> Dict[str, Any]:
+    """Standardized per-run results manifest (schema v1.0). Lists every produced
+    file with a coarse role, so a downstream consumer can locate and interpret
+    outputs without re-scanning S3 or re-deriving semantics. Generic across all
+    workflows."""
+    from datetime import datetime, timezone
+    info = info or {}
+    nf_path = str(info.get("nextflow_path", ""))
+    files = [_manifest_file_entry(f) for f in (s3_output_files or [])]
+    return {
+        "schema_version": _MANIFEST_SCHEMA_VERSION,
+        "kind": "results_manifest",
+        "run_id": run_id,
+        "workflow": (nf_path.rsplit("/", 1)[-1] or nf_path),
+        "nextflow_path": nf_path,
+        "workflow_domain": str(info.get("workflow_domain", "")),
+        "status": "completed",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "outdir": str(info.get("outdir", "")),
+        "work_dir": _resolve_run_workdir(info, run_id),
+        "files": files,
+        "file_count": len(files),
+        "has_outputs": bool(_non_pipeline_info_s3_outputs(s3_output_files)),
+    }
+
+
+# Param keys that denote an INPUT dataset vs a scalar design knob. Heuristic +
+# the stored parameter_metadata (data_input=True) when available.
+def _param_is_input(key: str, value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    v = value.strip()
+    if v.startswith("s3://") or v.startswith("/"):
+        return True
+    low = key.lower()
+    return any(t in low for t in ("data", "input", "fasta", "gtf", "bam", "vcf", "csv", "file", "samplesheet"))
+
+
+def _build_design_json(
+    run_id: str, info: Optional[Dict[str, Any]], params: Optional[Dict[str, Any]]
+) -> Dict[str, Any]:
+    """Standardized per-run experimental-design record (schema v1.0). Captures the
+    structured substrate a downstream critic/judgment step reads: the inputs, the
+    scalar parameters, and (best-effort) design fields (formula, covariates, group
+    sizes) when cheaply derivable from params. Fields that need output parsing are
+    left null here and filled by consumers. Generic mechanism; Cox is the first
+    producer and leaves formula/covariates null (they are derived at runtime from
+    the clinical-data columns and recoverable from cox_coefficients.csv)."""
+    from datetime import datetime, timezone
+    info = info or {}
+    params = params or info.get("parameters") or {}
+    inputs: Dict[str, Any] = {}
+    scalars: Dict[str, Any] = {}
+    for k, v in params.items():
+        if k in ("outdir", "output", "output_dir", "output_location"):
+            continue
+        if _param_is_input(k, v):
+            inputs[k] = v
+        else:
+            scalars[k] = v
+    nf_path = str(info.get("nextflow_path", ""))
+    return {
+        "schema_version": _MANIFEST_SCHEMA_VERSION,
+        "kind": "design",
+        "run_id": run_id,
+        "workflow": (nf_path.rsplit("/", 1)[-1] or nf_path),
+        "nextflow_path": nf_path,
+        "workflow_domain": str(info.get("workflow_domain", "")),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "inputs": inputs,
+        "parameters": scalars,
+        "design": {
+            # Best-effort; null when not derivable from params alone.
+            "formula": None,
+            "covariates": [],
+            "group_sizes": {},
+        },
+    }
+
+
+def _write_run_manifests_to_s3(
+    outdir: str, manifest: Dict[str, Any], design: Dict[str, Any]
+) -> bool:
+    """Best-effort write of results_manifest.json + design.json to the run's S3
+    outdir. Never raises — a manifest-write failure must not fail the run. Returns
+    True when both objects were PUT."""
+    if not str(outdir).startswith("s3://"):
+        return False
+    try:
+        import json as _json
+        import boto3
+    except ImportError:
+        return False
+    try:
+        parts = outdir[len("s3://"):].split("/", 1)
+        bucket = parts[0]
+        base = (parts[1] if len(parts) > 1 else "").rstrip("/")
+        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        for name, obj in ((_RESULTS_MANIFEST_NAME, manifest), (_DESIGN_MANIFEST_NAME, design)):
+            key = f"{base}/{name}" if base else name
+            s3.put_object(
+                Bucket=bucket,
+                Key=key,
+                Body=_json.dumps(obj, indent=2).encode("utf-8"),
+                ContentType="application/json",
+            )
+        log.info("[Nextflow] wrote run manifests to %s", outdir)
+        return True
+    except Exception as exc:
+        log.warning("[Nextflow] manifest write failed for %s: %s", outdir, exc)
+        return False
+
+
 # CryoSPARC-specific: map S3 output directory names → 0-indexed step IDs
 # (matching _CRYOSPARC_STEP_PHASES in ai_assistant.py)
 _CRYOSPARC_S3_DIR_TO_STEP: Dict[str, int] = {
@@ -4256,20 +4521,46 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
         # a second brief lock.
         with _runs_lock:
             _present = run_id in _runs
-            _outdir_for_s3 = _runs[run_id].get("outdir", "") if _present else ""
-            _workdir_for_s3 = _runs[run_id].get("workdir", "") if _present else ""
-            _wf_domain_for_qc = _runs[run_id].get("workflow_domain", "") if _present else ""
-            _qc_overrides_for_qc = dict(_runs[run_id].get("qc_overrides", {})) if _present else {}
+            # Snapshot the whole record: _resolve_s3_outputs needs outdir + work_dir +
+            # is_batch + user_id together (and the key-tolerant work-dir reader).
+            _run_rec_snap = dict(_runs[run_id]) if _present else {}
+            _outdir_for_s3 = _run_rec_snap.get("outdir", "")
+            _wf_domain_for_qc = _run_rec_snap.get("workflow_domain", "")
+            _qc_overrides_for_qc = dict(_run_rec_snap.get("qc_overrides", {}))
 
         _s3_output_files: list = []
         _qc_gates_s3 = None
-        if _present and returncode == 0 and str(_outdir_for_s3).startswith("s3://"):
-            _s3_output_files = _s3_files_for_salvage or _list_s3_output_files(_outdir_for_s3)
-            # Fallback: if publishDir failed to write to outdir (common with cross-region S3
-            # in nf-amazon@3.3.0), scan the Nextflow work dir where Batch tasks copy outputs.
-            if not _s3_output_files and str(_workdir_for_s3).startswith("s3://"):
-                log.info("[Nextflow] outdir listing empty for %s — scanning workdir fallback", run_id)
-                _s3_output_files = _list_s3_work_output_files(_workdir_for_s3)
+        _results_manifest = None
+        _design_manifest = None
+        _output_resolution_gap = False
+        if _present and returncode == 0:
+            # ONE canonical resolver: outdir first, then the work-dir fallback (bioc
+            # subworkflows carry no publishDir — their outputs only live in the work
+            # dir). Fixes the "workdir" vs "work_dir" key mismatch that silently
+            # dropped every bioc run's outputs.
+            _s3_output_files = _s3_files_for_salvage or _resolve_s3_outputs(_run_rec_snap, run_id)
+            # FAIL LOUD: a succeeded run that resolved NO real outputs is almost
+            # always a resolution gap (wrong prefix / publishDir gap), not a
+            # legitimately empty result. Record a diagnostic flag so get_run can
+            # surface the gap instead of a silent output_files: [].
+            if not _non_pipeline_info_s3_outputs(_s3_output_files):
+                _output_resolution_gap = True
+                log.warning(
+                    "[Nextflow run %s] COMPLETED exit 0 but resolved 0 output files "
+                    "(outdir=%s work_dir=%s) — OUTPUT RESOLUTION GAP; a judgment/"
+                    "analysis consumer will have nothing to read",
+                    run_id, _outdir_for_s3, _resolve_run_workdir(_run_rec_snap, run_id),
+                )
+            else:
+                # Phase 0 publishing contract: write the standardized results +
+                # design manifests to the outdir so any downstream consumer finds
+                # them in one standard place. Best-effort; never fails the run.
+                try:
+                    _results_manifest = _build_results_manifest(run_id, _run_rec_snap, _s3_output_files)
+                    _design_manifest = _build_design_json(run_id, _run_rec_snap, _run_rec_snap.get("parameters"))
+                    _write_run_manifests_to_s3(_outdir_for_s3, _results_manifest, _design_manifest)
+                except Exception as _man_exc:
+                    log.warning("[Nextflow run %s] manifest build failed: %s", run_id, _man_exc)
             _qc_gates_s3 = _evaluate_qc_from_s3(
                 run_id=run_id,
                 s3_output_files=_s3_output_files,
@@ -4286,6 +4577,12 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                     _runs[run_id]["s3_output_files"] = _s3_output_files
                 if _qc_gates_s3:
                     _runs[run_id]["qc_gates"] = _qc_gates_s3
+                if _results_manifest is not None:
+                    _runs[run_id]["results_manifest"] = _results_manifest
+                if _design_manifest is not None:
+                    _runs[run_id]["design"] = _design_manifest
+                if _output_resolution_gap:
+                    _runs[run_id]["output_resolution_gap"] = True
                 run_meta = dict(_runs[run_id])
         log.info("[Nextflow run %s] finished — status=%s returncode=%d", run_id, final_status, returncode)
 
@@ -5926,6 +6223,10 @@ def _execute_nextflow_impl(
         "billing_instance_type": _billing_instance_type,
         # Accession metadata (empty dict when not applicable)
         "accession_params": {k: v["label"] for k, v in accession_params.items()},
+        # Phase 0 design substrate: the resolved workflow parameters, so the
+        # completion path can build design.json (inputs vs scalar knobs) without
+        # re-plumbing the request object into _stream_logs.
+        "parameters": dict(params),
     }
     with _runs_lock:
         _runs[run_id] = dict(_run_record_init)
@@ -6866,11 +7167,14 @@ def _get_nextflow_status_impl(
     _info_status_early = info.get("status", "running")
     if (
         not s3_files
-        and str(outdir).startswith("s3://")
         and _info_status_early in ("failed", "succeeded", "completed", "running")
     ):
+        # Use the ONE canonical resolver (outdir → work-dir fallback) so the status
+        # endpoint resolves bioc outputs (work-dir only, no publishDir) exactly like
+        # the completion path. Reading outdir alone here previously returned [] for
+        # every bioc run even after completion stored nothing.
         try:
-            s3_files = _list_s3_output_files(outdir)
+            s3_files = _resolve_s3_outputs(info, run_id)
         except Exception:
             pass
 
@@ -7000,6 +7304,11 @@ def _get_nextflow_status_impl(
         "s3_output_files": s3_files,
         "qc_report": qc_report,
         "qc_gates": info.get("qc_gates", []),  # gate failures from S3 post-run evaluation
+        # Phase 0 publishing contract — standardized manifests (null until a
+        # completed run with outputs has produced them).
+        "results_manifest": info.get("results_manifest"),
+        "design": info.get("design"),
+        "output_resolution_gap": bool(info.get("output_resolution_gap", False)),
         "started_at": started_at,
         "completed_at": completed_at,
         "duration_s": duration_s,
