@@ -211,17 +211,50 @@ def _emit_narrator(invocation_id: str, kind: str, technical: Dict[str, Any]) -> 
         log.debug("[orphan_finalizer] narrator emit skipped: %s", exc)
 
 
-def _run_s3_qc(run_id: str, run_record: Dict[str, Any]) -> Optional[list]:
+def _list_s3_outputs_with_fallback(run_record: Dict[str, Any]) -> list:
+    """List a finalized run's S3 output files, scanning the publishDir outdir
+    first and falling back to the Nextflow work dir when the outdir is empty.
+
+    This mirrors the in-memory completion path (nextflow_executor.py ~6558):
+    many BioMate subworkflows (e.g. the bioconductor survival/Cox chain) carry
+    NO publishDir directive, so their declared process outputs are staged only
+    into work/<hash>/ on S3 by the Batch task — never into the outdir. Without
+    the work-dir fallback here, an orphan-finalized no-publishDir run persists
+    an EMPTY s3_output_files, and get_run / analyze_results then report
+    `output_files: []` for a successful run (the documented Cox failure)."""
+    outdir = run_record.get("outdir", "")
+    if not str(outdir).startswith("s3://"):
+        return []
+    try:
+        from galaxy.webapps.galaxy.api.nextflow_executor import (
+            _list_s3_output_files, _list_s3_work_output_files,
+        )
+    except Exception as exc:
+        log.warning("[orphan_finalizer] output-listing import failed: %s", exc)
+        return []
+    s3_files = _list_s3_output_files(outdir)
+    if not s3_files:
+        workdir = run_record.get("workdir") or run_record.get("work_dir") or ""
+        if str(workdir).startswith("s3://"):
+            log.info("[orphan_finalizer] outdir listing empty — scanning workdir fallback")
+            s3_files = _list_s3_work_output_files(workdir)
+    return s3_files
+
+
+def _run_s3_qc(run_id: str, run_record: Dict[str, Any],
+               s3_files: Optional[list] = None) -> Optional[list]:
     """Lazy import + call into _evaluate_qc_from_s3 (which has our
-    fixed SSE callback wiring from commit 45db54b48)."""
+    fixed SSE callback wiring from commit 45db54b48).
+
+    `s3_files` may be supplied by the caller (already listed with the work-dir
+    fallback) to avoid a second S3 listing; otherwise it is listed here."""
     outdir = run_record.get("outdir", "")
     if not str(outdir).startswith("s3://"):
         return None
     try:
-        from galaxy.webapps.galaxy.api.nextflow_executor import (
-            _evaluate_qc_from_s3, _list_s3_output_files,
-        )
-        s3_files = _list_s3_output_files(outdir)
+        from galaxy.webapps.galaxy.api.nextflow_executor import _evaluate_qc_from_s3
+        if s3_files is None:
+            s3_files = _list_s3_outputs_with_fallback(run_record)
         return _evaluate_qc_from_s3(
             run_id=run_id,
             s3_output_files=s3_files,
@@ -338,9 +371,18 @@ def _finalize_orphaned_run_impl(
         log.debug("[orphan_finalizer] StudyRunLogger write failed for %s: %s",
                   run_id, _log_err)
 
-    # Step 4–5 — S3 QC + autoloop SSE.
+    # Step 4–5 — S3 outputs + QC + autoloop SSE.
     if final_status == "succeeded":
-        qc_gates = _run_s3_qc(run_id, run_record)
+        # List outputs ONCE (outdir, then work-dir fallback) and persist them to
+        # the store so get_run / analyze_results see a non-empty output_files for
+        # a successful run — including no-publishDir workflows whose outputs live
+        # only in work/<hash>/ (the Cox `output_files: []` bug).
+        s3_files = _list_s3_outputs_with_fallback(run_record)
+        if s3_files:
+            store.update_run(run_id, s3_output_files=s3_files)
+            log.info("[orphan_finalizer] %s: persisted %d S3 output file(s)",
+                     run_id, len(s3_files))
+        qc_gates = _run_s3_qc(run_id, run_record, s3_files=s3_files)
         if qc_gates:
             store.update_run(run_id, qc_gates=qc_gates)
             log.info("[orphan_finalizer] %s: %d gate(s) from S3 QC",

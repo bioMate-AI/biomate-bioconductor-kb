@@ -86,7 +86,7 @@ process PREP_COUNTS {
     label 'process_low'
     publishDir { "${params.outdir}/ebv_cfdna_mrd" }, mode: 'copy'
 
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/cfdna:x86' : 'biomate/cfdna:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
     tuple val(bam), val(target_bed), val(counts_json)
@@ -181,7 +181,7 @@ process QUANTIFY_MRD {
     label 'process_low'
     publishDir { "${params.outdir}/ebv_cfdna_mrd" }, mode: 'copy'
 
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/cfdna:x86' : 'biomate/cfdna:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
     path "counts.json"
@@ -352,7 +352,7 @@ process SUMMARISE {
     label 'process_low'
     publishDir { "${params.outdir}/ebv_cfdna_mrd" }, mode: 'copy'
 
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/cfdna:x86' : 'biomate/cfdna:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
     path "mrd_report.json"

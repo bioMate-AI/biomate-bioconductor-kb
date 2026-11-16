@@ -115,7 +115,7 @@ process PREP_INPUTS {
     label 'process_low'
     publishDir { "${params.outdir}/viral_genome_integration" }, mode: 'copy'
 
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/cfdna:x86' : 'biomate/cfdna:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
     tuple val(reads), val(viral_ref), val(host_ref), val(chimeric_json)
@@ -249,7 +249,7 @@ process CALL_INTEGRATION {
     label 'process_low'
     publishDir { "${params.outdir}/viral_genome_integration" }, mode: 'copy'
 
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/cfdna:x86' : 'biomate/cfdna:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
     path "prep.json"
@@ -475,7 +475,7 @@ process SUMMARISE {
     label 'process_low'
     publishDir { "${params.outdir}/viral_genome_integration" }, mode: 'copy'
 
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/cfdna:x86' : 'biomate/cfdna:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
     path "viral_summary.json"
