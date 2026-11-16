@@ -553,3 +553,5 @@ workflow DIFFERENTIALABUNDANCE {
 workflow {
     DIFFERENTIALABUNDANCE()
 }
+
+// redeploy marker: force workflows-layer resync of declared-input staging (1794862443)
