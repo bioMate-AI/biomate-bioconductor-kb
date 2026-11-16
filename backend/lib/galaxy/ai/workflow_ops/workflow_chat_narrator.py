@@ -185,6 +185,8 @@ _TEMPLATES: Dict[str, Any] = {
     "workflow.cancelled": _cancelled_msg,
     "workflow.paused": _paused_msg,
     "workflow.resumed": "Resuming your workflow.",
+    # Generic info line: renders the caller-supplied message verbatim.
+    "workflow.info": lambda t: t.get("message") or "Workflow update.",
     # Auto-proceeded after user didn't react in time
     "workflow.auto_proceeded": _auto_proceeded_msg,
     # deepagent.* events are emitted by DeepAnalysisAgent via its own

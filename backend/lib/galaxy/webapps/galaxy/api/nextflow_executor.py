@@ -508,6 +508,199 @@ def _fire_chain_suggestions(run_id: str, workflow_name: str, invocation_id: str)
         log.debug("[chain_suggest] _fire_chain_suggestions failed for %s: %s", run_id, _exc)
 
 
+# ── UC4: class-I MHC → class-II CD4-help auto-launch ───────────────────────────
+# MHCflurry (immunology/mhc_binding_prediction) predicts peptide×MHC CLASS-I
+# binding only. A durable therapeutic vaccine also needs CD4 help, i.e. CLASS-II
+# (HLA-DR/DP/DQ) epitopes. The product catches this and auto-routes the peptides
+# through a class-II engine (nf-core/epitopeprediction / NetMHCIIpan) — EXECUTED
+# as a real chained run, not narrated. If the class-II engine is not deployed in
+# this environment we say so honestly and fabricate NOTHING.
+
+# Logical paths a deployed class-II epitope engine could resolve to. Probed in
+# order via _resolve_nextflow_path; the first that resolves on disk is launched.
+_CLASSII_WORKFLOW_CANDIDATES = (
+    "nextflow_nfcore/subworkflows/immunology/epitopeprediction/main.nf",
+    "nextflow_nfcore/subworkflows/immunology/mhc_classII_binding_prediction/main.nf",
+    "nextflow_nfcore/subworkflows/immunology/mhc_ii_binding_prediction/main.nf",
+    "nfcore/epitopeprediction/main.nf",
+    "epitopeprediction/main.nf",
+)
+
+# Common Chinese-population HLA class-II alleles (NPC/HNSCC-relevant); used when
+# the class-I run did not carry an explicit class-II allele set.
+_DEFAULT_CLASSII_ALLELES = [
+    "HLA-DRB1*09:01", "HLA-DRB1*12:02", "HLA-DRB1*15:01",
+    "HLA-DPB1*05:01", "HLA-DQB1*03:01",
+]
+
+
+def _is_mhc_classI_workflow(nextflow_path: str) -> bool:
+    base = (nextflow_path or "").lower()
+    return "mhc_binding_prediction" in base and "classii" not in base and "class_ii" not in base
+
+
+def _resolve_classII_workflow() -> Optional[str]:
+    """Return the first class-II epitope workflow path resolvable on disk, else None."""
+    for cand in _CLASSII_WORKFLOW_CANDIDATES:
+        try:
+            _resolve_nextflow_path(cand)
+            return cand
+        except Exception:
+            continue
+    # DB fallback: any indexed workflow whose name/path points at class-II / epitopeprediction.
+    try:
+        import sqlite3 as _sql
+        db_path = Path(__file__).resolve().parents[5] / "database" / "galaxy_ai_tools.db"
+        if db_path.exists():
+            with _sql.connect(str(db_path)) as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "SELECT nextflow_path FROM workflows "
+                    "WHERE nextflow_path IS NOT NULL AND nextflow_path != '' "
+                    "AND (lower(nextflow_path) LIKE '%epitopeprediction%' "
+                    "  OR lower(name) LIKE '%class ii%' OR lower(name) LIKE '%class-ii%' "
+                    "  OR lower(nextflow_path) LIKE '%classii%') LIMIT 20")
+                for (nf_path,) in cur.fetchall():
+                    try:
+                        _resolve_nextflow_path(nf_path)
+                        return nf_path
+                    except Exception:
+                        continue
+    except Exception as _exc:
+        log.debug("[classII_autolaunch] DB probe failed: %s", _exc)
+    return None
+
+
+def _trigger_classII_autolaunch(run_id: str, inv_id: str, run_meta: Dict[str, Any]) -> None:
+    """After a successful class-I MHC run, auto-launch the class-II (CD4-help) run.
+
+    Always surfaces the immunology catch (class-I only → needs class-II for CD4
+    help). Then EITHER launches the class-II engine for real (new chained run) OR,
+    when no class-II engine is deployed, reports that honestly and produces NO
+    class-II numbers. Runs in a daemon thread; never raises.
+    """
+    try:
+        if run_meta.get("is_classII_autolaunch"):
+            return  # the class-II run itself — do not recurse
+        params = dict(run_meta.get("params") or run_meta.get("parameters") or {})
+        # Opt-out hook (default: fire — the vaccine-design beat wants it visible).
+        if str(params.get("class_ii_autolaunch", "true")).lower() in ("false", "0", "no"):
+            return
+
+        classII_path = _resolve_classII_workflow()
+
+        # The self-correction catch — surfaced regardless of availability.
+        catch_reason = (
+            "MHCflurry predicted class-I (HLA-A/B/C) binding only. A durable "
+            "therapeutic vaccine also needs CD4 T-cell help — class-II "
+            "(HLA-DR/DP/DQ) epitopes. Auto-routing the peptides through the "
+            "class-II engine."
+        )
+
+        if not classII_path:
+            # Honest fail: no class-II engine deployed → fabricate nothing.
+            _post_sse_direct(inv_id, "classII_autolaunch", {
+                "trigger_run_id": run_id,
+                "status": "unavailable",
+                "catch": catch_reason,
+                "message": (
+                    "Class-II engine (nf-core/epitopeprediction / NetMHCIIpan) is "
+                    "NOT deployed in this environment, so class-II (DR/DP/DQ) "
+                    "epitopes were not predicted. No class-II results are "
+                    "fabricated — add the epitopeprediction workflow to complete "
+                    "the CD4-help arm."
+                ),
+            })
+            if inv_id:
+                try:
+                    _narrate_chat(inv_id, "workflow.info", {
+                        "run_id": run_id,
+                        "message": (
+                            "Caught: this class-I vaccine screen needs CD4 help "
+                            "(class-II DR/DP/DQ). The class-II engine is not yet "
+                            "deployed here, so no class-II epitopes were produced "
+                            "(nothing fabricated)."
+                        ),
+                    })
+                except Exception:
+                    pass
+            log.info("[classII_autolaunch] run=%s — class-II engine unavailable; honest skip", run_id)
+            return
+
+        # Class-II engine available → launch a real chained run.
+        peptides = params.get("peptides")
+        classII_alleles = (
+            params.get("class_ii_alleles")
+            or params.get("mhc_ii_alleles")
+            or _DEFAULT_CLASSII_ALLELES
+        )
+        new_params: Dict[str, Any] = {
+            "alleles": classII_alleles,
+            "mhc_class": "II",
+            "sample_id": params.get("sample_id", "demo_sample"),
+        }
+        if peptides is not None:
+            new_params["peptides"] = peptides
+
+        new_run_id = str(uuid.uuid4())
+        new_inv_id = str(uuid.uuid4())
+        _pre = {
+            "run_id": new_run_id,
+            "invocation_id": new_inv_id,
+            "status": "configuring",
+            "returncode": None,
+            "nextflow_path": classII_path,
+            "user_id": run_meta.get("user_id", "anonymous"),
+            "is_pilot": run_meta.get("is_pilot", False),
+            "is_classII_autolaunch": True,
+            "classII_launched_from": run_id,
+            "llm_policy": run_meta.get("llm_policy"),
+            "started_at": time.time(),
+            "workflow_domain": run_meta.get("workflow_domain", "immunology"),
+        }
+        with _runs_lock:
+            _runs[new_run_id] = dict(_pre)
+        try:
+            get_run_state_store().set_run(new_run_id, _pre)
+        except Exception:
+            pass
+
+        _post_sse_direct(inv_id, "classII_autolaunch", {
+            "trigger_run_id": run_id,
+            "status": "launched",
+            "catch": catch_reason,
+            "to_workflow": classII_path,
+            "new_run_id": new_run_id,
+            "new_invocation_id": new_inv_id,
+            "class_ii_alleles": classII_alleles,
+        })
+
+        def _classII_bg() -> None:
+            try:
+                req = NextflowExecuteRequest(
+                    nextflow_path=classII_path,
+                    parameters=new_params,
+                    user_id=run_meta.get("user_id", "anonymous"),
+                    is_pilot=run_meta.get("is_pilot", False),
+                    workflow_domain=run_meta.get("workflow_domain", "immunology"),
+                    compute_config=run_meta.get("compute_config"),
+                )
+                _execute_nextflow_impl(req, _run_id=new_run_id, _invocation_id=new_inv_id)
+            except Exception as exc:
+                log.warning("[classII_autolaunch] class-II launch failed run=%s: %s", new_run_id, exc)
+                _fail_run(new_run_id, f"class-II auto-launch failed: {exc}")
+
+        threading.Thread(
+            target=_classII_bg,
+            daemon=True,
+            name=f"nf-classII-{new_run_id[:8]}",
+        ).start()
+        log.info("[classII_autolaunch] run=%s → class-II run=%s (%s)", run_id, new_run_id, classII_path)
+
+    except Exception as exc:
+        log.warning("[classII_autolaunch] trigger failed for run %s: %s", run_id, exc)
+
+
 def _aws_cli_bin() -> str:
     """Canonical path to the aws CLI binary inside the Galaxy container.
 
@@ -6522,6 +6715,19 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
             if _wf_name:
                 _fire_chain_suggestions(run_id, _wf_name, _inv_id)
                 _fire_proactive_suggestion(run_id, _wf_name, _inv_id)
+                # UC4: class-I MHC run completed → auto-launch the class-II
+                # (CD4-help) arm as a real chained run (or honestly report the
+                # class-II engine is not deployed). Daemon thread — launching a
+                # workflow does blocking I/O we must not do in the completion path.
+                if _is_mhc_classI_workflow(_wf_name):
+                    with _runs_lock:
+                        _classII_meta = dict(_runs.get(run_id, {}))
+                    threading.Thread(
+                        target=_trigger_classII_autolaunch,
+                        args=(run_id, _inv_id, _classII_meta),
+                        daemon=True,
+                        name=f"nf-classII-trigger-{run_id[:8]}",
+                    ).start()
 
         # Write timing.json immediately — before any follow-on work that could fail.
         _write_timing(run_id, {
