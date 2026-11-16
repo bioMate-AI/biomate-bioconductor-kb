@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "$id": "biomate-gromacs-pmx-fep",
+  "title": "GROMACS/pmx Relative FEP (\u0394\u0394G)",
+  "type": "object",
+  "steps": [
+    "define_edge",
+    "prepare",
+    "equilibrate",
+    "fep_production",
+    "analyze"
+  ],
+  "definitions": {
+    "1_define_edge": {
+      "title": "1 \u00b7 Define edge",
+      "type": "object",
+      "properties": {
+        "receptor": {
+          "type": "string",
+          "format": "file-path",
+          "default": "1BXL.pdb",
+          "description": "Target protein PDB (dataset chip, s3://, or bare 1BXL.pdb → workflow assets demo)."
+        },
+        "edge_kind": {
+          "type": "string",
+          "enum": [
+            "peptide_pair",
+            "residue_mutation"
+          ],
+          "default": "peptide_pair",
+          "description": "residue_mutation (A->B point mutations) or peptide_pair (two peptides)."
+        },
+        "edge_spec": {
+          "type": "string",
+          "default": "GQVGRQLAIIGDDINR|AQVGRQLAIIGDDINR",
+          "description": "e.g. 'P:1 TYR->PHE,P:7 TYR->PHE' or 'ligandA|ligandB'."
+        },
+        "modality": {
+          "type": "string",
+          "enum": [
+            "cyclic_peptide",
+            "peptide"
+          ],
+          "default": "peptide",
+          "description": "peptide or cyclic_peptide (cyclic adds head-to-tail junction + origin rotation)."
+        },
+        "metal_model": {
+          "type": "string",
+          "default": "none",
+          "description": "none, or cada:<Mn|Zn|Ca|Mg> for a metal-bridged interface."
+        }
+      },
+      "required": [
+        "receptor",
+        "edge_spec"
+      ]
+    },
+    "2_prepare": {
+      "title": "2 \u00b7 Prepare systems",
+      "type": "object",
+      "properties": {
+        "legs": {
+          "type": "string",
+          "default": "complex,solvent",
+          "description": "Which thermodynamic legs to build."
+        }
+      }
+    },
+    "3_equilibrate": {
+      "title": "3 \u00b7 Equilibrate",
+      "type": "object",
+      "properties": {
+        "dt_fs": {
+          "type": "number",
+          "default": 2.0,
+          "description": "MD timestep (fs). cada-bonded forces <=0.5; cada-vsite/non-metal use 2."
+        },
+        "equil_ns": {
+          "type": "number",
+          "default": 0.7,
+          "description": "Total NVT+NPT equilibration (ns)."
+        },
+        "restraints": {
+          "type": "string",
+          "enum": [
+            "none",
+            "backbone",
+            "heavy"
+          ],
+          "default": "backbone",
+          "description": "Position restraints during equilibration."
+        }
+      }
+    },
+    "4_fep_production": {
+      "title": "4 \u00b7 FEP production",
+      "type": "object",
+      "properties": {
+        "lambda_windows": {
+          "type": "integer",
+          "default": 12,
+          "description": "Number of \u03bb windows."
+        },
+        "production_ns": {
+          "type": "number",
+          "default": 5.0,
+          "description": "ns per \u03bb window."
+        },
+        "protocol_repeats": {
+          "type": "integer",
+          "default": 3,
+          "description": "Independent repeats (SEM)."
+        },
+        "temperature": {
+          "type": "number",
+          "default": 298.15,
+          "description": "K."
+        }
+      }
+    },
+    "5_analyze": {
+      "title": "5 \u00b7 Analyze (\u0394\u0394G + QC)",
+      "type": "object",
+      "properties": {
+        "control_edge_expected": {
+          "type": "number",
+          "description": "Known \u0394\u0394G for a control edge (kcal/mol); analyze gate checks recovery."
+        }
+      }
+    }
+  }
+}
