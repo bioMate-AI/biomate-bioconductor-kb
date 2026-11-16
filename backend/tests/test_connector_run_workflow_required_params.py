@@ -7,6 +7,11 @@ parameters{}. The server validated required inputs against
 workflowDefinition.required_params[].value, found them empty, and rejected the
 launch with `missing_required_params` even though the value was supplied.
 
+NOTE: after the merge onto mainline, run_workflow resolves the workflow via
+POST /api/workflows/search (returns `workflow_ga`) rather than get_workflow_spec,
+then fills required_params[].value on the resolved workflow_ga. These tests
+exercise that merged (search-based + required_params fill) flow.
+
 Skips cleanly if the connector module can't be imported in the sandbox.
 """
 from __future__ import annotations
@@ -44,12 +49,14 @@ def test_run_workflow_fills_required_params_value(monkeypatch):
 
     client = m.BioMateClient("https://dev-public.biomate.ai", "bm_live_test")
 
-    # Spec declares patient_clinical_data as a param with no value / null default.
-    def fake_spec(workflow_id):
-        return {
-            "nextflow_path": workflow_id,
+    # The search resolver returns a workflow_ga that declares
+    # patient_clinical_data as a required param with no value / null default.
+    search_resp = {
+        "workflow_ga": {
+            "name": "cox",
+            "nextflow_path": "bioconductor/survival/cox.nf",
             "workflow_type": "nextflow",
-            "workflow_ga": {"name": "cox", "parameters": {}},
+            "parameters": {},
             "required_params": [
                 {"name": "patient_clinical_data", "label": "Clinical", "default": None},
             ],
@@ -57,11 +64,13 @@ def test_run_workflow_fills_required_params_value(monkeypatch):
                 {"name": "ties", "default": "efron"},
             ],
         }
-    monkeypatch.setattr(client, "get_workflow_spec", fake_spec)
+    }
 
     captured = {}
 
     def fake_post(url, json=None, timeout=None):
+        if url.endswith("/api/workflows/search"):
+            return _FakeResp(search_resp)
         captured["url"] = url
         captured["payload"] = json
         return _FakeResp({"run_id": "r1", "status": "configuring"})
@@ -72,6 +81,9 @@ def test_run_workflow_fills_required_params_value(monkeypatch):
         {"patient_clinical_data": "s3://bucket/clin.csv"},
     )
 
+    assert captured["url"].endswith("/api/workflows/execute"), (
+        "run_workflow must POST the resolved envelope to /api/workflows/execute"
+    )
     wf = captured["payload"]["workflowDefinition"]
     req = {p["name"]: p for p in wf["required_params"]}
     assert req["patient_clinical_data"]["value"] == "s3://bucket/clin.csv", (
@@ -83,18 +95,30 @@ def test_run_workflow_fills_required_params_value(monkeypatch):
     assert captured["payload"]["params"]["patient_clinical_data"] == "s3://bucket/clin.csv"
 
 
-def test_run_workflow_falls_back_when_spec_unavailable(monkeypatch):
+def test_run_workflow_carries_params_when_no_required_list(monkeypatch):
+    """A workflow_ga without a required_params list must still yield a valid
+    envelope — the fill loop is a no-op but parameters{} + top-level params still
+    carry the caller's values."""
     try:
         m = _load_client()
     except Exception as e:  # pragma: no cover
         pytest.skip(f"connector not importable: {type(e).__name__}: {e}")
 
     client = m.BioMateClient("https://dev-public.biomate.ai", "bm_live_test")
-    monkeypatch.setattr(client, "get_workflow_spec", lambda wid: {"error": "boom"})
+
+    search_resp = {
+        "workflow_ga": {
+            "name": "y",
+            "nextflow_path": "x/y.nf",
+            "parameters": {},
+        }
+    }
 
     captured = {}
 
     def fake_post(url, json=None, timeout=None):
+        if url.endswith("/api/workflows/search"):
+            return _FakeResp(search_resp)
         captured["payload"] = json
         return _FakeResp({"run_id": "r2", "status": "configuring"})
     monkeypatch.setattr(client.session, "post", fake_post)
@@ -105,3 +129,23 @@ def test_run_workflow_falls_back_when_spec_unavailable(monkeypatch):
     assert wf["parameters"]["a"] == "1"
     assert captured["payload"]["params"]["a"] == "1"
     assert wf["nextflow_path"] == "x/y.nf"
+
+
+def test_run_workflow_errors_when_search_fails(monkeypatch):
+    """If resolution via /api/workflows/search fails, run_workflow returns a
+    clear error and never posts to /api/workflows/execute (mainline behavior)."""
+    try:
+        m = _load_client()
+    except Exception as e:  # pragma: no cover
+        pytest.skip(f"connector not importable: {type(e).__name__}: {e}")
+
+    client = m.BioMateClient("https://dev-public.biomate.ai", "bm_live_test")
+
+    def fake_post(url, json=None, timeout=None):
+        if url.endswith("/api/workflows/search"):
+            raise RuntimeError("boom")
+        pytest.fail("execute must not be called when search resolution fails")
+    monkeypatch.setattr(client.session, "post", fake_post)
+
+    out = client.run_workflow("x/y.nf", {"a": "1"})
+    assert isinstance(out, dict) and "error" in out

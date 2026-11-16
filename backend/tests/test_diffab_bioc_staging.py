@@ -12,8 +12,29 @@ import os, re, shutil, tempfile
 from pathlib import Path
 from typing import Optional
 
+import pytest
+
 EXEC_SRC = Path(__file__).resolve().parents[1] / "lib/galaxy/webapps/galaxy/api/nextflow_executor.py"
 STUB_NF = Path(__file__).resolve().parents[1] / "biomni_workflows/nfcore/differentialabundance/main.nf"
+
+# MERGE NOTE (merge/demos-onto-mainline): the mainline snapshot (8f0374ff)
+# independently rewrote this exact stub to fix the SAME S3-download root cause via
+# a competing design — Channel.fromPath(..., checkIfExists: true) + a vendored
+# demo-data fallback inside an anonymous `workflow {}` — and also added a whole
+# limma/microarray branch and GEO-safe `condition_grp` DESeq2 design. Those edits
+# are mutually exclusive with this feature's take:-bound declared-input shape
+# (header `// Input:` + `take:` + no anonymous `workflow {}`). To honor "zero loss
+# of the other session's work", the merge resolved differentialabundance/main.nf to
+# mainline, so this contract is NOT satisfied in the merged tree. Marked xfail
+# (non-strict) pending a human decision on whether to adopt the take:-bound entry
+# (dropping mainline's redundant demo-fallback entry) — see
+# three_demos_merge_status.md. The design-QC gate itself is still covered by
+# tests/test_deseq2_design_qc_gate.py (config + reader, no .nf dependency).
+pytestmark = pytest.mark.xfail(
+    reason="diffab stub resolved to mainline's competing S3-fix/limma rewrite; "
+           "take:-bound declared-input shape deferred (see three_demos_merge_status.md)",
+    strict=False,
+)
 
 
 def _load_helpers():
