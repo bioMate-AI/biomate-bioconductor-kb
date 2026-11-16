@@ -152,7 +152,10 @@ class SequenceFeaturizer:
     def __init__(self, modality: str = "peptide"):
         self.modality = modality
 
+    @property
     def signature(self) -> dict:
+        # @property to match MorganFeaturizer.signature — bayesian_optimizer
+        # captures `featurizer.signature` (no call) into the JSON surrogate_report.
         return {"featuriser": "sequence_descriptors_v1",
                 "modality": self.modality,
                 "n_features": self.N_FEATURES,

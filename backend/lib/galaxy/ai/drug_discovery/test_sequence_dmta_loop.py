@@ -156,3 +156,8 @@ def test_full_loop_ingest_rank_fit_propose(tmp_path, seed, modality):
     assert len(prop.proposed_compounds) == 5
     assert all(set(c) <= set("ACDEFGHIKLMNPQRSTVWY") for c in prop.proposed_compounds)  # real sequences
     assert prop.scores and len(next(iter(prop.scores.values()))) == 5
+    # persist_round JSON-serializes these — the sequence featuriser.signature must
+    # be a @property (a dict), not a bound method. Exercise the serialization path.
+    import json
+    json.dumps(prop.surrogate_report)
+    json.dumps({"scores": prop.scores, "acquisition_values": prop.acquisition_values})
