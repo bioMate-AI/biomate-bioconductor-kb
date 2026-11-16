@@ -530,7 +530,7 @@ export function ModelsPanel({
               <p className="text-fs-xs text-muted-foreground" data-testid="tab-purpose-molecular">
                 {t("models.tab_purpose_molecular")}
               </p>
-              <TrainingLauncher family="molecular" />
+              {/* Loop leads; the molecular launcher sits below, scoped as the loop's surrogate model. */}
               <TrackRequestState query={optimiseQuery} overridden={optimiseData !== undefined}>
                 <RoundsSection
                   data={effectiveOptimiseData ?? undefined}
@@ -538,6 +538,10 @@ export function ModelsPanel({
                   onOpenModel={setOpenModelId}
                 />
               </TrackRequestState>
+              <div className="space-y-1" data-testid="loop-surrogate-section">
+                <p className="text-fs-xs text-muted-foreground">{t("models.loop_model_note")}</p>
+                <TrainingLauncher family="molecular" />
+              </div>
             </TabsContent>
           </Tabs>
         </CardContent>

@@ -92,7 +92,7 @@ function mockFetchByUrl(map: Record<string, unknown>) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 describe("ModelsPanel — tabs", () => {
-  it("renders exactly the three tabs: Train · Model library · Molecular models", () => {
+  it("renders exactly the three tabs: Train · Model library · Design loop", () => {
     mockFetchByUrl({ "/api/models": CATALOG })
     render(<ModelsPanel project="Test project" />, { wrapper: wrapper() })
     for (let i = 0; i < 3; i++) expect(screen.getByTestId(`models-track-${i}`)).toBeTruthy()
@@ -101,7 +101,7 @@ describe("ModelsPanel — tabs", () => {
     const tabs = screen.getByTestId("models-tabs")
     expect(within(tabs).getByText("Train")).toBeTruthy()
     expect(within(tabs).getByText("Model library")).toBeTruthy()
-    expect(within(tabs).getByText("Molecular models")).toBeTruthy()
+    expect(within(tabs).getByText("Design loop")).toBeTruthy()
   })
 
   it("hides House style and the workflow-search / DL-FM sections entirely", async () => {
