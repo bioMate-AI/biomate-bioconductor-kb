@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
@@ -387,6 +388,27 @@ def _finalize_orphaned_run_impl(
             store.update_run(run_id, qc_gates=qc_gates)
             log.info("[orphan_finalizer] %s: %d gate(s) from S3 QC",
                      run_id, len(qc_gates))
+
+        # UC4: class-I MHC run finalized here (not the in-memory completion path,
+        # which is where the trigger also lives) → fire the class-II (CD4-help)
+        # auto-launch. The in-memory path and this path both run _trigger_classII_
+        # autolaunch, which is idempotent per run_id (fires exactly once).
+        if invocation_id:
+            try:
+                from galaxy.webapps.galaxy.api.nextflow_executor import (
+                    _is_mhc_classI_workflow, _trigger_classII_autolaunch,
+                )
+                nf_path = run_record.get("nextflow_path", "") or ""
+                if _is_mhc_classI_workflow(nf_path):
+                    threading.Thread(
+                        target=_trigger_classII_autolaunch,
+                        args=(run_id, invocation_id, dict(run_record)),
+                        daemon=True,
+                        name=f"nf-classII-orphan-{run_id[:8]}",
+                    ).start()
+            except Exception as _c2_exc:
+                log.debug("[orphan_finalizer] class-II autolaunch trigger failed for %s: %s",
+                          run_id, _c2_exc)
 
     log.info("[orphan_finalizer] %s finalized — status=%s returncode=%d",
              run_id, final_status, returncode)

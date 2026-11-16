@@ -571,6 +571,13 @@ def _resolve_classII_workflow() -> Optional[str]:
     return None
 
 
+# Fire-once guard: both the in-memory completion path AND the orphan finalizer
+# can reach a successful MHC run. The trigger must fire from whichever finalizes
+# it, but exactly once — otherwise a double class-II launch wastes compute.
+_classII_fired: set = set()
+_classII_fired_lock = threading.Lock()
+
+
 def _trigger_classII_autolaunch(run_id: str, inv_id: str, run_meta: Dict[str, Any]) -> None:
     """After a successful class-I MHC run, auto-launch the class-II (CD4-help) run.
 
@@ -578,10 +585,17 @@ def _trigger_classII_autolaunch(run_id: str, inv_id: str, run_meta: Dict[str, An
     help). Then EITHER launches the class-II engine for real (new chained run) OR,
     when no class-II engine is deployed, reports that honestly and produces NO
     class-II numbers. Runs in a daemon thread; never raises.
+
+    Idempotent per run_id so it fires exactly once across both completion paths
+    (in-memory `_execute_nextflow_impl` and `orphan_finalizer`).
     """
     try:
         if run_meta.get("is_classII_autolaunch"):
             return  # the class-II run itself — do not recurse
+        with _classII_fired_lock:
+            if run_id in _classII_fired:
+                return
+            _classII_fired.add(run_id)
         params = dict(run_meta.get("params") or run_meta.get("parameters") or {})
         # Opt-out hook (default: fire — the vaccine-design beat wants it visible).
         if str(params.get("class_ii_autolaunch", "true")).lower() in ("false", "0", "no"):
@@ -638,6 +652,10 @@ def _trigger_classII_autolaunch(run_id: str, inv_id: str, run_meta: Dict[str, An
             "alleles": classII_alleles,
             "mhc_class": "II",
             "sample_id": params.get("sample_id", "demo_sample"),
+            # License-free class-II predictor (nf-core/epitopeprediction supports
+            # mhcnuggetsii without the NetMHCIIpan DTU tarball). The class-II
+            # workflow owns its own input contract; these are best-effort forwards.
+            "tools": params.get("class_ii_tools", "mhcnuggetsii"),
         }
         if peptides is not None:
             new_params["peptides"] = peptides
@@ -6712,6 +6730,15 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
         if final_status == "completed" and _inv_id:
             with _runs_lock:
                 _wf_name = _runs.get(run_id, {}).get("nextflow_path", "")
+            # Cross-worker safety: if this worker's in-memory _runs lost the entry
+            # (common on multi-worker dev), resolve nextflow_path from the store so
+            # the post-completion hooks (incl. the UC4 class-II trigger) still fire.
+            if not _wf_name:
+                try:
+                    _sr = get_run_state_store().get_run(run_id) or {}
+                    _wf_name = _sr.get("nextflow_path", "") or ""
+                except Exception:
+                    _wf_name = ""
             if _wf_name:
                 _fire_chain_suggestions(run_id, _wf_name, _inv_id)
                 _fire_proactive_suggestion(run_id, _wf_name, _inv_id)
@@ -6722,6 +6749,11 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                 if _is_mhc_classI_workflow(_wf_name):
                     with _runs_lock:
                         _classII_meta = dict(_runs.get(run_id, {}))
+                    if not _classII_meta.get("nextflow_path"):
+                        try:
+                            _classII_meta = dict(get_run_state_store().get_run(run_id) or {}) or _classII_meta
+                        except Exception:
+                            pass
                     threading.Thread(
                         target=_trigger_classII_autolaunch,
                         args=(run_id, _inv_id, _classII_meta),
