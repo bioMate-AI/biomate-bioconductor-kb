@@ -48,6 +48,7 @@ export function RoundsSection({
   const [actionOk, setActionOk] = useState("")
   const [localCampaign, setLocalCampaign] = useState(campaignId)
   const [modality, setModality] = useState<"small_molecule" | "peptide" | "biologic">("small_molecule")
+  const [seed, setSeed] = useState("")
 
   const refresh = useCallback(() => {
     qc.invalidateQueries({ queryKey: ["/api/model-tracks/optimise"] })
@@ -97,6 +98,28 @@ export function RoundsSection({
     }
   }
 
+  const generateLibrary = async () => {
+    const id = localCampaign || campaignId
+    if (!id) { setActionError(t("models.rounds_need_project")); return }
+    if (!seed.trim()) { setActionError(t("models.rounds_gen_need_seed")); return }
+    setBusy("trigger"); setActionError(""); setActionOk("")
+    try {
+      const res = await fetch(`/api/drug-discovery/${encodeURIComponent(id)}/generate-library`, {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ seed: seed.trim(), max_size: 200 }),
+      })
+      if (!res.ok) throw new Error(await errorDetail(res))
+      const body = await res.json().catch(() => ({})) as { library_size?: number }
+      setActionOk(t("models.rounds_gen_ok", { n: String(body.library_size ?? 0) }))
+      refresh()
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy(null)
+    }
+  }
+
   const loopAction = async (action: "start" | "stop" | "trigger") => {
     const id = localCampaign || campaignId
     if (!id) {
@@ -135,6 +158,22 @@ export function RoundsSection({
           </Button>
         ))}
       </div>
+      {modality !== "small_molecule" && (
+        <div className="flex flex-wrap items-center gap-1.5" data-testid="optimise-generate">
+          <input
+            type="text" value={seed} onChange={(e) => setSeed(e.target.value)}
+            placeholder={t("models.rounds_gen_seed_placeholder")} spellCheck={false}
+            className="h-7 w-56 rounded border bg-background px-2 text-xs font-mono"
+            data-testid="optimise-gen-seed" aria-label={t("models.rounds_gen_seed_placeholder")}
+          />
+          <Button type="button" size="sm" variant="outline" className="h-7 text-xs"
+            disabled={!!busy || !campaignId || !seed.trim()} onClick={generateLibrary}
+            data-testid="optimise-generate-library">
+            {t("models.rounds_gen_button")}
+          </Button>
+          <span className="text-fs-xs text-muted-foreground">{t("models.rounds_gen_hint")}</span>
+        </div>
+      )}
       <div className="flex flex-wrap gap-1.5">
         <Button type="button" size="sm" variant="outline" className="h-7 text-xs"
           disabled={!!busy || !campaignId} onClick={createCampaign}

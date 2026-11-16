@@ -1212,6 +1212,48 @@ async def save_virtual_library(
     }
 
 
+class GenerateLibraryRequest(BaseModel):
+    seed: str                      # seed amino-acid sequence
+    max_size: int = 200
+    conservative: bool = False     # restrict to conservative (within-group) substitutions
+    n_propose: int = 10
+    diversity_weight: float = 0.2
+
+
+@router.post("/{campaign_id}/generate-library")
+async def generate_library(
+    campaign_id: str,
+    body: GenerateLibraryRequest,
+    _audit: None = Depends(_audit_fn),
+):
+    """Generate a candidate virtual library for a peptide/biologic campaign by
+    enumerating point mutations of a seed sequence, and cache it for propose.
+    Small-molecule generation is REINVENT4 (a separate generative workflow),
+    not this deterministic sequence enumerator.
+    """
+    from .assay_schema import SEQUENCE_MODALITIES
+    modality = _campaign_modality(campaign_id)
+    if modality not in SEQUENCE_MODALITIES:
+        raise HTTPException(
+            status_code=400,
+            detail="generate-library is for peptide/biologic campaigns; for small "
+                   "molecules use REINVENT4 generative design.",
+        )
+    from .sequence_library import mutational_library
+    from .auto_retrain import save_virtual_library
+    lib = mutational_library(body.seed, conservative=body.conservative,
+                             max_size=max(2, body.max_size))
+    if len(lib) < 2:
+        raise HTTPException(
+            status_code=422,
+            detail="Seed produced no candidates — provide a valid amino-acid sequence.",
+        )
+    save_virtual_library(_campaign_db(campaign_id), campaign_id, lib,
+                         body.n_propose, body.diversity_weight)
+    return {"campaign_id": campaign_id, "modality": modality,
+            "library_size": len(lib), "seed": lib[0]}
+
+
 @router.get("/{campaign_id}/auto-proposal")
 async def get_auto_proposal(
     campaign_id: str,
