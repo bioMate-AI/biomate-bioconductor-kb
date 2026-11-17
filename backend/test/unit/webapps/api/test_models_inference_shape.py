@@ -399,6 +399,30 @@ def test_private_catalog_matches_durable_owner_binding(mod, tmp_path, monkeypatc
     assert error.value.status_code == 404
 
 
+def test_resolve_campaign_ids_includes_owned_campaign_without_scorer(mod, tmp_path, monkeypatch):
+    """Regression: a DMTA campaign the owner owns but that has NO registered
+    custom scorer (a peptide/biologic loop that only ran generate-library +
+    ingest + propose) must still resolve, so the Optimise track renders its
+    proposal rounds instead of its empty state. Previously _resolve_campaign_ids
+    read only campaigns carrying a registration, so such a campaign was invisible
+    and /api/model-tracks/optimise returned {active: false} despite a real round."""
+    import sqlite3
+    registry = tmp_path / "campaigns_registry.db"
+    with sqlite3.connect(registry) as db:
+        db.execute("CREATE TABLE campaigns(campaign_id TEXT, user_id TEXT)")
+        db.executemany("INSERT INTO campaigns VALUES (?,?)",
+                       [("pep", "owner"), ("foreign", "stranger")])
+    campaigns = tmp_path / "campaigns"
+    campaigns.mkdir()  # no custom_model_registrations db exists for 'pep'
+    monkeypatch.setenv("BIOMATE_CAMPAIGN_REGISTRY_DB", str(registry))
+    monkeypatch.setattr(mod, "_campaign_db_dir", lambda: str(campaigns))
+
+    assert mod._iter_custom_registrations('owner') == []          # not visible as a scorer
+    assert mod._resolve_campaign_ids('pep', 'owner') == ['pep']   # but IS resolvable
+    assert mod._resolve_campaign_ids(None, 'owner') == ['pep']
+    assert mod._resolve_campaign_ids('foreign', 'owner') == []    # unowned still excluded
+
+
 def test_customer_edit_reads_and_toggles_are_owner_bound(mod, tmp_path, monkeypatch):
     rows = [
         {'chosen':'mine', 'rejected':'my draft', 'meta':{'user_id':'owner','org_id':'project','row_id':'mine'}},

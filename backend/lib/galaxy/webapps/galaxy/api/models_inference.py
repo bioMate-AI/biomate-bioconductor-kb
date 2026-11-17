@@ -595,11 +595,21 @@ def _custom_consumers(model_name: str, owner_id: Optional[str] = None) -> List[s
 # `project` maps to a campaign id where one applies; when it does not resolve to
 # a real campaign the read is account-scope (all campaigns) or honest-empty.
 def _resolve_campaign_ids(project: Optional[str], owner_id: Optional[str] = None) -> List[str]:
-    """Campaign ids to read. A matching project id first, else all campaigns."""
-    all_ids = sorted({r["campaign_id"] for r in _iter_custom_registrations(owner_id)})
-    if project and project in all_ids:
-        return [project]
-    return [] if project else all_ids
+    """Campaign ids to read for this owner. A matching project id first, else all
+    owned campaigns.
+
+    Resolves from durable campaign ownership (the campaigns registry), NOT only
+    from campaigns that carry a registered custom scorer. A DMTA campaign with
+    proposal rounds but no registered model (e.g. a peptide/biologic loop that
+    only ran generate-library + ingest + propose) is owned and must be visible to
+    the Optimise track — otherwise the panel shows its empty state despite a real
+    round existing. Ownership is still enforced: ids come from campaigns the owner
+    owns, and a requested project is returned only when the owner owns it.
+    """
+    all_ids = _owned_campaign_ids(owner_id)
+    if project:
+        return [project] if project in all_ids else []
+    return sorted(all_ids)
 
 
 @router.get(
