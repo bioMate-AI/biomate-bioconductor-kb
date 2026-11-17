@@ -365,6 +365,9 @@ export interface OptimiseData {
   round: string | number
   budget?: string
   refitPolicy?: string
+  /** The active campaign's DMTA modality — fixed at creation; the panel reflects
+   *  it so the modality selector matches the loop actually being shown. */
+  modality?: "small_molecule" | "peptide" | "biologic"
   surrogates: OptimiseSurrogate[]
   rounds: OptimiseRound[]
   proposal: OptimiseProposal[]

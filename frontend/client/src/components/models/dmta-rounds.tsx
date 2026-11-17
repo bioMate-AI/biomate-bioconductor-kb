@@ -7,7 +7,7 @@
  * trigger/propose surfaces the API error when assay data or a virtual library
  * is missing.
  */
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { t } from "@/lib/i18n"
 import { useActiveProjectSafe } from "@/contexts/active-project-context"
@@ -49,6 +49,17 @@ export function RoundsSection({
   const [localCampaign, setLocalCampaign] = useState(campaignId)
   const [modality, setModality] = useState<"small_molecule" | "peptide" | "biologic">("small_molecule")
   const [seed, setSeed] = useState("")
+
+  // A campaign's modality is fixed when it is created. When an active loop is
+  // shown (data carries its modality), reflect it in the selector and lock
+  // switching — otherwise the buttons look like a view switcher but the rounds
+  // below stay bound to the campaign's own modality, so toggling them does
+  // nothing visible. To use a different modality, create a campaign (new project).
+  const campaignModality = data?.modality
+  const modalityLocked = !!campaignModality
+  useEffect(() => {
+    if (campaignModality && campaignModality !== modality) setModality(campaignModality)
+  }, [campaignModality]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const refresh = useCallback(() => {
     qc.invalidateQueries({ queryKey: ["/api/model-tracks/optimise"] })
@@ -181,11 +192,17 @@ export function RoundsSection({
         <span className="text-fs-xs text-muted-foreground">{t("models.rounds_modality_label")}</span>
         {(["small_molecule", "peptide", "biologic"] as const).map((m) => (
           <Button key={m} type="button" size="sm" variant={modality === m ? "default" : "outline"}
-            className="h-7 text-xs" disabled={!!busy} onClick={() => setModality(m)}
+            className="h-7 text-xs" disabled={!!busy || (modalityLocked && m !== modality)}
+            onClick={() => setModality(m)}
             data-testid={`optimise-modality-${m}`}>
             {t(`models.rounds_modality_${m}`)}
           </Button>
         ))}
+        {modalityLocked && (
+          <span className="text-fs-xs text-muted-foreground" data-testid="optimise-modality-locked">
+            {t("models.rounds_modality_locked")}
+          </span>
+        )}
       </div>
       {modality !== "small_molecule" && (
         <div className="flex flex-wrap items-center gap-1.5" data-testid="optimise-generate">

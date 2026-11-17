@@ -1473,6 +1473,7 @@
     "rounds_created_seeded": "Campaign ready. Seeded {{assays}} Train-split assay rows and {{library}} virtual-library SMILES from cold-start loop fixtures — you can propose a round now.",
     "rounds_created_sequence": "{{modality}} campaign created. Ingest your measured sequences (and a candidate library) to propose a round — no demo data is seeded for this modality.",
     "rounds_modality_label": "Modality",
+    "rounds_modality_locked": "fixed for this campaign — create a campaign in a new project to change it",
     "rounds_modality_small_molecule": "Small molecule",
     "rounds_modality_peptide": "Peptide",
     "rounds_modality_biologic": "Biologic",

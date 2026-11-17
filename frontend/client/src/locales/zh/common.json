@@ -1981,6 +1981,7 @@
     "rounds_created_seeded": "活动已就绪。已从冷启动循环夹具写入 {{assays}} 条训练分割测定与 {{library}} 条虚拟库分子式 — 现在可以提案。",
     "rounds_created_sequence": "已创建 {{modality}} 活动。请导入你测得的序列（及候选库）后再提案 — 此模态不写入演示数据。",
     "rounds_modality_label": "模态",
+    "rounds_modality_locked": "此活动的模态已固定 — 如需更改，请在新项目中创建活动",
     "rounds_modality_small_molecule": "小分子",
     "rounds_modality_peptide": "多肽",
     "rounds_modality_biologic": "生物制剂",

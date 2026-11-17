@@ -170,6 +170,29 @@ def _owned_campaign_ids(owner_id: Optional[str]) -> set:
         raise HTTPException(status_code=503, detail="Model ownership store is unavailable")
 
 
+def _campaign_modality(campaign_id: str) -> str:
+    """The campaign's DMTA modality (small_molecule | peptide | biologic) from the
+    registry, so the panel can reflect it. Defaults to small_molecule when the
+    column/row is absent (legacy campaigns)."""
+    import os
+    import sqlite3
+    from pathlib import Path
+    path = Path(os.environ.get("BIOMATE_CAMPAIGN_REGISTRY_DB",
+        str(Path(_campaign_db_dir()).parent / "campaigns_registry.db")))
+    if not path.is_file():
+        return "small_molecule"
+    try:
+        with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as conn:
+            cols = {r[1] for r in conn.execute("PRAGMA table_info(campaigns)")}
+            if "modality" not in cols:
+                return "small_molecule"
+            row = conn.execute("SELECT modality FROM campaigns WHERE campaign_id=?",
+                               (campaign_id,)).fetchone()
+            return (row[0] if row and row[0] else "small_molecule")
+    except sqlite3.Error:
+        return "small_molecule"
+
+
 def _iter_custom_registrations(owner_id: Optional[str] = None) -> List[Dict[str, Any]]:
     """
     Read every custom_model_registration across all campaign DBs (read-only).
@@ -1000,6 +1023,7 @@ def _optimise_for_campaign(campaign_id: str) -> Optional[Dict[str, Any]]:
         "active": True,
         "running": True,
         "round": round_no,
+        "modality": _campaign_modality(campaign_id),
         "surrogates": [
             {"id": _custom_model_id(campaign_id, "surrogate-gp"), "label": "surrogate GP"}
         ],
