@@ -181,7 +181,8 @@ def _schema_sql() -> str:
             smiles_json     TEXT NOT NULL,
             n_propose       INTEGER NOT NULL DEFAULT 10,
             diversity_weight REAL NOT NULL DEFAULT 0.2,
-            saved_at        TEXT NOT NULL
+            saved_at        TEXT NOT NULL,
+            modality        TEXT NOT NULL DEFAULT 'small_molecule'
         );
 
         CREATE TABLE IF NOT EXISTS auto_proposals (
@@ -212,6 +213,11 @@ def _init_tables(db_path: str) -> None:
             if col not in cols:
                 conn.execute(f"ALTER TABLE auto_proposals "
                              f"ADD COLUMN {col} TEXT NOT NULL DEFAULT '{{}}'")
+        # Migrate pre-existing virtual_library_cache rows (added modality 2026-11-17).
+        vl_cols = {r[1] for r in conn.execute("PRAGMA table_info(virtual_library_cache)")}
+        if "modality" not in vl_cols:
+            conn.execute("ALTER TABLE virtual_library_cache "
+                         "ADD COLUMN modality TEXT NOT NULL DEFAULT 'small_molecule'")
 
 
 def _connect(db_path: str):
@@ -230,23 +236,30 @@ def save_virtual_library(
     smiles_list: list[str],
     n_propose: int = 10,
     diversity_weight: float = 0.2,
+    modality: str = "small_molecule",
 ) -> None:
-    """Persist the last-used virtual library for auto-retrain use."""
+    """Persist the last-used virtual library for auto-retrain use.
+
+    The modality is stored so the auto-retrain trigger and the background loop
+    can rebuild the correct surrogate (Morgan/Tanimoto vs sequence Matern) from
+    the campaign DB alone, without the registry.
+    """
     _init_tables(db_path)
     ts = datetime.now(timezone.utc).isoformat()
     with _connect(db_path) as conn:
         conn.execute(
             """
             INSERT INTO virtual_library_cache
-              (campaign_id, smiles_json, n_propose, diversity_weight, saved_at)
-            VALUES (?, ?, ?, ?, ?)
+              (campaign_id, smiles_json, n_propose, diversity_weight, saved_at, modality)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(campaign_id) DO UPDATE SET
               smiles_json = excluded.smiles_json,
               n_propose   = excluded.n_propose,
               diversity_weight = excluded.diversity_weight,
-              saved_at    = excluded.saved_at
+              saved_at    = excluded.saved_at,
+              modality    = excluded.modality
             """,
-            (campaign_id, json.dumps(smiles_list), n_propose, diversity_weight, ts),
+            (campaign_id, json.dumps(smiles_list), n_propose, diversity_weight, ts, modality),
         )
 
 
@@ -265,11 +278,13 @@ def load_virtual_library(db_path: str, campaign_id: str) -> Optional[dict]:
         ).fetchone()
     if row is None:
         return None
+    keys = row.keys()
     return {
         "smiles_list": json.loads(row["smiles_json"]),
         "n_propose": row["n_propose"],
         "diversity_weight": row["diversity_weight"],
         "saved_at": row["saved_at"],
+        "modality": (row["modality"] if "modality" in keys else "small_molecule"),
     }
 
 
@@ -492,9 +507,18 @@ def refit_and_propose(
         log.error("auto_retrain: missing dependency — %s", exc)
         return None
 
+    # Load cached virtual library first — it carries the campaign modality so the
+    # surrogate is rebuilt correctly (Morgan/Tanimoto vs sequence Matern) from the
+    # campaign DB alone (the background loop has no registry access).
+    vl = load_virtual_library(db_path, campaign_id)
+    if vl is None:
+        log.info("auto_retrain[%s]: no virtual library cached — skipping", campaign_id)
+        return None
+    modality = vl.get("modality", "small_molecule")
+
     # Load current compound ranks
     try:
-        svc = AssayIngestionService(db_path)
+        svc = AssayIngestionService(db_path, modality=modality)
         ranked = svc.get_ranked_compounds(campaign_id)
     except Exception as exc:
         log.error("auto_retrain[%s]: failed to load compounds — %s", campaign_id, exc)
@@ -502,12 +526,6 @@ def refit_and_propose(
 
     if not ranked:
         log.info("auto_retrain[%s]: no assay data yet — skipping", campaign_id)
-        return None
-
-    # Load cached virtual library
-    vl = load_virtual_library(db_path, campaign_id)
-    if vl is None:
-        log.info("auto_retrain[%s]: no virtual library cached — skipping", campaign_id)
         return None
 
     rows = build_training_rows(ranked)
@@ -519,7 +537,8 @@ def refit_and_propose(
     # optimizer can run on any non-trivial dataset (≥2 compounds).
     try:
         opt = fit_campaign_optimizer(db_path, campaign_id, rows,
-                                     n_initial=max(2, len(rows.labels)))
+                                     n_initial=max(2, len(rows.labels)),
+                                     modality=modality)
         proposal = opt.propose_next_round(
             virtual_library_smiles=vl["smiles_list"],
             n_propose=vl["n_propose"],

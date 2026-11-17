@@ -161,3 +161,41 @@ def test_full_loop_ingest_rank_fit_propose(tmp_path, seed, modality):
     import json
     json.dumps(prop.surrogate_report)
     json.dumps({"scores": prop.scores, "acquisition_values": prop.acquisition_values})
+
+
+@needs_sklearn
+@pytest.mark.parametrize("seed,modality", [(PEPTIDE_SEED, "peptide"), (BIOLOGIC_SEED, "biologic")])
+def test_refit_and_propose_uses_cached_modality(tmp_path, seed, modality):
+    """The panel's "Propose next round" button hits retrain/trigger ->
+    refit_and_propose, which must rebuild the SEQUENCE surrogate from the cached
+    virtual library's modality. Regression: it previously defaulted to the
+    small-molecule (Morgan) optimizer, which chokes on sequences and returns None
+    -> the misleading "requires assay data and a cached virtual library" 422 even
+    when both exist."""
+    from galaxy.ai.drug_discovery.assay_ingestion import AssayIngestionService
+    from galaxy.ai.drug_discovery.auto_retrain import (
+        save_virtual_library, load_virtual_library, refit_and_propose,
+    )
+    from galaxy.ai.drug_discovery.sequence_library import mutational_library
+
+    cid = f"trig-{modality}"
+    db = str(tmp_path / "camp.db")
+
+    # 1) cache a sequence virtual library with its modality (what generate-library does)
+    lib = mutational_library(seed, max_size=60)
+    save_virtual_library(db, cid, lib, n_propose=5, diversity_weight=0.2, modality=modality)
+    assert load_virtual_library(db, cid)["modality"] == modality   # persisted + read back
+
+    # 2) ingest >=16 measured sequences (what the upload control does)
+    svc = AssayIngestionService(db, modality=modality)
+    train = mutational_library(seed, max_size=20)
+    rows = [{"compound_id": s, "smiles": s, "assay_type": "IC50",
+             "value": f"{max(1.0, 1000.0 / (1.0 + max(0.0, _net_charge(s)))):.1f}",
+             "unit": "nM", "assay_date": "2026-01-01"} for s in train]
+    assert svc.ingest_rows(cid, rows)["ingested"] == len(train)
+
+    # 3) the trigger path returns a real proposal (NOT None) for the sequence campaign
+    proposal = refit_and_propose(db, cid, triggered_by="manual")
+    assert proposal is not None
+    assert proposal.proposed_smiles
+    assert all(set(c) <= set("ACDEFGHIKLMNPQRSTVWY") for c in proposal.proposed_smiles)

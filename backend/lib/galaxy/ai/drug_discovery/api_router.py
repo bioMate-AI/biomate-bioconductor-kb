@@ -1201,6 +1201,7 @@ async def save_virtual_library(
             body.virtual_library_smiles,
             body.n_propose,
             body.diversity_weight,
+            modality=_campaign_modality(campaign_id),
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
@@ -1253,7 +1254,7 @@ async def generate_library(
             detail="Seed produced no candidates — provide a valid amino-acid sequence.",
         )
     save_virtual_library(_campaign_db(campaign_id), campaign_id, lib,
-                         body.n_propose, body.diversity_weight)
+                         body.n_propose, body.diversity_weight, modality=modality)
     return {"campaign_id": campaign_id, "modality": modality,
             "library_size": len(lib), "seed": lib[0]}
 
@@ -2316,7 +2317,8 @@ async def save_virtual_library_endpoint(
         raise HTTPException(status_code=422, detail="No valid SMILES provided.")
 
     try:
-        _save_vl(_campaign_db(campaign_id), campaign_id, valid, body.n_propose, body.diversity_weight)
+        _save_vl(_campaign_db(campaign_id), campaign_id, valid, body.n_propose, body.diversity_weight,
+                 modality=_campaign_modality(campaign_id))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -2419,15 +2421,19 @@ async def create_campaign(body: CampaignCreateRequest):
     n_library = 0
     if body.virtual_library_smiles:
         try:
+            from .assay_schema import SEQUENCE_MODALITIES
             from .auto_retrain import save_virtual_library as _save_vl
             valid = body.virtual_library_smiles
-            try:
-                from rdkit import Chem
-                valid = [s for s in body.virtual_library_smiles if Chem.MolFromSmiles(s) is not None]
-            except ImportError:
-                pass
+            # Sequences are not SMILES — only RDKit-filter small-molecule libraries.
+            if body.modality not in SEQUENCE_MODALITIES:
+                try:
+                    from rdkit import Chem
+                    valid = [s for s in body.virtual_library_smiles if Chem.MolFromSmiles(s) is not None]
+                except ImportError:
+                    pass
             if valid:
-                _save_vl(db_path, campaign_id, valid, n_propose=10, diversity_weight=0.2)
+                _save_vl(db_path, campaign_id, valid, n_propose=10, diversity_weight=0.2,
+                         modality=body.modality)
                 n_library = len(valid)
         except Exception as exc:
             log.warning("Could not seed virtual library for campaign %s: %s", campaign_id, exc)
