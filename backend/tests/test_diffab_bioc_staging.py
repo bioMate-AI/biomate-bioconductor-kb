@@ -17,24 +17,15 @@ import pytest
 EXEC_SRC = Path(__file__).resolve().parents[1] / "lib/galaxy/webapps/galaxy/api/nextflow_executor.py"
 STUB_NF = Path(__file__).resolve().parents[1] / "biomni_workflows/nfcore/differentialabundance/main.nf"
 
-# MERGE NOTE (merge/demos-onto-mainline): the mainline snapshot (8f0374ff)
-# independently rewrote this exact stub to fix the SAME S3-download root cause via
-# a competing design — Channel.fromPath(..., checkIfExists: true) + a vendored
-# demo-data fallback inside an anonymous `workflow {}` — and also added a whole
-# limma/microarray branch and GEO-safe `condition_grp` DESeq2 design. Those edits
-# are mutually exclusive with this feature's take:-bound declared-input shape
-# (header `// Input:` + `take:` + no anonymous `workflow {}`). To honor "zero loss
-# of the other session's work", the merge resolved differentialabundance/main.nf to
-# mainline, so this contract is NOT satisfied in the merged tree. Marked xfail
-# (non-strict) pending a human decision on whether to adopt the take:-bound entry
-# (dropping mainline's redundant demo-fallback entry) — see
-# three_demos_merge_status.md. The design-QC gate itself is still covered by
-# tests/test_deseq2_design_qc_gate.py (config + reader, no .nf dependency).
-pytestmark = pytest.mark.xfail(
-    reason="diffab stub resolved to mainline's competing S3-fix/limma rewrite; "
-           "take:-bound declared-input shape deferred (see three_demos_merge_status.md)",
-    strict=False,
-)
+# RESOLUTION (merge/demos-onto-mainline): the stub now carries BOTH designs
+# cooperatively — the mainline limma/condition_grp R body + its anonymous
+# `workflow {}` mg_demo demo-fallback are KEPT, and a `// Input:` header + a
+# `take:`-bound `DIFFERENTIALABUNDANCE_WORKFLOW` are ADDED. The executor's
+# `_build_bioc_entry_wrapper` was relaxed so the declared-input wrapper engages
+# ONLY when the caller actually supplies samplesheet/matrix/contrasts (S3 run) —
+# staging them to local files — while a NO-INPUT run falls through to the anonymous
+# mg_demo path unchanged (deploy smoke test preserved). Both behaviors are asserted
+# below, so the xfail is removed.
 
 
 def _load_helpers():
@@ -66,7 +57,9 @@ def test_diffab_routes_through_bioc_wrapper():
     names = [n.strip() for n in re.split(r"[,\s]+", names_raw) if n.strip()]
     assert names == ["samplesheet.csv", "matrix.csv", "contrasts.csv"], names
     assert re.search(r"(?m)^\s*take:\s*$", text), "no take: block -> wrapper won't engage"
-    assert not re.search(r"(?m)^\s*workflow\s*\{", text), "anonymous workflow{} would bypass the wrapper"
+    # The anonymous workflow{} is INTENTIONALLY kept (mg_demo no-input path); the
+    # relaxed executor gate engages the wrapper only when inputs are supplied.
+    assert re.search(r"(?m)^\s*workflow\s*\{", text), "anonymous workflow{} (mg_demo path) should remain"
     assert re.search(r"path\(input_files,\s*stageAs", text), "process must use path(stageAs)"
 
     # Run the REAL wrapper builder with LOCAL inputs (no S3, no Channel.fromPath).
@@ -96,6 +89,40 @@ def test_diffab_routes_through_bioc_wrapper():
         # declared-input keys are consumed (popped) so they aren't passed as --flags
         for k in ("samplesheet", "matrix", "contrasts"):
             assert k not in params, f"{k} should be popped after staging"
+
+
+def test_diffab_samplesheet_alias_input():
+    """The backend canonicalizes the samplesheet to `input` (samplesheet=None). The
+    wrapper must still resolve the declared `samplesheet.csv` from params['input']."""
+    ns = _load_helpers()
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td); src_dir = td / "src"; src_dir.mkdir()
+        (src_dir / "ss.csv").write_text("sample,cell,dex\nSRR1,N61311,untrt\nSRR2,N61311,trt\n")
+        (src_dir / "mx.csv").write_text("gene_id,SRR1,SRR2\nENSG1,10,200\n")
+        (src_dir / "ct.csv").write_text("id,variable,reference,target\nd,dex,untrt,trt\n")
+        run_dir = td / "run"; run_dir.mkdir()
+        # Mirror the REAL resolved params: samplesheet is None, value under `input`.
+        params = {"samplesheet": None, "input": str(src_dir / "ss.csv"),
+                  "matrix": str(src_dir / "mx.csv"), "contrasts": str(src_dir / "ct.csv")}
+        wrapper = ns["_build_bioc_entry_wrapper"](STUB_NF, params, run_dir, "t3")
+        assert wrapper is not None, "alias resolution failed -> fell back to Channel.fromPath"
+        wtext = Path(wrapper).read_text()
+        assert "Channel.fromPath" not in wtext
+        for fn in ("samplesheet.csv", "matrix.csv", "contrasts.csv"):
+            assert (run_dir / fn).exists(), f"{fn} not staged"
+        assert "input" not in params, "`input` alias should be popped after staging"
+
+
+def test_diffab_no_input_falls_through_to_mg_demo():
+    """A NO-INPUT run must NOT engage the wrapper (returns None) so the anonymous
+    mg_demo `workflow {}` path runs — this is what the deploy smoke test exercises."""
+    ns = _load_helpers()
+    with tempfile.TemporaryDirectory() as td:
+        run_dir = Path(td) / "run"; run_dir.mkdir()
+        # No samplesheet/matrix/contrasts supplied (only unrelated params).
+        params = {"study_type": "rnaseq", "differential_max_qval": 0.05}
+        wrapper = ns["_build_bioc_entry_wrapper"](STUB_NF, params, run_dir, "t2")
+        assert wrapper is None, "no-input run must fall through to the anonymous mg_demo workflow"
 
 
 if __name__ == "__main__":

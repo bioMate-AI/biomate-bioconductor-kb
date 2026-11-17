@@ -2781,9 +2781,27 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
     # `// Input:` header) are unaffected.
     if "/bioconductor/" not in nf_path.as_posix() and not _BIOC_INPUT_DECL_RE.search(text):
         return None
-    # An anonymous workflow already provides a runnable entry — leave it alone.
+    # An anonymous `workflow { }` provides a runnable entry — normally leave it alone.
+    # EXCEPTION: when the nf ALSO declares `// Input:` data inputs AND the caller has
+    # actually supplied at least one of them (e.g. S3 URIs), prefer the declared-input
+    # wrapper so those inputs are downloaded to LOCAL files — the anonymous
+    # `Channel.fromPath(s3://…)` path throws "Exception thrown downloading S3 object".
+    # A no-input run (none of the declared inputs supplied) falls through to the
+    # anonymous workflow unchanged, so a local/mg_demo demo path keeps working and the
+    # deploy smoke test is unaffected.
     if re.search(r"(?m)^\s*workflow\s*\{", text):
-        return None
+        _decl = _BIOC_INPUT_DECL_RE.search(text)
+        _supplied = False
+        if _decl:
+            for _n in re.split(r"[,\s]+", _decl.group(1)):
+                _n = re.split(r"\s*\(", _n)[0].strip()
+                if not _n:
+                    continue
+                if params.get(_n) or ("." in _n and params.get(_n.rsplit(".", 1)[0])):
+                    _supplied = True
+                    break
+        if not _supplied:
+            return None
     proc_m = re.search(r"(?m)^\s*process\s+([A-Z][A-Z0-9_]+)\s*\{", text)
     if not proc_m:
         return None
@@ -2897,6 +2915,16 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
                 src = params.get(_no_ext)
                 if src:
                     _pop_key = _no_ext
+            if not src:
+                # nf-core alias: a `samplesheet` declared input is commonly supplied
+                # (and canonicalized by the backend) under `input`, and vice-versa.
+                # Resolve across the pair so a declared `samplesheet.csv` finds
+                # params["input"] (the value the samplesheet was normalized to).
+                _alias = {"samplesheet": "input", "input": "samplesheet"}.get(
+                    name.rsplit('.', 1)[0] if '.' in name else name)
+                if _alias and params.get(_alias):
+                    src = params.get(_alias)
+                    _pop_key = _alias
             if not src and n_path <= 1 and _freestyle_pool:
                 # Prefer semantic/basename match. For a single declared name, the whole
                 # remaining pool is the list-style input (omics). For multi-name headers,

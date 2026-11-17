@@ -2,6 +2,15 @@
 // Inputs via Channel.fromPath (local demo under sample_data/mg_demo or staged paths).
 // Pattern follows validation_deseq2_raw_counts/main.nf.
 //
+// Input: samplesheet.csv, matrix.csv, contrasts.csv
+// Declared-input contract: when the caller SUPPLIES samplesheet/matrix/contrasts
+// (e.g. S3 URIs), the executor's declared-input wrapper downloads them to LOCAL
+// files and binds the process directly — avoiding nf-amazon's raw
+// Channel.fromPath(s3://) "Exception thrown downloading S3 object". When NO inputs
+// are supplied, the executor skips the wrapper and the anonymous `workflow { }`
+// below runs the vendored sample_data/mg_demo demo via local Channel.fromPath
+// (so the no-input smoke test is unchanged).
+//
 // Method is chosen from params.normalisation_method / params.study_type:
 //   - normalisation_method='limma' OR study_type='affy'  → limma (microarray log-intensities;
 //     NO integer coercion — the DESeq2 path's round() zeroes out array data)
@@ -480,6 +489,26 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
     """
 }
 
+// Declared-input entry: used by the executor's declared-input wrapper, which stages
+// samplesheet/matrix/contrasts to LOCAL files and binds this process directly when
+// the caller supplies them (reliable S3 staging). The anonymous `workflow { }` below
+// still handles the no-input mg_demo demo path via local Channel.fromPath.
+workflow DIFFERENTIALABUNDANCE_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), [ samplesheet.csv, matrix.csv, contrasts.csv ] ]
+
+    main:
+    DESEQ2_DIFFERENTIAL_ANALYSIS(ch_input)
+
+    emit:
+    tables     = DESEQ2_DIFFERENTIAL_ANALYSIS.out.tables
+    plots      = DESEQ2_DIFFERENTIAL_ANALYSIS.out.plots
+    objects    = DESEQ2_DIFFERENTIAL_ANALYSIS.out.objects
+    report     = DESEQ2_DIFFERENTIAL_ANALYSIS.out.report
+    qc_metrics = DESEQ2_DIFFERENTIAL_ANALYSIS.out.qc_metrics
+    versions   = DESEQ2_DIFFERENTIAL_ANALYSIS.out.versions
+}
+
 workflow DIFFERENTIALABUNDANCE {
     main:
     def _blank = { v ->
@@ -524,3 +553,5 @@ workflow DIFFERENTIALABUNDANCE {
 workflow {
     DIFFERENTIALABUNDANCE()
 }
+
+// redeploy marker: force workflows-layer resync of declared-input staging (1794862443)
