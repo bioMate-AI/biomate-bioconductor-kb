@@ -107,7 +107,7 @@ export function RoundsSection({
       const res = await fetch(`/api/drug-discovery/${encodeURIComponent(id)}/generate-library`, {
         method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ seed: seed.trim(), max_size: 200 }),
+        body: JSON.stringify({ seed: seed.trim(), max_size: 200, modality }),
       })
       if (!res.ok) throw new Error(await errorDetail(res))
       const body = await res.json().catch(() => ({})) as { library_size?: number }

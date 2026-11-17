@@ -1219,6 +1219,7 @@ class GenerateLibraryRequest(BaseModel):
     conservative: bool = False     # restrict to conservative (within-group) substitutions
     n_propose: int = 10
     diversity_weight: float = 0.2
+    modality: Optional[str] = None  # the selected modality; falls back to the campaign's
 
 
 @router.post("/{campaign_id}/generate-library")
@@ -1233,7 +1234,9 @@ async def generate_library(
     not this deterministic sequence enumerator.
     """
     from .assay_schema import SEQUENCE_MODALITIES
-    modality = _campaign_modality(campaign_id)
+    # Honour the requested modality (the UI selector) when the campaign has not
+    # been created yet; otherwise fall back to the campaign's stored modality.
+    modality = body.modality or _campaign_modality(campaign_id)
     if modality not in SEQUENCE_MODALITIES:
         raise HTTPException(
             status_code=400,
