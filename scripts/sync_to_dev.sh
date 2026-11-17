@@ -584,7 +584,8 @@ deploy_workflows() {
     --exclude='*/.nextflow' \
     --exclude='*/.nextflow.log*' \
     backend/biomni_workflows/ \
-    backend/nf-core-workflows/modules/biomate-ai-tools/ 2>/dev/null
+    backend/nf-core-workflows/modules/biomate-ai-tools/ \
+    scripts/regen_stub_runcopies.sh 2>/dev/null
   log "[workflows] Archive: $(du -sh $tar_file | cut -f1)"
 
   ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/workflows_sync.tar.gz"
@@ -629,6 +630,34 @@ deploy_workflows() {
         cp -P \"\$rel\" \"\$dest\"
       done
     " 2>&1 | tail -3
+
+    # -----------------------------------------------------------------------
+    # Regenerate stub-sourced nf-core RUN-copies (root-cause fix 2026-11-17).
+    # (No single quotes in this comment: it lives inside the ec2_ssh payload.)
+    #
+    # backend/nf-core-workflows/<wf>/ holds REAL nf-core pipeline downloads; it
+    # is gitignored + container-only, so the deploy never ships it. The executor
+    # resolver (_resolve_nextflow_path in nextflow_executor.py) searches that
+    # REAL run-copy BEFORE the biomni_workflows/nfcore/<wf> stub, so for
+    # workflows where OUR stub is the functional source of truth (declared
+    # // Input: contract + gate self-correction, e.g. differentialabundance) the
+    # stale run-copy main.nf shadowed the stub and stub edits had ZERO runtime
+    # effect — the Stream-6 saga.
+    #
+    # Canonical logic = scripts/regen_stub_runcopies.sh (single source of truth,
+    # unit-tested by scripts/test_regen_stub_runcopies.sh). It is shipped inside
+    # the workflows tarball and extracted in-container at
+    # /tmp/workflows_extract_in/scripts/, so we exec it there directly. It
+    # overwrites ONLY main.nf of stubs carrying the // Input: marker (real
+    # nf-core downloads for other workflows are untouched) and hard-fails on any
+    # stub/run-copy marker divergence.
+    #
+    # Run as its OWN docker exec with NO masking tail pipe: the remote shell is
+    # set -e but NOT pipefail, so a tail-piped failure would be swallowed. Bare,
+    # a nonzero exit propagates (docker exec -> remote set -e -> ec2_ssh nonzero
+    # -> top-level set -euo pipefail aborts the sync). That is what makes the
+    # guard real: a deploy CANNOT silently ship a stale run-copy.
+    docker exec "$GC" bash /tmp/workflows_extract_in/scripts/regen_stub_runcopies.sh
 
     # Workflow-script cache invalidation: Nextflow caches compiled .nf
     # scripts by content hash, but stale per-run dirs can keep old plugin
@@ -1590,7 +1619,12 @@ do_sync() {
     grep -vE '\.(test|spec)\.(ts|tsx|js)$|^frontend/e2e/' || true)"
   [[ -n "$_runtime_frontend" ]] && do_frontend=true
   echo "$changed_paths" | grep -q "^backend/lib/" && do_backend=true
-  echo "$changed_paths" | grep -qE "^backend/biomni_workflows/|^backend/nf-core-workflows/modules/biomate-ai-tools/" && do_workflows=true
+  # The workflows layer also runs when the stub→run-copy regeneration script
+  # itself changes, so a deploy that only touches scripts/regen_stub_runcopies.sh
+  # (e.g. the very first deploy of the Stream-6 root-cause fix) still executes
+  # deploy_workflows and regenerates stale run-copies. Without this, a
+  # scripts-only diff would skip the workflows layer and the fix would lie dormant.
+  echo "$changed_paths" | grep -qE "^backend/biomni_workflows/|^backend/nf-core-workflows/modules/biomate-ai-tools/|^scripts/regen_stub_runcopies\.sh$" && do_workflows=true
   echo "$changed_paths" | grep -q "^backend/database/" && do_db=true
 
   # Always sync logo
