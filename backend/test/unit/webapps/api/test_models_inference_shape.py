@@ -462,12 +462,38 @@ def test_models_routes_require_admin_bridge_before_trusting_owner_headers():
 
 
 def test_unavailable_pretrained_inference_does_not_become_completed_science(mod, monkeypatch):
+    # openfold2 is a genuinely NIM-served model (no aws_batch override), so it
+    # exercises the NIM dispatch path. (boltz2 now folds on AWS Batch — see below.)
     monkeypatch.setattr(mod, '_find_catalog_row', lambda model_id, owner_id=None: {'id':model_id})
     monkeypatch.setattr(mod, '_dispatch_bionemo', lambda *args: {'stub':True,'stub_reason':'Model backend not configured'})
-    result = mod.infer('bionemo:boltz2', mod.InferRequest(inputs={'sequence':'AA'}), owner_id='owner')
+    result = mod.infer('bionemo:openfold2', mod.InferRequest(inputs={'sequence':'AA'}), owner_id='owner')
     record = mod.get_inference_result(result['run_id'], owner_id='owner')
     assert record['status'] == 'failed'
     assert 'not configured' in record['error']
+
+
+def test_aws_batch_model_is_not_served_by_nim_inference(mod, monkeypatch):
+    """Boltz-2 (origin_override aws_batch) folds on BioMate's own AWS Batch as a
+    tracked structure-fold workflow with the QC auto-loop — never the one-shot
+    BioNeMo NIM (the source of the CUDA "illegal memory access" failures). infer()
+    refuses it (409) BEFORE any dispatch or run record, and the catalog never shows
+    a stale NIM inference failure against it."""
+    import pytest
+    assert mod._is_aws_batch_model('bionemo:boltz2') is True
+    assert mod._is_aws_batch_model('bionemo:openfold2') is False
+
+    monkeypatch.setattr(mod, '_find_catalog_row', lambda model_id, owner_id=None: {'id': model_id, 'name': 'Boltz-2'})
+    # If the NIM were ever reached it would blow up — proving we never dispatch.
+    def _boom(*a, **k):  # pragma: no cover - must not be called
+        raise AssertionError('aws_batch model must not be dispatched to the NIM')
+    monkeypatch.setattr(mod, '_dispatch_bionemo', _boom)
+    with pytest.raises(Exception) as err:
+        mod.infer('bionemo:boltz2', mod.InferRequest(inputs={'sequence': 'AA'}), owner_id='owner')
+    assert err.value.status_code == 409
+
+    # A stale NIM inference failure must not be surfaced against an aws_batch model.
+    rows = mod._with_last_inference([{'id': 'bionemo:boltz2'}], 'owner')
+    assert 'lastInference' not in rows[0]
 
 
 def test_corrupt_ownership_store_is_unavailable_not_empty_success(mod, tmp_path, monkeypatch):

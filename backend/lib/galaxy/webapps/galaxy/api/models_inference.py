@@ -127,6 +127,18 @@ _BIONEMO_PREFIX = "bionemo:"
 _CUSTOM_PREFIX = "custom:"
 
 
+def _is_aws_batch_model(model_id: str) -> bool:
+    """True for catalog models that fold on BioMate's OWN AWS Batch as a tracked
+    structure-fold workflow (origin_override 'aws_batch', e.g. Boltz-2), rather
+    than the one-shot BioNeMo NIM. These must never be dispatched to the NIM:
+    the NIM path has no self-correction and has hit CUDA faults, while the Batch
+    fold carries BioMate's QC-gate -> remediation -> retry auto-loop."""
+    if not model_id.startswith(_BIONEMO_PREFIX):
+        return False
+    meta = _BIONEMO_META.get(model_id[len(_BIONEMO_PREFIX):])
+    return bool(meta and meta.get("origin_override") == "aws_batch")
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Custom-model catalog — enumerated from the CustomModelRegistry SQLite.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -436,6 +448,11 @@ def _with_last_inference(rows: List[Dict[str, Any]], owner_id: str) -> List[Dict
     try:
         store = _store()
         for row in rows:
+            # aws_batch models (Boltz-2) are served by the structure-fold workflow,
+            # not /api/inference — their health is the workflow run, so a stale NIM
+            # inference failure must not be shown against them.
+            if _is_aws_batch_model(row["id"]):
+                continue
             last = store.get_run(_last_inference_key(owner_id, row["id"]))
             if last and last.get("owner_id") == owner_id:
                 row["lastInference"] = {
@@ -1163,6 +1180,18 @@ def infer(model_id: str, body: InferRequest, owner_id: Optional[str] = Header(No
     row = _find_catalog_row(model_id, owner_id)
     if row is None:
         raise HTTPException(status_code=404, detail=f"Unknown model id: {model_id}")
+
+    # Boltz-2 (and any aws_batch model) folds on BioMate's OWN AWS Batch as a
+    # tracked structure-fold workflow — WITH the QC-gate remediation + retry
+    # auto-loop — not the one-shot BioNeMo NIM (no auto-correction; the source of
+    # the "BioNeMo boltz2 … CUDA illegal memory access" failures). Refuse the NIM
+    # path here, before creating a run, so no failed inference is recorded. The
+    # Run-a-model UI already launches these via launchFold → /api/workflows/execute.
+    if _is_aws_batch_model(model_id):
+        raise HTTPException(status_code=409, detail=(
+            f"{row.get('name', model_id)} runs as a BioMate AWS Batch structure-fold "
+            "workflow (with automatic QC remediation and retry), not one-shot NIM "
+            "inference. Launch it from Run a model."))
 
     evidence_class = _evidence_class_for(model_id)
     run_id = _new_run(model_id, evidence_class, owner_id)
