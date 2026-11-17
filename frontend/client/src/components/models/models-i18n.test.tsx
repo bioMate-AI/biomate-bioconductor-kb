@@ -53,7 +53,8 @@ describe("models.* bundles", () => {
 
   it("has no untranslated English in any Chinese string", () => {
     // Example inputs (sequences / SMILES) are data, identical in both locales.
-    const dataKeys = Object.keys(zh).filter(k => /^domain_(example|placeholder)_/.test(k))
+    // _cols keys are literal CSV header identifiers — data, identical in both locales.
+    const dataKeys = Object.keys(zh).filter(k => /^domain_(example|placeholder)_|_cols$/.test(k))
     const bad = Object.entries(zh)
       .filter(([k]) => !dataKeys.includes(k))
       .map(([k, v]) => [k, leaks(v.replace(/\{\{\s*\w+\s*\}\}/g, ""))] as const)

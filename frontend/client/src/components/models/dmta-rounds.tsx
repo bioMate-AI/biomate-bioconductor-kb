@@ -120,6 +120,35 @@ export function RoundsSection({
     }
   }
 
+  const uploadAssays = async (file: File) => {
+    const id = localCampaign || campaignId
+    if (!id) { setActionError(t("models.rounds_need_project")); return }
+    setBusy("trigger"); setActionError(""); setActionOk("")
+    try {
+      // Ensure the campaign exists with the selected modality so sequence entities
+      // validate as sequences (not SMILES) during ingest.
+      await fetch("/api/drug-discovery/campaigns", {
+        method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ campaign_id: id, molecule_name: "Models DMTA loop", objective: "balance", modality }),
+      }).catch(() => {})
+      const form = new FormData()
+      form.append("file", file, file.name || "assays.csv")
+      const res = await fetch(`/api/drug-discovery/${encodeURIComponent(id)}/ingest-assay`, {
+        method: "POST", credentials: "include", body: form,
+      })
+      const body = await res.json().catch(() => ({})) as { ingested?: number; errors?: string[]; detail?: string }
+      if (!res.ok) throw new Error(typeof body.detail === "string" ? body.detail : `ingest-assay HTTP ${res.status}`)
+      setLocalCampaign(id)
+      setActionOk(t("models.rounds_ingest_ok", { n: String(body.ingested ?? 0) }))
+      if (Array.isArray(body.errors) && body.errors.length) setActionError(body.errors.slice(0, 3).join("; "))
+      refresh()
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy(null)
+    }
+  }
+
   const loopAction = async (action: "start" | "stop" | "trigger") => {
     const id = localCampaign || campaignId
     if (!id) {
@@ -172,6 +201,24 @@ export function RoundsSection({
             {t("models.rounds_gen_button")}
           </Button>
           <span className="text-fs-xs text-muted-foreground">{t("models.rounds_gen_hint")}</span>
+        </div>
+      )}
+      {modality !== "small_molecule" && (
+        <div className="flex flex-wrap items-center gap-1.5" data-testid="optimise-upload">
+          <label
+            className={`inline-flex h-7 items-center rounded border px-2 text-xs ${busy || !campaignId ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-accent"}`}
+            data-testid="optimise-upload-label">
+            {t("models.rounds_ingest_button")}
+            <input
+              type="file" accept=".csv,text/csv" className="hidden"
+              disabled={!!busy || !campaignId} data-testid="optimise-upload-input"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadAssays(f); e.target.value = "" }}
+            />
+          </label>
+          <span className="text-fs-xs text-muted-foreground">
+            {t("models.rounds_ingest_hint")}{" "}
+            <code className="font-mono text-[0.95em]">{t("models.rounds_ingest_cols")}</code>
+          </span>
         </div>
       )}
       <div className="flex flex-wrap gap-1.5">
