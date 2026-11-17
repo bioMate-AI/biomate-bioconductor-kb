@@ -99,6 +99,7 @@ import {
   rebindFilenameValues,
   attachmentsNotUsed,
   isNonInputAttachment,
+  resolveAttachedFileForValue,
   buildResolvedNfcoreInputSamplesheet,
 } from '../shared/attachment-binding';
 import {
@@ -10152,13 +10153,45 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
           }
           // Record what we could and could not bind so the reply never claims a
           // workflow was built from data it does not actually read.
-          const _boundNames = new Set(_bindings.flatMap((b) => b.files.map((f) => f.name)));
           // Bundle documentation (README, provenance) is not data the workflow
           // was supposed to read, so it is not reported as unused data either.
           const _dataAttached = _attached.filter((f) => !isNonInputAttachment(f));
+          // A file is USED when THIS pass bound it — OR when it is ALREADY wired to a
+          // param value. The backend's dataset binder (_bind_uploaded_datasets_to_params)
+          // and the LLM/explicit extractors fill the chosen workflow's file params (often
+          // surfaced as optional_params with data_input:true, e.g. the Cox demo's
+          // patient_clinical_data = s3://…/patient_clinical_data.csv, or diffabundance's
+          // samplesheet/matrix/contrasts) BEFORE this pass runs, so bindAttachmentsToParams
+          // skips them as "already bound" and they never appear in _bindings. Counting only
+          // _bindings here WAS the cold-start CSV-orphan bug: the file was wired and runnable,
+          // yet the reply said "this workflow does not read your file — use <other> instead"
+          // and the panel flagged the upload unused. Treat a file resolvable from any param's
+          // value/default as bound too, so the report reflects what the workflow actually reads.
+          const _boundByPass = new Set(_bindings.map((b) => b.param));
+          const _preBound: Array<{ param: string; file: string }> = [];
+          const _preBoundFiles = new Set<string>();
+          for (const _p of _specs) {
+            const _pname = String((_p as any)?.name || '');
+            if (!_pname || _boundByPass.has(_pname)) continue;
+            const _vf =
+              resolveAttachedFileForValue((_p as any)?.value, _dataAttached) ||
+              resolveAttachedFileForValue((_p as any)?.default, _dataAttached) ||
+              resolveAttachedFileForValue((_p as any)?.defaultValue, _dataAttached);
+            if (_vf && !_preBoundFiles.has(_vf.name)) {
+              _preBound.push({ param: _pname, file: _vf.name });
+              _preBoundFiles.add(_vf.name);
+            }
+          }
+          const _boundNames = new Set<string>([
+            ..._bindings.flatMap((b) => b.files.map((f) => f.name)),
+            ..._preBound.map((b) => b.file),
+          ]);
           (response as any)._attachmentBinding = {
             attached: _dataAttached.map((f) => f.name),
-            bound: _bindings.map((b) => ({ param: b.param, file: b.files.map((f) => f.name).join(', ') })),
+            bound: [
+              ..._bindings.map((b) => ({ param: b.param, file: b.files.map((f) => f.name).join(', ') })),
+              ..._preBound,
+            ],
             unbound: _dataAttached.filter((f) => !_boundNames.has(f.name)).map((f) => f.name),
           };
           // The panel reads this (not the login-session upload list) to say "files attached here are

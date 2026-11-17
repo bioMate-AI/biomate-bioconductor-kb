@@ -137,6 +137,47 @@ describe('generateWorkflow — attachment binding', () => {
     expect(out.workflow_ga.required_params[0].value).toBeUndefined();
     expect(out._attachmentBinding).toBeUndefined();
   });
+
+  // Cold-start CSV-orphan regression (2026-11-17): the backend's dataset binder
+  // (_bind_uploaded_datasets_to_params) fills the chosen workflow's file param with
+  // the uploaded file's s3_uri BEFORE the JS attachment pass runs, so
+  // bindAttachmentsToParams skips it as "already bound" and it never appears in
+  // _bindings. The report must still count that file as USED (resolvable from a param
+  // value) — otherwise the reply says "this workflow does not read your file — use
+  // <other> instead" and the panel flags the upload unused, even though it is wired and
+  // runnable. This is exactly what happened to the Cox demo (patient_clinical_data.csv →
+  // survival_cox…) and the differentialabundance demo (counts/metadata/contrasts).
+  it('counts a file the backend already wired to a param value as bound, not unused', async () => {
+    const COX_URI = 's3://biomate-nextflow-work/uploads/25d12a93/patient_clinical_data.csv';
+    const message =
+      'Run survival_cox_proportional_hazards_regression on the attached autoimmune-cohort clinical data.\n\n' +
+      '[Attached files: patient_clinical_data.csv]\n' +
+      `[Uploaded datasets: patient_clinical_data.csv: dataset_id=25d12a93, s3_uri=${COX_URI}]`;
+    const a = assistantReturning({
+      success: true,
+      workflow_name: 'Survival Cox Proportional Hazards Regression',
+      workflow_ga: {
+        name: 'survival_cox_proportional_hazards_regression',
+        // Executor-owned file input surfaced as an optional_param already carrying the
+        // uploaded s3_uri (the real delivered shape — see docs/ cold-start audit).
+        required_params: [],
+        optional_params: [
+          {
+            name: 'patient_clinical_data', label: 'Patient Clinical Data', type: 'file',
+            data_input: true, autoFilled: true,
+            description: 'Data input file read by the workflow',
+            default: COX_URI, value: COX_URI,
+          },
+        ],
+      },
+    });
+    const out = await callGenerate(a, 'fit a cox model', message);
+    expect(out._attachmentBinding.bound).toEqual([
+      { param: 'patient_clinical_data', file: 'patient_clinical_data.csv' },
+    ]);
+    expect(out._attachmentBinding.unbound).toEqual([]);
+    expect(out._attachmentBinding.attached).toEqual(['patient_clinical_data.csv']);
+  });
 });
 
 describe('attachmentBoundParams — the bound values the chat response carries', () => {
