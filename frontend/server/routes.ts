@@ -5681,6 +5681,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               req.body = { ...(req.body || {}), org_id: orgId };
             }
           }
+          // Persist campaign ownership on create. The backend stores
+          // campaigns.user_id from the request body; without this, panel-created
+          // campaigns are left unowned ("") and become invisible to the
+          // owner-scoped Model tracks (Train / Design loop), so a real proposal
+          // round never renders. Server-authoritative: the authenticated user id
+          // overrides any client-supplied value (ownership cannot be spoofed).
+          const isCampaignCreate = method === 'POST' && /\/drug-discovery\/campaigns$/.test(targetPath);
+          if (isCampaignCreate && u?.id) {
+            req.body = { ...(req.body || {}), user_id: String(u.id) };
+          }
           fetchOpts.body = JSON.stringify(req.body);
         }
       }
