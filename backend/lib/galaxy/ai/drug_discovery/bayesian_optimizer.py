@@ -104,6 +104,14 @@ class BayesianOptimizer:
     #: rather than small-molecule SMILES (Morgan/Tanimoto GP).
     SEQUENCE_MODALITIES = ("peptide", "biologic")
 
+    #: Soft bonus added to a candidate's selection score when it is inside the
+    #: applicability domain. acq_norm and diversity are each in [0, 1], so this
+    #: breaks ties toward trustworthy candidates without overriding a clearly
+    #: better-acquisition out-of-domain candidate (and has no effect when no
+    #: candidate is in-domain). Tuned to surface actionable proposals without
+    #: killing exploration.
+    _AD_SELECTION_BONUS = 0.25
+
     def __init__(
         self,
         campaign_id: str,
@@ -321,6 +329,39 @@ class BayesianOptimizer:
                 keep.append(i)
         return keep, excluded
 
+    def _ad_mask(self, n_cand, cand_smiles, X_lib, pred_scores, pred_stds):
+        """Applicability-domain in/out for every candidate, via the checker that
+        matches the modality. Returns (in_domain: np.ndarray[bool], status_by_index:
+        dict[int, str]). Non-fatal: on any failure every candidate is treated as
+        in-domain (status "unknown") so the loop still proposes."""
+        import numpy as np
+        in_domain = np.ones(n_cand, dtype=bool)
+        status: dict[int, str] = {}
+        if n_cand == 0:
+            return in_domain, status
+        try:
+            if self._entity_kind == "sequence":
+                from .sequence_surrogate import SequenceApplicabilityDomain
+                seq_ad = SequenceApplicabilityDomain().fit(self._dataset.features)
+                results = seq_ad.check(X_lib, list(cand_smiles))
+                for i, r in enumerate(results):
+                    in_domain[i] = bool(r.in_domain)
+                    status[i] = "in_domain" if r.in_domain else "out_of_domain"
+            else:
+                from .applicability_domain import ApplicabilityDomainChecker
+                chk = ApplicabilityDomainChecker(self._dataset.features)
+                for i in range(n_cand):
+                    r = chk.check(cand_smiles[i], X_lib[i],
+                                  gp_mean=float(pred_scores[i, 0]),
+                                  gp_std=float(pred_stds[i, 0]))
+                    in_domain[i] = (r.ad_status == "in_domain")
+                    status[i] = r.ad_status
+        except Exception as exc:  # noqa: BLE001 — AD is advisory, never fatal
+            log.warning("AD precompute failed (non-fatal): %s", exc)
+            in_domain = np.ones(n_cand, dtype=bool)
+            status = {i: "unknown" for i in range(n_cand)}
+        return in_domain, status
+
     def propose_next_round(
         self,
         virtual_library_smiles: list[str],
@@ -396,7 +437,22 @@ class BayesianOptimizer:
         acq_max = float(acquisition.max()) if n_cand else 0.0
         acq_norm = acquisition / acq_max if acq_max > 0 else np.zeros(n_cand)
 
-        # Greedy batch construction with diversity bonus
+        # Applicability-domain status for ALL candidates, using the
+        # modality-appropriate checker: sequences use the distance-based
+        # SequenceApplicabilityDomain (the fingerprint hat-matrix leverage is
+        # degenerate for the 31-dim descriptors when n<p), small molecules keep
+        # the leverage checker. Computed up front so selection can prefer
+        # in-domain candidates — otherwise acquisition (which rewards
+        # uncertainty) selects exactly the extrapolations the AD then flags, and
+        # every proposal comes back "out of domain".
+        ad_in_domain, ad_status_by_index = self._ad_mask(
+            n_cand, cand_smiles, X_lib, pred_scores, pred_stds)
+
+        # Greedy batch construction with a diversity bonus and a soft preference
+        # for in-domain candidates. The AD bonus only breaks ties toward
+        # trustworthy candidates; when none are in-domain it is uniform (all
+        # False) and has no effect, so early exploratory rounds still propose the
+        # best-acquisition extrapolations.
         selected_indices: list[int] = []
         selection_scores: list[float] = []
         remaining = list(range(n_cand))
@@ -407,7 +463,8 @@ class BayesianOptimizer:
             else:
                 diversity = np.ones(len(remaining))
             combined = ((1.0 - diversity_weight) * acq_norm[remaining]
-                        + diversity_weight * diversity)
+                        + diversity_weight * diversity
+                        + self._AD_SELECTION_BONUS * ad_in_domain[remaining].astype(float))
             k = int(np.argmax(combined))
             selected_indices.append(remaining.pop(k))
             selection_scores.append(round(float(combined[k]), 6))
@@ -434,22 +491,9 @@ class BayesianOptimizer:
             ci_dict[obj_name] = cis
             std_dict[obj_name] = stds
 
-        # Applicability domain check using hat-matrix leverage on training fingerprints
-        ad_statuses: list[str] = []
-        try:
-            from .applicability_domain import ApplicabilityDomainChecker
-            ad_checker = ApplicabilityDomainChecker(self._dataset.features)
-            for k, i in enumerate(selected_indices):
-                result = ad_checker.check(
-                    proposed_smiles[k],
-                    X_lib[i],
-                    gp_mean=float(pred_scores[i, 0]),
-                    gp_std=float(pred_stds[i, 0]),
-                )
-                ad_statuses.append(result.ad_status)
-        except Exception as exc:
-            log.warning("AD check failed (non-fatal): %s", exc)
-            ad_statuses = ["unknown"] * len(selected_indices)
+        # Applicability-domain statuses for the selected batch (precomputed above
+        # with the modality-appropriate checker).
+        ad_statuses: list[str] = [ad_status_by_index.get(i, "unknown") for i in selected_indices]
 
         pareto_smiles = [
             self._dataset.smiles_list[i]
