@@ -30,6 +30,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { GraduationCap, Library, FlaskConical, ChevronRight, AlertTriangle } from "lucide-react"
 import { useModels, useTrainTrack, useOptimiseTrack } from "./models-api"
+import { useActiveProjectSafe } from "@/contexts/active-project-context"
 import { ModelObjectLoader } from "./model-object"
 import { OwnedTrainingRegistry } from "./owned-training-registry"
 import { RunPretrained } from "./run-pretrained"
@@ -421,7 +422,17 @@ export function ModelsPanel({
   // RunPretrained preselected to it, so the detail view is no longer a dead end.
   const [runPreselect, setRunPreselect] = useState<string | null>(null)
 
-  const projectArg = project === "Project" ? undefined : project
+  // The Models page renders <ModelsPanel/> with no `project` prop (it defaults to
+  // the "Project" placeholder), so scope the track queries to the ACTIVE project
+  // from context — otherwise /api/model-tracks/optimise is called with no project
+  // and the backend falls back to the owner's first campaign, showing a DIFFERENT
+  // campaign's rounds than the active project. The Rounds controls already use the
+  // active-project context directly, so without this the display and the actions
+  // target different campaigns.
+  const activeProjectCtx = useActiveProjectSafe()
+  const projectArg = project && project !== "Project"
+    ? project
+    : (activeProjectCtx?.activeProjectId || undefined)
   const trainQuery = useTrainTrack(projectArg)
   const optimiseQuery = useOptimiseTrack(projectArg)
   const effectiveTrainData = trainData ?? trainQuery.data
