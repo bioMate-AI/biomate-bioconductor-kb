@@ -4414,6 +4414,22 @@ _WORKFLOW_DOMAIN_PATH_HINTS = (
 )
 
 
+def _run_critic_hook(run_id: str, run_meta: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Build the critic_report for a completed run.
+
+    A gap/failed run has no readable contract (design / results_manifest were built
+    ONLY in the else-branch of the output-resolution-gap check, and only on
+    returncode == 0), so the design-aware critics have nothing to read. Such a run is
+    stamped with an explicit ``{"status": "not_judged", "reason": "no readable
+    contract"}`` marker so it does NOT present as clean — an absent critic_report would
+    look like "judged, nothing wrong", the exact fail-silent-on-the-highest-value-runs
+    hole. Healthy runs return None HERE; the actual critic dispatch is wired by the hook
+    attach (PR-2), which replaces this body."""
+    if not (run_meta.get("design") or run_meta.get("results_manifest")):
+        return {"status": "not_judged", "reason": "no readable contract"}
+    return None
+
+
 def _infer_workflow_domain(nf_path: str) -> str:
     """Infer a run's workflow_domain from its nextflow path when the request did not
     declare one. Path hints first (authoritative for the critic domains), then the
@@ -5027,6 +5043,17 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                     _runs[run_id]["output_resolution_gap"] = True
                 run_meta = dict(_runs[run_id])
         log.info("[Nextflow run %s] finished — status=%s returncode=%d", run_id, final_status, returncode)
+
+        # ── Critic layer: post-run judgment ───────────────────────────────────────
+        # A gap/failed run (no readable contract) is stamped "not_judged" so it does NOT
+        # look clean; healthy-run judgment is wired by the hook attach (PR-2). Runs
+        # lock-free (it does best-effort S3 reads) and is fail-open.
+        _critic_report = _run_critic_hook(run_id, run_meta)
+        if _critic_report is not None:
+            run_meta["critic_report"] = _critic_report
+            with _runs_lock:
+                if run_id in _runs:
+                    _runs[run_id]["critic_report"] = _critic_report
 
         # Emit structured log lines for every Batch job ID found in .nextflow.log
         _scrape_batch_job_ids(run_id)
