@@ -164,7 +164,7 @@ import {
   type HonestCostEstimate,
   type HistoricalRunRow,
 } from "./admin-cost-estimate";
-import { unboundClinicHardDataFromParams } from "../shared/workflow-data-inputs";
+import { unboundClinicHardDataFromParams, isBoundValue } from "../shared/workflow-data-inputs";
 import * as mfaService from "./mfa-service";
 import toolsManifest from "./tools_manifest.json";
 import { registerConnectorAdapters } from "./connector-adapters";
@@ -12330,6 +12330,126 @@ ${paramLines || '(none recorded)'}`;
             guidance:
               "Provide the listed data inputs (fill them in the workflow params panel or attach files) and retry.",
           });
+        }
+      }
+
+      // ── nf-core reads-samplesheet pipeline launched with no --input ──────────
+      // nf-core pipelines like rnaseq/sarek/scrnaseq consume a samplesheet CSV via
+      // `--input`, but their stubs mark `input` optional (required:[]) and may not
+      // even surface it as a param, so an empty run could launch and die at nf-schema
+      // "Validation of pipeline parameters failed" — verified live on dev: a
+      // "Run nf-core/rnaseq on SRR1039508" launch wrote params.json with input=null
+      // and genome=null and failed in ~90s, burning a Batch job.
+      //
+      // Fix: when the request names an SRA/ENA accession, AUTO-WIRE it. The backend
+      // accession-chain (_accession_chain_thread → _run_fetchngs_prefetch) already
+      // turns a sequencing accession in the launch params into a fetchngs samplesheet
+      // before the main run — it just never fired because the accession never reached
+      // the launch payload. Put the accession into `input`, and pick an organism-correct
+      // iGenomes reference (looked up from ENA — never guessed; a wrong genome is wrong
+      // science), then let the run proceed. Only block when no accession is available.
+      // (DE pipelines are handled by the guard below.)
+      {
+        const nfPath = String(
+          request.workflowDefinition?.nextflow_path ||
+          (request.workflowDefinition as any)?.nextflowPath || '',
+        ).toLowerCase();
+        const wfNameLc = String(request.workflowDefinition?.name || '').toLowerCase();
+        const isDE = /differential.?abundance|deseq2|\bedger\b|\blimma\b|differential.?expression/.test(wfNameLc);
+        // nf-core pipelines whose primary `--input` is a sequencing-reads samplesheet.
+        const READS_SAMPLESHEET_RE = /(rnaseq|sarek|scrnaseq|atacseq|chipseq|cutandrun|methylseq|rnafusion|smrnaseq|nanoseq|taxprofiler|ampliseq|viralrecon|rnasplice)\b/;
+        const isReadsSamplesheetNfCore =
+          (/(nf-?core|nfcore)\//.test(nfPath) && READS_SAMPLESHEET_RE.test(nfPath)) ||
+          (READS_SAMPLESHEET_RE.test(wfNameLc) && /(nf-?core|nfcore)/.test(`${wfNameLc} ${nfPath}`));
+        if (isReadsSamplesheetNfCore && !isDE) {
+          const defParams =
+            request.workflowDefinition && typeof request.workflowDefinition.parameters === 'object' && request.workflowDefinition.parameters
+              ? request.workflowDefinition.parameters : {};
+          const topParams = request.params && typeof request.params === 'object' ? request.params : {};
+          const providedParams: Record<string, any> = { ...defParams, ...topParams };
+          const launchPreview = buildNextflowLaunchParameters(
+            request.workflowDefinition, providedParams,
+          ) as Record<string, unknown>;
+          if (!isBoundValue(launchPreview.input)) {
+            const wfLabel = request.workflowDefinition?.name || 'This nf-core workflow';
+            // SRA/ENA run/experiment/sample/study/project accessions nf-core/fetchngs fetches directly.
+            const SRA_ENA_RE = /\b([SED]RR\d{5,}|[SED]RX\d{5,}|[SED]RS\d{5,}|[SED]RP\d{4,}|PRJ[NED][A-Z]?\d{4,})\b/i;
+            const inlineParams = (request.workflowDefinition as any)?.inline_parameters;
+            const hay = [
+              ...Object.values(providedParams).map((v: any) => String(v ?? '')),
+              ...(request.inputs && typeof request.inputs === 'object' ? Object.values(request.inputs).map((v: any) => String(v ?? '')) : []),
+              ...(inlineParams && typeof inlineParams === 'object' ? Object.values(inlineParams).map((v: any) => String(v ?? '')) : []),
+              String(request.workflowDefinition?.name ?? ''),
+              String(request.workflowDefinition?.description ?? ''),
+            ].join('  ');
+            const acc = hay.match(SRA_ENA_RE)?.[0];
+            if (acc) {
+              // Reuse any reference already provided; otherwise auto-select an iGenomes
+              // genome from the accession's ORGANISM (ENA lookup). Only human/mouse are
+              // auto-selected; any other organism blocks and asks for a reference rather
+              // than align reads to the wrong genome.
+              const haveGenome =
+                isBoundValue(launchPreview.genome) || isBoundValue(launchPreview.fasta) ||
+                isBoundValue(launchPreview.gtf) || isBoundValue(launchPreview.star_index) ||
+                isBoundValue(launchPreview.salmon_index) || isBoundValue(launchPreview.transcript_fasta);
+              const inject: Record<string, any> = { input: acc };
+              let genomeNote = '';
+              if (!haveGenome) {
+                let organism = '';
+                try {
+                  const enaUrl = `https://www.ebi.ac.uk/ena/portal/api/filereport?accession=${encodeURIComponent(acc)}&result=read_run&fields=scientific_name&format=json&limit=1`;
+                  const enaResp = await fetch(enaUrl, { signal: AbortSignal.timeout(8000) });
+                  if (enaResp.ok) {
+                    const rows: any = await enaResp.json().catch(() => []);
+                    organism = String((Array.isArray(rows) ? rows[0]?.scientific_name : '') || '').toLowerCase();
+                  }
+                } catch (e: any) {
+                  console.warn(`[execute-gate] ENA organism lookup for ${acc} failed (${e?.message || e}).`);
+                }
+                // iGenomes NCBI references (the exact paths a working rnaseq run uses).
+                const IGENOMES: Record<string, { fasta: string; gtf: string; label: string }> = {
+                  'homo sapiens': {
+                    fasta: 's3://ngi-igenomes/igenomes/Homo_sapiens/NCBI/GRCh38/Sequence/WholeGenomeFasta/genome.fa',
+                    gtf: 's3://ngi-igenomes/igenomes/Homo_sapiens/NCBI/GRCh38/Annotation/Genes/genes.gtf',
+                    label: 'GRCh38',
+                  },
+                  'mus musculus': {
+                    fasta: 's3://ngi-igenomes/igenomes/Mus_musculus/NCBI/GRCm38/Sequence/WholeGenomeFasta/genome.fa',
+                    gtf: 's3://ngi-igenomes/igenomes/Mus_musculus/NCBI/GRCm38/Annotation/Genes/genes.gtf',
+                    label: 'GRCm38',
+                  },
+                };
+                const ref = IGENOMES[organism];
+                if (ref) {
+                  inject.fasta = ref.fasta;
+                  inject.gtf = ref.gtf;
+                  genomeNote = ` reference ${ref.label} (auto-selected for ${organism})`;
+                } else {
+                  console.warn(`[execute-gate] "${wfLabel}": ${acc} organism "${organism || 'unknown'}" has no auto-selected iGenomes reference — asking for a genome.`);
+                  return res.status(400).json({
+                    error: 'missing_required_params',
+                    message: `"${wfLabel}" will fetch ${acc}, but its organism (${organism || 'unknown'}) has no auto-selected reference genome — pick a reference and retry. No compute was launched.`,
+                    missing: [{ name: 'genome', label: 'Reference genome', description: 'An iGenomes key (e.g. GRCh38, GRCm38) or fasta + gtf S3 paths.', type: 'string' }],
+                    guidance: `Set a reference genome in the params panel (e.g. GRCh38 for human, GRCm38 for mouse), then retry.`,
+                  });
+                }
+              }
+              // Wire the accession (+ genome) into the launch; the backend accession-chain
+              // runs nf-core/fetchngs → samplesheet → this pipeline's --input.
+              request.workflowDefinition.parameters = { ...(request.workflowDefinition.parameters || {}), ...inject };
+              request.params = { ...(request.params || {}), ...inject };
+              console.warn(`[execute-gate] "${wfLabel}": auto-wired SRA/ENA accession ${acc} -> --input (backend fetchngs chain)${genomeNote ? ' +' + genomeNote : ''}. Proceeding to launch.`);
+              // fall through to launch — do NOT block.
+            } else {
+              console.warn(`[execute-gate] "${wfLabel}": no --input samplesheet and no fetchable SRA/ENA accession — blocking empty launch. No compute launched.`);
+              return res.status(400).json({
+                error: 'missing_required_params',
+                message: `"${wfLabel}" needs a samplesheet (\`--input\`) of your sequencing reads before it can run. No compute was launched.`,
+                missing: [{ name: 'input', label: 'Samplesheet (sequencing reads)', description: 'A CSV listing samples and their FASTQ paths (nf-core --input).', type: 'file' }],
+                guidance: `Attach your FASTQ files + a samplesheet (or an S3 samplesheet URI), or name a public SRA/ENA accession (e.g. SRR1039508), then retry.`,
+              });
+            }
+          }
         }
       }
 
