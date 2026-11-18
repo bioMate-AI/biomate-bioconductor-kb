@@ -373,18 +373,14 @@ class ChatHistoryService {
   // BACKEND SYNC METHODS
   // ============================================================================
 
-  /** Read the JWT from wherever auth-context stores it */
+  /** Auth now travels in the httpOnly `biomate_token` cookie, sent automatically with
+   *  `credentials: 'include'`. We must NOT attach a localStorage/sessionStorage Bearer:
+   *  a stale legacy JWT (left by an older token-in-storage build) would be sent as the
+   *  Authorization header, and the server's authenticateToken checks that header BEFORE
+   *  falling back to the cookie — so the stale token shadows the valid cookie and 401s
+   *  /api/sessions (breaking chat-history sync). Return null → every request below falls
+   *  through to cookie auth, exactly like /api/projects which works. */
   private getAuthToken(): string | null {
-    // Try localStorage keys used by the auth context
-    for (const key of ['biomate_token', 'biomate-auth-token', 'token']) {
-      const v = localStorage.getItem(key);
-      if (v && v.startsWith('eyJ')) return v;
-    }
-    // Try sessionStorage
-    for (const key of ['biomate_token', 'biomate-auth-token', 'token']) {
-      const v = sessionStorage.getItem(key);
-      if (v && v.startsWith('eyJ')) return v;
-    }
     return null;
   }
 
