@@ -256,9 +256,16 @@ _CAMPAIGN_DB_DIR = os.environ.get(
     str(Path(__file__).parent.parent.parent.parent.parent / "database" / "campaigns"),
 )
 
-# Global registry of all campaigns (user_id → campaign metadata)
-_CAMPAIGN_REGISTRY_DB = str(
-    Path(__file__).parent.parent.parent.parent.parent / "database" / "campaigns_registry.db"
+# Global registry of all campaigns (user_id → campaign metadata).
+# Resolution MUST match models_inference._owned_campaign_ids / _campaign_modality
+# (BIOMATE_CAMPAIGN_REGISTRY_DB, else <campaign-db-dir>/../campaigns_registry.db):
+# this module WRITES the registry (create_campaign) and the Models surface READS
+# it for ownership — if they resolved to different files (e.g. BIOMATE_CAMPAIGN_DB_DIR
+# set to a persistent volume without BIOMATE_CAMPAIGN_REGISTRY_DB), every owned
+# campaign would read as unowned and the Models tracks would render empty.
+_CAMPAIGN_REGISTRY_DB = os.environ.get(
+    "BIOMATE_CAMPAIGN_REGISTRY_DB",
+    str(Path(_CAMPAIGN_DB_DIR).parent / "campaigns_registry.db"),
 )
 
 
