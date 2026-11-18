@@ -316,6 +316,13 @@ export function TrainingLauncher({ family, adaptOf }: { family: LauncherFamily; 
             </select>
           </label>
           <p className="text-fs-xs text-muted-foreground">{modelType && t(`models.mtd_${modelType}`)}</p>
+          {/* The offered types depend on the data (SMILES→molecular, text→LLM,
+              .h5ad→single-cell). Say so, so the shown subset isn't a mystery. */}
+          {family === 'general' && (
+            <p className="text-fs-xs text-muted-foreground/70" data-testid="launcher-modality-hint">
+              {t('models.launch_modality_hint')}
+            </p>
+          )}
           {unavailableKey && (
             <p className="text-fs-xs text-destructive" data-testid="launcher-type-unavailable">
               {t(`models.${unavailableKey}`)}

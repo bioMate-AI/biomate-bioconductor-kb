@@ -1995,6 +1995,7 @@
     "adapt_launch_heading": "适配 {{model}} — 添加数据或要求",
     "adapt_launch_intro": "上传新数据（带标签的表格，或用于 DPO 的偏好对：prompt / chosen / rejected），或用于 RL 的提示集，选择方法并启动。结果会登记为该模型的下一个版本。",
     "launch_molecular_path_note": "RDKit 基线（scikit-learn / Ludwig）在中央处理器上基于分子描述符运行——这是此处可用的分子模型。（Chemprop GNN 尚未接通。）",
+    "launch_modality_hint": "可选模型取决于你的数据——加入 SMILES 列可做分子模型，加入自由文本列可做 LLM 微调，或上传 .h5ad 做单细胞。",
     "mt_chemprop_gnn": "分子图神经网络（消息传递）",
     "mtd_chemprop_gnn": "在分子图上训练消息传递网络 — 与聊天训练同一工作流路径。需要图模型而非描述符基线时选用。",
     "rounds_create": "创建活动",
