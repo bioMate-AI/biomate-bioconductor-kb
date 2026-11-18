@@ -594,6 +594,40 @@ def refit_and_propose(
 _active_loops: dict[str, threading.Thread] = {}
 _loop_stop_events: dict[str, threading.Event] = {}
 
+# Cross-worker coordination. Under gunicorn --workers=N each worker has its own
+# _active_loops/_loop_stop_events, so a bare in-process registry would run up to N
+# duplicate daemons per campaign, answer /retrain/status wrong on ~(N-1)/N of
+# polls, and fail to stop a loop started on a different worker. We take a Redis
+# LEASE (atomic SET NX EX, heartbeat-renewed) so EXACTLY ONE worker runs the loop,
+# plus a Redis stop flag so any worker can stop it and is_loop_running is correct
+# everywhere. When Redis is absent (local/dev) we fall back to the in-process
+# registry — single-worker-correct, same as before.
+_LEASE_TTL_FACTOR = 3  # lease TTL = factor × check interval; renewed every tick
+
+
+def _loop_redis():
+    """Shared Redis client, or None when unconfigured/unreachable (non-fatal)."""
+    url = os.environ.get("REDIS_URL") or os.environ.get("REDISCLOUD_URL")
+    if not url:
+        return None
+    try:
+        import redis  # type: ignore
+        r = redis.from_url(url, socket_timeout=2, socket_connect_timeout=2,
+                           decode_responses=True)
+        r.ping()
+        return r
+    except Exception as exc:  # noqa: BLE001 — coordination is best-effort
+        log.debug("auto_retrain: redis unavailable (%s) — in-process loop registry", exc)
+        return None
+
+
+def _lease_key(campaign_id: str) -> str:
+    return f"dmta-loop:lease:{campaign_id}"
+
+
+def _stop_key(campaign_id: str) -> str:
+    return f"dmta-loop:stop:{campaign_id}"
+
 
 def start_background_loop(
     db_path: str,
@@ -601,25 +635,52 @@ def start_background_loop(
     check_interval_s: float = 60.0,
 ) -> None:
     """
-    Start a daemon thread that periodically checks for new assay data and
-    re-runs the optimizer.  Idempotent: a second call for the same campaign
-    is a no-op if the loop is already running.
+    Start a daemon thread that periodically checks for new assay data and re-runs
+    the optimizer. Idempotent ACROSS WORKERS: a second call for the same campaign
+    (on any worker) is a no-op while the lease is held.
     """
     if campaign_id in _active_loops and _active_loops[campaign_id].is_alive():
-        log.debug("auto_retrain[%s]: loop already running", campaign_id)
+        log.debug("auto_retrain[%s]: loop already running on this worker", campaign_id)
         return
+
+    r = _loop_redis()
+    ttl = max(1, int(check_interval_s * _LEASE_TTL_FACTOR))
+    import uuid
+    token = f"{os.getpid()}-{uuid.uuid4().hex[:8]}"
+    if r is not None:
+        try:
+            if not r.set(_lease_key(campaign_id), token, nx=True, ex=ttl):
+                log.debug("auto_retrain[%s]: loop lease held by another worker — no-op", campaign_id)
+                return
+            r.delete(_stop_key(campaign_id))  # clear any stale stop flag on fresh start
+        except Exception as exc:  # noqa: BLE001
+            log.debug("auto_retrain[%s]: lease acquire failed (%s) — in-process", campaign_id, exc)
+            r = None
 
     stop_event = threading.Event()
     _loop_stop_events[campaign_id] = stop_event
 
     def _loop():
-        log.info("auto_retrain[%s]: background loop started (interval=%ds)", campaign_id, check_interval_s)
+        log.info("auto_retrain[%s]: background loop started (interval=%ds, lease=%s)",
+                 campaign_id, check_interval_s, "redis" if r is not None else "in-process")
         last_audit_id = _get_latest_ingest_audit_id(campaign_id)
 
         while not stop_event.is_set():
             stop_event.wait(check_interval_s)
             if stop_event.is_set():
                 break
+            # Cross-worker coordination: honor a stop set on any worker, and renew
+            # our lease (or exit if we lost it, e.g. after a pause/expiry).
+            if r is not None:
+                try:
+                    if r.exists(_stop_key(campaign_id)):
+                        break
+                    if r.get(_lease_key(campaign_id)) != token:
+                        log.info("auto_retrain[%s]: lost loop lease — exiting", campaign_id)
+                        break
+                    r.expire(_lease_key(campaign_id), ttl)
+                except Exception as exc:  # noqa: BLE001 — never let coordination kill the loop
+                    log.debug("auto_retrain[%s]: lease heartbeat failed (%s)", campaign_id, exc)
             try:
                 latest_id = _get_latest_ingest_audit_id(campaign_id)
                 if latest_id != last_audit_id:
@@ -629,6 +690,15 @@ def start_background_loop(
             except Exception as exc:
                 log.error("auto_retrain[%s]: loop iteration failed — %s", campaign_id, exc)
 
+        # Release the lease (only if still ours) and clear the stop flag.
+        if r is not None:
+            try:
+                if r.get(_lease_key(campaign_id)) == token:
+                    r.delete(_lease_key(campaign_id))
+                r.delete(_stop_key(campaign_id))
+            except Exception:  # noqa: BLE001
+                pass
+        _active_loops.pop(campaign_id, None)
         log.info("auto_retrain[%s]: background loop stopped", campaign_id)
 
     t = threading.Thread(target=_loop, daemon=True, name=f"auto_retrain_{campaign_id}")
@@ -637,13 +707,29 @@ def start_background_loop(
 
 
 def stop_background_loop(campaign_id: str) -> None:
-    """Signal the background loop to stop (non-blocking)."""
+    """Signal the background loop to stop (non-blocking), from ANY worker."""
+    r = _loop_redis()
+    if r is not None:
+        try:
+            # Owning worker stops on its next tick and releases the lease; TTL
+            # bounds how long the stop flag lingers if no worker owns it.
+            r.set(_stop_key(campaign_id), "1", ex=max(1, int(60.0 * _LEASE_TTL_FACTOR)))
+        except Exception as exc:  # noqa: BLE001
+            log.debug("auto_retrain[%s]: redis stop signal failed (%s)", campaign_id, exc)
     event = _loop_stop_events.get(campaign_id)
     if event:
         event.set()
 
 
 def is_loop_running(campaign_id: str) -> bool:
+    """True iff a loop is actually running for this campaign — correct from ANY
+    worker when Redis coordinates; else this worker's local thread."""
+    r = _loop_redis()
+    if r is not None:
+        try:
+            return bool(r.exists(_lease_key(campaign_id)))
+        except Exception:  # noqa: BLE001
+            pass
     t = _active_loops.get(campaign_id)
     return t is not None and t.is_alive()
 
