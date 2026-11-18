@@ -5602,6 +5602,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     storage: multer.memoryStorage(),
     limits: { fileSize: 50 * 1024 * 1024 },
   });
+  // Campaign-ownership gate for the drug-discovery surface. A campaign id IS the
+  // project id, so a caller may only act on a campaign whose project they own.
+  // Without this, /api/drug-discovery/:campaignId/* was reachable by any caller
+  // who knew the id (IDOR) — unlike the owner-scoped /api/model-tracks/* surface
+  // over the SAME store. Returns true (and writes the denial) when access is
+  // refused; the caller must then return.
+  const _denyUnlessCampaignOwner = async (req: any, res: any, campaignId: string | undefined): Promise<boolean> => {
+    try {
+      if (!campaignId) throw new ModelSurfaceAccessError(400, 'campaign id required');
+      await authorizeModelProject(req.user?.id, campaignId, uid => memoryService.projects.getUserProjects(uid));
+      return false;
+    } catch (e: any) {
+      const status = e instanceof ModelSurfaceAccessError ? e.status : 403;
+      res.status(status).json({ error: e instanceof ModelSurfaceAccessError ? e.message : 'Project access denied' });
+      return true;
+    }
+  };
   app.post(
     "/api/drug-discovery/:campaignId/ingest-assay",
     optionalAuth,
@@ -5616,6 +5633,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!campaignId || campaignId.includes('/') || campaignId.includes('\\')) {
           return res.status(400).json({ error: 'invalid campaign id' });
         }
+        if (await _denyUnlessCampaignOwner(req, res, campaignId)) return;
         const fd = new FormData();
         const blob = new Blob([req.file.buffer], {
           type: req.file.mimetype || 'text/csv',
@@ -5647,6 +5665,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const targetPath = target.path; // /api/drug-discovery/...
       const method = req.method.toUpperCase();
       const fullPath = `${targetPath}${target.query}`;
+
+      // Ownership gate (IDOR fix). A campaign-scoped path /api/drug-discovery/<id>/…
+      // requires the caller to own project <id>. Campaign CREATE (POST /campaigns)
+      // requires the caller to own the project named by body.campaign_id, so a
+      // campaign cannot be created (INSERT OR REPLACE) over someone else's project.
+      // Non-campaign endpoints (availability, audit, esig enroll, model-validation)
+      // carry no campaign id and are left as-is.
+      const campaignPath = targetPath.match(/^\/api\/drug-discovery\/([0-9a-fA-F-]{36})(?:\/|$)/);
+      if (campaignPath) {
+        if (await _denyUnlessCampaignOwner(req, res, campaignPath[1])) return;
+      } else if (method === 'POST' && /\/drug-discovery\/campaigns$/.test(targetPath)) {
+        const bodyCampaignId = (req.body && typeof req.body.campaign_id === 'string') ? req.body.campaign_id.trim() : '';
+        if (bodyCampaignId && await _denyUnlessCampaignOwner(req, res, bodyCampaignId)) return;
+      }
 
       // Forward with user's Galaxy API key if available
       const headers: Record<string, string> = {
