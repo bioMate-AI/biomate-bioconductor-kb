@@ -13,7 +13,8 @@
 # Deploys from THIS checkout's webpage_design_v2/, so run it from a checkout of
 # the branch you want live (e.g. a worktree on integration/next-phase).
 #
-# Usage:   bash scripts/deploy_marketing.sh            # deploy + verify
+# Usage:   bash scripts/deploy_marketing.sh            # full deploy + verify (re-probes docroot, ships whole tree)
+#          bash scripts/deploy_marketing.sh --fast     # incremental rsync of changed files only, one reused session
 #          bash scripts/deploy_marketing.sh --probe    # diagnose only, no write
 
 set -uo pipefail   # NOT -e: we want diagnostics even if a step fails
@@ -76,6 +77,45 @@ ec2_scp() {
 }
 
 log "Source: $SRC/webpage_design_v2  (14-day mentions: $(grep -c '14-day\|14 day' "$SRC/webpage_design_v2/pricing.html" 2>/dev/null))"
+
+# --- Fast incremental path --------------------------------------------------
+# `--fast`: rsync ONLY changed files straight into the cached docroot over a
+# single reused SSH session, instead of tar-ing + scp-ing the whole 130 MB tree
+# across five fresh SSM handshakes. Assumes the apex serves from
+# /var/www/biomate-marketing (what --probe has consistently found); use the
+# default path if you need the docroot re-probed or a new docroot covered.
+if [[ "$PROBE_ONLY" == "--fast" ]]; then
+  DOCROOT="/var/www/biomate-marketing"
+  CP="/tmp/biomate_mkt_cm.sock"
+  SSH_BASE=(-i "$KEY_FILE" -o StrictHostKeyChecking=no -o IdentitiesOnly=yes
+            -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=4)
+  log "Fast deploy → $DOCROOT (single session, incremental rsync)"
+  inject_key >/dev/null
+  # Open ONE multiplexed master over SSM; later rsync/ssh reuse it (no re-handshake).
+  ssh "${SSH_BASE[@]}" -o ProxyCommand="$_SSM_PROXY" \
+      -o ControlMaster=yes -o ControlPath="$CP" -o ControlPersist=120 \
+      -fN "${EC2_USER}@${INSTANCE_ID}" \
+    || { log "FATAL: could not open SSH master over SSM"; exit 1; }
+  trap 'ssh -o ControlPath="$CP" -O exit "${EC2_USER}@${INSTANCE_ID}" 2>/dev/null || true' EXIT
+  _REUSE=(-o ControlMaster=no -o ControlPath="$CP")
+  STATS=$(rsync -rltzi --delete --stats \
+      --exclude='blog-llm-comparison.html' \
+      --exclude='blog-llm-comparison-supplement.html' \
+      --rsync-path="sudo rsync" \
+      -e "ssh ${SSH_BASE[*]} ${_REUSE[*]}" \
+      "$SRC/webpage_design_v2/" "${EC2_USER}@${INSTANCE_ID}:${DOCROOT}/" 2>&1) \
+    || { log "FATAL: rsync failed"; echo "$STATS" | tail -5; exit 1; }
+  echo "$STATS" | grep -E '^(<|>|c)' | sed 's/^/  [sync] /' | head -20
+  log "Transferred: $(echo "$STATS" | grep -E 'Number of regular files transferred|files transferred' | head -1 | sed 's/^[^:]*: //')"
+  ssh "${SSH_BASE[@]}" "${_REUSE[@]}" "${EC2_USER}@${INSTANCE_ID}" \
+    "sudo chown -R www-data:www-data '$DOCROOT'/ 2>/dev/null; sudo nginx -t && sudo systemctl reload nginx && echo '[nginx] reloaded'"
+  log "Verifying live site..."
+  sleep 2
+  LIVE=$(curl -sS -L https://biomate.ai/pricing.html 2>/dev/null | grep -c '14-day\|14 day')
+  log "LIVE biomate.ai/pricing.html 14-day mentions: $LIVE  (>0 = up)"
+  [[ "$LIVE" -gt 0 ]] && log "✅ Fast deploy done." || log "⚠️  0 — run the default (non-fast) path to re-probe the docroot."
+  exit 0
+fi
 
 # --- Diagnose: where does the APEX biomate.ai actually serve from? ----------
 log "Probing nginx for the biomate.ai docroot..."
