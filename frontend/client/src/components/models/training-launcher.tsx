@@ -22,7 +22,7 @@ import { Loader2, Play } from 'lucide-react';
 import { t, tOr } from '@/lib/i18n';
 import {
   availableModelTypes, backendModelType, columnValues, defaultModelName, detectSmilesColumns,
-  fileKind, isDelimitedTable, isSupervised, LLM_TYPES, MIN_TRAIN_ROWS, metricIsCeiling, metricsFor, openRunManager, runStatusLabel, suggestTaskType, TERMINAL_STATUSES,
+  fileKind, isDelimitedTable, isSupervised, LLM_TYPES, MIN_TRAIN_ROWS, metricIsCeiling, metricsFor, openRunManager, runStatusLabel, suggestTaskType, TERMINAL_STATUSES, unavailableReasonKey,
   type LauncherFamily, type PanelModelType, type TaskType,
 } from './training-logic';
 import { launchTraining, TrainingLaunchError, useRunStatus, type TrainingPlan } from './models-api';
@@ -193,6 +193,7 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
   }, [file, target, modelType, nameTouched]);
 
   const supervised = !!modelType && isSupervised(modelType);
+  const unavailableKey = unavailableReasonKey(modelType);
   const needsSmiles = !!modelType && (family === 'molecular' || modelType === 'ludwig_molecular');
   const gateValue = gate.trim() === '' ? undefined : Number(gate);
   const gateValid = gateValue === undefined || Number.isFinite(gateValue);
@@ -201,7 +202,8 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
   const valid = !!project && !!selection && selectedFileIds.length > 0 && !!file && !!modelType && gateValid && !tooFewRows
     && (!supervised || (!!target && !!metric))
     && (!needsSmiles || (!!smilesCol && smilesCol !== target))
-    && (epochs.trim() === '' || Number(epochs) > 0);
+    && (epochs.trim() === '' || Number(epochs) > 0)
+    && !unavailableKey;  // don't allow launching a type whose container isn't provisioned
 
   const runStatus = useRunStatus(runId, s => TERMINAL_STATUSES.has(String(s).toLowerCase()));
 
@@ -307,6 +309,11 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
             </select>
           </label>
           <p className="text-fs-xs text-muted-foreground">{modelType && t(`models.mtd_${modelType}`)}</p>
+          {unavailableKey && (
+            <p className="text-fs-xs text-destructive" data-testid="launcher-type-unavailable">
+              {t(`models.${unavailableKey}`)}
+            </p>
+          )}
 
           {supervised && (
             <>

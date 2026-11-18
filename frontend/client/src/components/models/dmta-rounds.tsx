@@ -190,18 +190,28 @@ export function RoundsSection({
       <p className="text-fs-xs text-muted-foreground">{t("models.rounds_controls_hint")}</p>
       <div className="flex flex-wrap items-center gap-1.5" data-testid="optimise-modality" role="group" aria-label={t("models.rounds_modality_label")}>
         <span className="text-fs-xs text-muted-foreground">{t("models.rounds_modality_label")}</span>
-        {(["small_molecule", "peptide", "biologic"] as const).map((m) => (
-          <Button key={m} type="button" size="sm" variant={modality === m ? "default" : "outline"}
-            className="h-7 text-xs" disabled={!!busy || (modalityLocked && m !== modality)}
-            onClick={() => setModality(m)}
-            data-testid={`optimise-modality-${m}`}>
-            {t(`models.rounds_modality_${m}`)}
-          </Button>
-        ))}
-        {modalityLocked && (
-          <span className="text-fs-xs text-muted-foreground" data-testid="optimise-modality-locked">
-            {t("models.rounds_modality_locked")}
-          </span>
+        {modalityLocked ? (
+          // A campaign exists → its modality is fixed. Show it as a read-only
+          // indicator rather than a group of disabled buttons (disabled buttons
+          // read as "broken / not runnable"). To run a different modality the user
+          // starts a campaign in another project — stated in the note.
+          <>
+            <Badge variant="secondary" className="h-6 text-xs" data-testid={`optimise-modality-${modality}`}>
+              {t(`models.rounds_modality_${modality}`)}
+            </Badge>
+            <span className="text-fs-xs text-muted-foreground" data-testid="optimise-modality-locked">
+              {t("models.rounds_modality_locked")}
+            </span>
+          </>
+        ) : (
+          (["small_molecule", "peptide", "biologic"] as const).map((m) => (
+            <Button key={m} type="button" size="sm" variant={modality === m ? "default" : "outline"}
+              className="h-7 text-xs" disabled={!!busy}
+              onClick={() => setModality(m)}
+              data-testid={`optimise-modality-${m}`}>
+              {t(`models.rounds_modality_${m}`)}
+            </Button>
+          ))
         )}
       </div>
       {modality !== "small_molecule" && (

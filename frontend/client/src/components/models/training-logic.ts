@@ -29,6 +29,19 @@ export const LLM_TYPES: PanelModelType[] = ['ludwig_llm', 'trl_dpo', 'trl_grpo']
 /** Generative families — unsupervised (no target/metric gate). */
 export const GENERATIVE: PanelModelType[] = ['scrna_diffusion', 'protein_diffusion', 'tabular_diffusion'];
 
+/** Model types whose specialised training container is not provisioned yet, so a
+ *  launched run deterministically fails (e.g. protein_diffusion / RFdiffusion:
+ *  every run to date failed with "NotImplementedError: … RFdiffusion … " because
+ *  the image lacks the package). Honest gate — don't let users start a doomed run;
+ *  the value is the i18n key for the reason. Lift when the container ships. */
+export const UNAVAILABLE_MODEL_TYPES: Partial<Record<PanelModelType, string>> = {
+  protein_diffusion: 'unavailable_protein_diffusion',
+};
+
+export function unavailableReasonKey(type: PanelModelType | ''): string | null {
+  return (type && UNAVAILABLE_MODEL_TYPES[type as PanelModelType]) || null;
+}
+
 export function isSupervised(type: PanelModelType): boolean {
   return SUPERVISED_GENERAL.includes(type) || MOLECULAR.includes(type);
 }
