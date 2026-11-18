@@ -229,6 +229,8 @@ describe("ModelsPanel — 分子学习 (Molecular learning) tab", () => {
 
   it("resolves /models?tab=molecular deep-link (Optimise / CRO retarget)", () => {
     expect(tabIndexFromSearch("?tab=molecular")).toBe(2)
+    expect(tabIndexFromSearch("?tab=adapt")).toBe(3)
+    expect(tabIndexFromSearch("?tab=3")).toBe(3)
     expect(tabIndexFromSearch("tab=library")).toBe(1)
     expect(tabIndexFromSearch("?tab=train")).toBe(0)
     expect(tabIndexFromSearch("")).toBeUndefined()

@@ -49,8 +49,9 @@ export function tabIndexFromSearch(search: string): number | undefined {
   if (raw === "train" || raw === "0") return 0
   if (raw === "library" || raw === "1") return 1
   if (raw === "molecular" || raw === "2") return 2
+  if (raw === "adapt" || raw === "3") return 3
   const n = Number(raw)
-  return Number.isInteger(n) && n >= 0 && n <= 2 ? n : undefined
+  return Number.isInteger(n) && n >= 0 && n <= 3 ? n : undefined
 }
 
 /** Train-tab path: no-code UI (clinicians) vs code sandbox (power users). */
