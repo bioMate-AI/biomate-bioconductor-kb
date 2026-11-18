@@ -19,7 +19,7 @@ import { render, screen, fireEvent, waitFor, within } from "@testing-library/rea
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
 import { ModelsPanel, HOUSE_STYLE_HIDDEN, tabIndexFromSearch, type OptimiseData, type TrainData } from "./models-panel"
-import { MOLECULAR } from "./training-logic"
+import { MOLECULAR, unavailableReasonKey } from "./training-logic"
 import { ModelObject } from "./model-object"
 import { RunPretrained } from "./run-pretrained"
 import { InferenceResultView } from "./inference-result"
@@ -234,6 +234,16 @@ describe("ModelsPanel — 分子学习 (Molecular learning) tab", () => {
     expect(tabIndexFromSearch("tab=library")).toBe(1)
     expect(tabIndexFromSearch("?tab=train")).toBe(0)
     expect(tabIndexFromSearch("")).toBeUndefined()
+  })
+
+  it("blocks the backend-unavailable model types so they can't be launched (regression: offered-but-failing)", () => {
+    // These were offered in the dropdown but the backend rejects them → launch
+    // always failed. Each must now return a reason key (→ launcher disables submit).
+    expect(unavailableReasonKey("chemprop_gnn")).toBe("unavailable_chemprop_gnn")
+    expect(unavailableReasonKey("tabular_diffusion")).toBe("unavailable_tabular_diffusion")
+    expect(unavailableReasonKey("protein_diffusion")).toBe("unavailable_protein_diffusion")
+    // A real, launchable type is NOT blocked.
+    expect(unavailableReasonKey("sklearn_tabular")).toBeNull()
   })
 
   it("renders the DMTA loop, surrogate links and a safety-gate rejection that stays visible", async () => {

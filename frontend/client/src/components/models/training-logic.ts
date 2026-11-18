@@ -36,6 +36,11 @@ export const GENERATIVE: PanelModelType[] = ['scrna_diffusion', 'protein_diffusi
  *  the value is the i18n key for the reason. Lift when the container ships. */
 export const UNAVAILABLE_MODEL_TYPES: Partial<Record<PanelModelType, string>> = {
   protein_diffusion: 'unavailable_protein_diffusion',
+  // These two were offered in the dropdown but the backend rejects them
+  // (plan.py UNAVAILABLE_TYPES), so a launch always failed. Block them here with
+  // an honest reason until their training path ships — same as protein_diffusion.
+  chemprop_gnn: 'unavailable_chemprop_gnn',
+  tabular_diffusion: 'unavailable_tabular_diffusion',
 };
 
 export function unavailableReasonKey(type: PanelModelType | ''): string | null {
