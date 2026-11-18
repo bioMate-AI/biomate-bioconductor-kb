@@ -58,6 +58,81 @@ _DESIGN_RULES: Dict[str, Evidence] = {
         doi="10.1093/biomet/81.3.515",
         provenance=Provenance.SILVER,
     ),
+    # ── Power / events-per-variable / sample-size (archetype D, domain `*`) ────
+    "power.epv_floor": Evidence(
+        claim=(
+            "A risk model (Cox proportional-hazards or logistic regression) needs at "
+            "least ~10 events per estimated coefficient (EPV >= 10). Below this floor "
+            "the coefficient estimates, standard errors and significance tests are "
+            "unstable, biased and over-fit."
+        ),
+        source=(
+            "Peduzzi et al., 'A simulation study of the number of events per variable "
+            "in logistic regression analysis', J Clin Epidemiol 49(12):1373-1379 (1996); "
+            "Peduzzi et al., 'Importance of events per independent variable in "
+            "proportional hazards regression analysis', J Clin Epidemiol 48(12):1503-1510 (1995)"
+        ),
+        doi="10.1016/S0895-4356(96)00236-3",
+        provenance=Provenance.GOLD,
+    ),
+    "power.min_replicates": Evidence(
+        claim=(
+            "Differential-expression testing requires replication: at least 3 "
+            "biological replicates per group are the practical minimum to estimate "
+            "within-group variance (dispersion), and >=6 are recommended to recover "
+            "most true changes; with fewer than 2 the dispersion is not estimable at all."
+        ),
+        source=(
+            "Schurch et al., 'How many biological replicates are needed in an RNA-seq "
+            "experiment and which differential expression tool should you use?', "
+            "RNA 22(6):839-851 (2016)"
+        ),
+        doi="10.1261/rna.053959.115",
+        provenance=Provenance.GOLD,
+    ),
+    "power.overparameterized": Evidence(
+        claim=(
+            "A model that estimates as many (or more) parameters than it has independent "
+            "observations is over-fit or non-identifiable; a minimum of ~5-10 "
+            "observations per estimated parameter is required for stable estimation."
+        ),
+        source=(
+            "Harrell, Regression Modeling Strategies, 2nd ed. (2015), ch. 4 "
+            "(overfitting; the 10-20 observations/events-per-predictor rule); "
+            "Peduzzi et al. 1995/1996"
+        ),
+        doi="10.1007/978-3-319-19425-7",
+        provenance=Provenance.SILVER,
+    ),
+    # ── Output presence / null-result floor (domain `*`) ──────────────────────
+    "output.expected_outputs_present": Evidence(
+        claim=(
+            "A completed analysis must emit its declared primary output artifacts "
+            "(result table / model / figure); a run that produces no such artifact has "
+            "not produced usable, reusable science and must not be presented as a "
+            "successful finding."
+        ),
+        source=(
+            "Wilkinson et al., 'The FAIR Guiding Principles for scientific data "
+            "management and stewardship', Sci Data 3:160018 (2016)"
+        ),
+        doi="10.1038/sdata.2016.18",
+        provenance=Provenance.SILVER,
+    ),
+    "output.null_result_reporting": Evidence(
+        claim=(
+            "An empty result table or zero significant features is a legitimate NULL "
+            "result, not a pipeline success; it must be reported honestly as 'no "
+            "significant findings' and distinguished from a run that silently failed "
+            "to produce output."
+        ),
+        source=(
+            "Wasserstein & Lazar, 'The ASA Statement on p-Values: Context, Process, "
+            "and Purpose', Am Stat 70(2):129-133 (2016)"
+        ),
+        doi="10.1080/00031305.2016.1154108",
+        provenance=Provenance.SILVER,
+    ),
 }
 
 

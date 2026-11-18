@@ -86,8 +86,13 @@ def register_builtin_critics(registry: CriticRegistry = default_registry) -> Cri
         return registry
     # Deferred imports: concrete critics only load when the framework is first used.
     from .critics.survival import SurvivalConfoundingCritic, SurvivalPHCritic
+    from .critics.power import PowerEPVCritic
+    from .critics.output_presence import OutputPresenceCritic
 
-    for cls in (SurvivalConfoundingCritic, SurvivalPHCritic):
+    for cls in (
+        SurvivalConfoundingCritic, SurvivalPHCritic,
+        PowerEPVCritic, OutputPresenceCritic,
+    ):
         registry.register(cls())
     if registry is default_registry:
         _builtins_loaded = True
