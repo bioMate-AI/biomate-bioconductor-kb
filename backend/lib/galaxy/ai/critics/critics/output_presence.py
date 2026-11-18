@@ -32,6 +32,30 @@ from ..evidence import design_rule
 
 log = logging.getLogger(__name__)
 
+# ── Forward-compat with the WS3 guardrail-hardening base.py (merges alongside) ──
+# `sanitize_untrusted_text` is ADDITIVE there; guard the import so this branch's own
+# (pre-merge) base.py still imports cleanly. This critic deliberately attaches NO
+# Precondition: under the hardened hook a no-precondition critic caps at ADVISORY,
+# which is exactly the intended tier for this "did it produce usable science?" floor
+# (the hard-failure codes surface, the zero-hits code stays a quiet null result).
+try:  # pragma: no cover - exercised post-merge
+    from ..base import sanitize_untrusted_text as _sanitize  # type: ignore
+except ImportError:  # pre-merge base.py
+    def _sanitize(text: Any, *_a: Any, **_k: Any) -> Any:  # type: ignore
+        return text
+
+
+def _clean(x: Any) -> str:
+    """Sanitize a token read from file content (manifest names / summary keys) before
+    it is surfaced in human-facing text."""
+    return _sanitize(str(x))
+
+
+def _conf(issue: Issue, confidence: float) -> Issue:
+    """Attach the hardened-hook confidence hint (no-op under the current hook)."""
+    issue.confidence = confidence
+    return issue
+
 # Manifest roles that count as primary, user-facing scientific output.
 _PRIMARY_ROLES = {"table", "model", "figure", "result"}
 # Roles that are tabular results whose emptiness is meaningful.
@@ -119,7 +143,8 @@ class OutputPresenceCritic(Critic):
                            for p in present)
             ]
             if missing:
-                issues.append(Issue(
+                missing = [_clean(m) for m in missing]
+                issues.append(_conf(Issue(
                     critic_id=self.critic_id,
                     code="missing_expected_outputs",
                     title=f"Missing expected output(s): {', '.join(missing)}",
@@ -130,13 +155,13 @@ class OutputPresenceCritic(Critic):
                         "produce the artifacts it was expected to."
                     ),
                     subjects=missing,
-                    metrics={"expected": [str(e) for e in expected], "missing": missing},
+                    metrics={"expected": [_clean(e) for e in expected], "missing": missing},
                     evidence=[ev_present] if ev_present else [],
-                ))
+                ), 0.9))
         # 1b. No explicit expectation: generic "did it emit any primary output?" floor.
         elif manifest_declared:
             if not outputs:
-                issues.append(Issue(
+                issues.append(_conf(Issue(
                     critic_id=self.critic_id,
                     code="no_outputs",
                     title="Run produced no output files",
@@ -146,10 +171,10 @@ class OutputPresenceCritic(Critic):
                     subjects=[],
                     metrics={"n_outputs": 0},
                     evidence=[ev_present] if ev_present else [],
-                ))
+                ), 0.95))
             elif not any(o.role in _PRIMARY_ROLES for o in outputs):
-                roles = sorted({o.role for o in outputs})
-                issues.append(Issue(
+                roles = sorted({_clean(o.role) for o in outputs})
+                issues.append(_conf(Issue(
                     critic_id=self.critic_id,
                     code="no_primary_output",
                     title="Run produced no primary scientific output",
@@ -162,7 +187,7 @@ class OutputPresenceCritic(Critic):
                     subjects=[],
                     metrics={"n_outputs": len(outputs), "roles": roles},
                     evidence=[ev_present] if ev_present else [],
-                ))
+                ), 0.85))
 
         # 2. Empty / near-empty result tables (0-byte primary tables, or summary n_rows=0).
         empty_tables = [
@@ -175,8 +200,10 @@ class OutputPresenceCritic(Critic):
             if any(_num(j.get(k)) == 0.0 for k in _ROWCOUNT_KEYS)
         ]
         if empty_tables or zero_row_sources:
+            empty_tables = [_clean(n) for n in empty_tables]
+            zero_row_sources = [_clean(n) for n in zero_row_sources]
             subjects = sorted(set(empty_tables) | set(zero_row_sources))
-            issues.append(Issue(
+            issues.append(_conf(Issue(
                 critic_id=self.critic_id,
                 code="empty_results",
                 title=f"Empty result table(s): {', '.join(subjects)}",
@@ -190,17 +217,17 @@ class OutputPresenceCritic(Critic):
                 subjects=subjects,
                 metrics={"empty_tables": empty_tables, "zero_row_sources": zero_row_sources},
                 evidence=[ev_null] if ev_null else [],
-            ))
+            ), 0.9))
 
         # 3. Zero significant features (legitimate null result → ADVISORY, surface only).
         zero_sig: List[str] = []
         for name, j in summaries:
             for k in _SIG_KEYS:
                 if k in j and _num(j.get(k)) == 0.0:
-                    zero_sig.append(f"{name}:{k}")
+                    zero_sig.append(f"{_clean(name)}:{k}")
                     break
         if zero_sig:
-            issues.append(Issue(
+            issues.append(_conf(Issue(
                 critic_id=self.critic_id,
                 code="zero_significant_features",
                 title="Analysis found zero significant features",
@@ -214,7 +241,7 @@ class OutputPresenceCritic(Critic):
                 subjects=zero_sig,
                 metrics={"zero_significant_sources": zero_sig},
                 evidence=[ev_null] if ev_null else [],
-            ))
+            ), 0.8))
 
         return issues
 

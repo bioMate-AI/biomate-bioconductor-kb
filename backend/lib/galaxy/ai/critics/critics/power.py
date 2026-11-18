@@ -30,13 +30,75 @@ nothing usable is found it simply stays silent.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from ..base import Critic, Issue, Remediation, RemediationKind, Severity
 from ..run_context import RunContext
 from ..evidence import design_rule
 
 log = logging.getLogger(__name__)
+
+# ── Forward-compat with the WS3 guardrail-hardening base.py (merges alongside) ──
+# `Precondition` / `sanitize_untrusted_text` are ADDITIVE in that branch. Guard the
+# imports so THIS branch's own (pre-merge) base.py still imports cleanly and its tests
+# stay green; once WS3 merges, the real symbols are picked up automatically. `Issue` is
+# a non-frozen dataclass, so the `confidence` / `precondition` attributes set below are
+# silently ignored by the current hook and read by the hardened one.
+try:  # pragma: no cover - exercised post-merge
+    from ..base import Precondition  # type: ignore
+except ImportError:  # pre-merge base.py
+    Precondition = None  # type: ignore
+
+try:  # pragma: no cover - exercised post-merge
+    from ..base import sanitize_untrusted_text as _sanitize  # type: ignore
+except ImportError:  # pre-merge base.py
+    def _sanitize(text: Any, *_a: Any, **_k: Any) -> Any:  # type: ignore
+        return text
+
+
+def _clean(x: Any) -> str:
+    """Sanitize a token that came from file content (design.json / QC JSON) before it
+    is surfaced in human-facing text."""
+    return _sanitize(str(x))
+
+
+def _precond(label: str, predicate: "Callable[[RunContext], bool]"):
+    """Build a Precondition iff the hardened base.py provides it; else None."""
+    if Precondition is None:
+        return None
+    try:
+        return Precondition(label=label, predicate=predicate)
+    except TypeError:  # pragma: no cover - unexpected signature; fail safe
+        return None
+
+
+def _finalize(issue: Issue, confidence: float, precondition: Any = None) -> Issue:
+    """Attach the hardened-hook inputs: a confidence hint (0-1) and, for a clean
+    deterministic predicate, a Precondition so the issue can be promoted above the
+    no-precondition ADVISORY cap. Both are no-ops under the current hook."""
+    issue.confidence = confidence
+    if precondition is not None:
+        issue.precondition = precondition
+    return issue
+
+
+# Deterministic predicates re-derived from the run contract (the Precondition the
+# hardened hook verifies before promoting severity).
+def _epv_predicate(ctx: RunContext) -> bool:
+    events, n_cov, _ns, _gs, _mt = _design_facts(ctx)
+    return events is not None and bool(n_cov) and (events / n_cov) < _EPV_FLOOR
+
+
+def _replicate_predicate(ctx: RunContext) -> bool:
+    _e, _nc, _ns, group_sizes, _mt = _design_facts(ctx)
+    return bool(group_sizes) and min(group_sizes.values()) < _MIN_REPLICATES
+
+
+def _overparam_predicate(ctx: RunContext) -> bool:
+    _e, n_cov, n_samples, _gs, _mt = _design_facts(ctx)
+    if not n_cov or n_samples is None or n_samples <= 0:
+        return False
+    return n_cov >= n_samples or (n_samples / n_cov) < _MIN_OBS_PER_PARAM
 
 # ── thresholds (grounded; see evidence keys) ─────────────────────────────────
 _EPV_FLOOR = 10.0          # events-per-variable rule (Peduzzi)
@@ -157,7 +219,7 @@ class PowerEPVCritic(Critic):
             if epv < _EPV_FLOOR:
                 severe = epv < _EPV_SEVERE
                 ev = design_rule("power.epv_floor")
-                issues.append(Issue(
+                issues.append(_finalize(Issue(
                     critic_id=self.critic_id,
                     code="low_epv",
                     title=(f"Underpowered risk model: {epv:.1f} events per variable "
@@ -174,10 +236,11 @@ class PowerEPVCritic(Critic):
                     metrics={
                         "events": events, "n_covariates": n_cov,
                         "epv": round(epv, 3), "epv_floor": _EPV_FLOOR,
-                        "model_type": model_type or None,
+                        "model_type": _clean(model_type) if model_type else None,
                     },
                     evidence=[ev] if ev else [],
-                ))
+                ), confidence=0.95, precondition=_precond(
+                    "events / n_covariates >= 10 (events per variable)", _epv_predicate)))
 
         # 2. Replicates per group (differential expression).
         if group_sizes:
@@ -186,7 +249,7 @@ class PowerEPVCritic(Critic):
                 underpowered = {g: n for g, n in group_sizes.items() if n < _MIN_REPLICATES}
                 inestimable = min_n < _NO_VARIANCE_REPLICATES
                 ev = design_rule("power.min_replicates")
-                issues.append(Issue(
+                issues.append(_finalize(Issue(
                     critic_id=self.critic_id,
                     code="low_replicates",
                     title=(f"Underpowered design: {int(min_n)} replicate(s) in the "
@@ -195,14 +258,15 @@ class PowerEPVCritic(Critic):
                     detail=(
                         f"Smallest group has {int(min_n)} replicate(s); groups below "
                         f"{_MIN_REPLICATES}: "
-                        + ", ".join(f"{g}={int(n)}" for g, n in sorted(underpowered.items()))
+                        + ", ".join(f"{_clean(g)}={int(n)}"
+                                    for g, n in sorted(underpowered.items()))
                         + ". At least 3 biological replicates per group are needed to "
                           "estimate within-group dispersion"
                         + (" — with < 2 the dispersion is not estimable at all and no "
                            "software can recover it." if inestimable else "; >= 6 are "
                            "recommended to recover most true changes.")
                     ),
-                    subjects=sorted(underpowered.keys()),
+                    subjects=[_clean(g) for g in sorted(underpowered.keys())],
                     metrics={
                         "group_sizes": group_sizes,
                         "min_replicates": min_n,
@@ -210,7 +274,8 @@ class PowerEPVCritic(Critic):
                         "underpowered_groups": underpowered,
                     },
                     evidence=[ev] if ev else [],
-                ))
+                ), confidence=0.95, precondition=_precond(
+                    "smallest group >= 3 biological replicates", _replicate_predicate)))
 
         # 3. Over-parameterised design (observations per parameter).
         if n_samples is not None and n_samples > 0 and n_cov and n_cov > 0:
@@ -218,7 +283,7 @@ class PowerEPVCritic(Critic):
             non_identifiable = n_cov >= n_samples
             if non_identifiable or ratio < _MIN_OBS_PER_PARAM:
                 ev = design_rule("power.overparameterized")
-                issues.append(Issue(
+                issues.append(_finalize(Issue(
                     critic_id=self.critic_id,
                     code="overparameterized",
                     title=(f"Over-parameterised design: {ratio:.1f} observations per "
@@ -241,7 +306,8 @@ class PowerEPVCritic(Critic):
                         "non_identifiable": non_identifiable,
                     },
                     evidence=[ev] if ev else [],
-                ))
+                ), confidence=0.9, precondition=_precond(
+                    "observations per estimated parameter >= 5", _overparam_predicate)))
 
         return issues
 

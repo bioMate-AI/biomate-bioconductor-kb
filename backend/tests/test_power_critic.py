@@ -27,7 +27,9 @@ except Exception:
 from galaxy.ai.critics import (  # noqa: E402
     RunContext, RemediationKind, Severity, run_critics_from_run_meta, get_registry,
 )
-from galaxy.ai.critics.critics.power import PowerEPVCritic  # noqa: E402
+from galaxy.ai.critics.critics.power import (  # noqa: E402
+    PowerEPVCritic, _epv_predicate, _replicate_predicate, _overparam_predicate,
+)
 
 
 # ── validation fixtures ───────────────────────────────────────────────────────
@@ -178,6 +180,36 @@ def test_power_reads_events_from_qc_fallback_when_absent_from_design():
 def test_power_critic_registered_in_default_registry():
     ids = {c.critic_id for c in get_registry().all()}
     assert "power.epv" in ids
+
+
+# ── forward-compat with the WS3 guardrail-hardening base.py ───────────────────
+
+def test_power_issues_carry_confidence_hint():
+    for iss in PowerEPVCritic().detect(_ctx(DESIGN_FIRES)):
+        c = getattr(iss, "confidence", None)
+        assert c is not None and 0.0 < c <= 1.0
+
+
+def test_power_preconditions_attached_when_available():
+    # Precondition is additive in the guardrail base.py; only assert it when present.
+    import galaxy.ai.critics.critics.power as pw
+    if pw.Precondition is None:
+        return  # pre-merge base.py: nothing to attach, tested via the predicates below
+    for iss in PowerEPVCritic().detect(_ctx(DESIGN_FIRES)):
+        pre = getattr(iss, "precondition", None)
+        assert pre is not None
+        assert pre.predicate(_ctx(DESIGN_FIRES)) is True
+
+
+def test_power_deterministic_predicates_match_detection():
+    fires, silent = _ctx(DESIGN_FIRES), _ctx(DESIGN_SILENT)
+    # these back the Precondition the hardened hook verifies to promote above ADVISORY
+    assert _epv_predicate(fires) is True and _epv_predicate(silent) is False
+    assert _replicate_predicate(fires) is True and _replicate_predicate(silent) is False
+    over = {**DESIGN_FIRES, "design": {"covariates": list("abcdefghij"),
+                                       "n_samples": 8, "events": 200}}
+    assert _overparam_predicate(_ctx(over)) is True
+    assert _overparam_predicate(silent) is False
 
 
 def test_power_full_hook_publishes_underpowered_findings():

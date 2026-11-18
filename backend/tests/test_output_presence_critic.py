@@ -121,6 +121,18 @@ def test_output_presence_remediation_is_advisory_flag():
 
 # ── end-to-end through hook + registry ────────────────────────────────────────
 
+def test_output_presence_issues_carry_confidence_hint():
+    # a run that trips several floors at once
+    ctx = _ctx({"design": {"expected_outputs": ["deseq2_results.csv"]}},
+               [{"name": "de_results.csv", "role": "table", "size": 0}],
+               inline={"results_summary.json": {"n_significant": 0}})
+    issues = OutputPresenceCritic().detect(ctx)
+    assert issues
+    for iss in issues:
+        c = getattr(iss, "confidence", None)
+        assert c is not None and 0.0 < c <= 1.0
+
+
 def test_output_presence_registered_in_default_registry():
     ids = {c.critic_id for c in get_registry().all()}
     assert "output.presence" in ids
