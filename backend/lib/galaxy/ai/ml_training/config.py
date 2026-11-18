@@ -436,6 +436,9 @@ class TrainingConfig:
     # Where the trained artifact + MLflow experiment land.
     mlflow_experiment: str = "biomate-ml-training"
     campaign_id: str = "default"                # registry is per-campaign
+    adapt_of: Optional[str] = None              # registry model id this run ADAPTS; its
+                                                # artifact registers as that model's next
+                                                # version (lineage), not a fresh model
     higher_is_better: bool = False              # for hERG, lower risk = better
     metric: str = "auc"                         # primary metric to track/gate
     gate_threshold: Optional[float] = None      # e.g. min AUC to pass QC gate
@@ -735,13 +738,22 @@ class TrainingConfig:
         """Full workflow_ga stub for routing/rendering a training job."""
         params = self.to_workflow_ga_params()
         from .executor_payload import training_launch_parameters
+        is_adapt = bool(self.adapt_of)
+        verb = "Adapt" if is_adapt else "Train"
+        desc = f"{verb} a {self.model_type} {self.task_type} model: {self.name}"
+        if is_adapt:
+            desc += f" (new version of {self.adapt_of})"
         return {
             "name": self.name,
             "domain": "ml_training",
             "format": "nextflow",
             "nextflow_path": nextflow_path,
-            "description": f"Train a {self.model_type} {self.task_type} model: {self.name}",
+            "description": desc,
             "execution_engine": "awsbatch",
+            # Tags the run + tells registration to version the base model rather than
+            # register a fresh one. Absent/None ⇒ an ordinary training run.
+            "workflow_type": "adaptation" if is_adapt else "training",
+            "adapt_of": self.adapt_of,
             "parameters": training_launch_parameters(self, allow_unresolved_dataset=True),
             **params,
         }

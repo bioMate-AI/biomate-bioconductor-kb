@@ -117,6 +117,10 @@ def build_training_config(req: dict) -> TrainingConfig:
     if not s3_uri.startswith("s3://") or len(s3_uri) <= len("s3://"):
         raise ConfigError("dataset_s3_uri must be an s3:// URI of a project file")
     dataset_name = _text(req, "dataset_name") or s3_uri.rsplit("/", 1)[-1]
+    # When set, this run adapts an existing registered model: its artifact registers
+    # as that model's NEXT VERSION (lineage) rather than a fresh model. Applies to any
+    # model_type; the registration step resolves the base and stamps priorVersions.
+    adapt_of = _text(req, "adapt_of") or None
 
     hp = Hyperparams()
     epochs = _number(req, "epochs", int)
@@ -163,6 +167,7 @@ def build_training_config(req: dict) -> TrainingConfig:
         return TrainingConfig(
             name=name, task_type=task_type, model_type=model_type, featurizer=featurizer,
             dataset=dataset, hyperparams=hp, metric=metric, gate_threshold=gate,
+            adapt_of=adapt_of,
         ).validate()
 
     # Generative / LLM families.
@@ -187,6 +192,7 @@ def build_training_config(req: dict) -> TrainingConfig:
         name=name, task_type=task_type, model_type=model_type, featurizer="none",
         dataset=DatasetSpec(s3_uri=s3_uri, split="random"), hyperparams=hp,
         metric=metric, gate_threshold=gate, llm=llm, diffusion=diffusion, sc=sc,
+        adapt_of=adapt_of,
     ).validate()
 
 
@@ -231,6 +237,10 @@ def build_training_plan(req: dict, rows_of: Optional[Callable[[str], Optional[in
     return {
         "workflow_ga": ga,
         "nextflow_path": nf_path,
+        # Surfaced top-level so Node tags the run (workflow_type) and registration
+        # versions the base model without re-parsing the ga. None ⇒ ordinary training.
+        "adapt_of": cfg.adapt_of,
+        "workflow_type": "adaptation" if cfg.adapt_of else "training",
         # The container is chosen here (per model type) and forwarded as
         # executionConfig.computeConfig.container; the executor's path-based
         # fallback cannot tell the diffusion images apart.

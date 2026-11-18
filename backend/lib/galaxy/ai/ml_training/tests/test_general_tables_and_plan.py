@@ -173,6 +173,35 @@ def test_plan_llm_dpo_uses_trl_image_and_text_generation():
     assert out["compute_config"]["container"].endswith("/biomate/trl-training:latest")
 
 
+def test_plan_adapt_of_marks_adaptation_and_threads_base_ref():
+    """`adapt_of` threads a registry base-model ref through config → plan → ga so the run
+    is tagged an adaptation (for registration to version the base, not register a fresh
+    model). Absent ⇒ an ordinary training run. Model-type-agnostic."""
+    # No adapt_of ⇒ ordinary training.
+    train = build_training_plan({**BASE, "model_type": "trl_dpo",
+                                 "llm": {"base_model": "HuggingFaceTB/SmolLM2-135M-Instruct"}})
+    assert train["adapt_of"] is None and train["workflow_type"] == "training"
+    assert train["workflow_ga"]["workflow_type"] == "training"
+    assert train["workflow_ga"]["description"].startswith("Train ")
+
+    # adapt_of set ⇒ adaptation, threaded into the plan, the ga, and the round-tripped config.
+    adapt = build_training_plan({**BASE, "model_type": "trl_dpo",
+                                 "adapt_of": "custom:camp1/potency-llm",
+                                 "llm": {"base_model": "HuggingFaceTB/SmolLM2-135M-Instruct"}})
+    assert adapt["adapt_of"] == "custom:camp1/potency-llm"
+    assert adapt["workflow_type"] == "adaptation"
+    ga = adapt["workflow_ga"]
+    assert ga["workflow_type"] == "adaptation" and ga["adapt_of"] == "custom:camp1/potency-llm"
+    assert ga["description"].startswith("Adapt ")
+    assert "new version of custom:camp1/potency-llm" in ga["description"]
+    assert adapt["config"]["adapt_of"] == "custom:camp1/potency-llm"   # survives to_dict/asdict
+
+    # Model-type-agnostic: a supervised adaptation is tagged the same way.
+    sup = build_training_plan({**BASE, "model_type": "sklearn_tabular", "target_col": "subtype",
+                               "task_type": "classification", "adapt_of": "custom:camp1/herg"})
+    assert sup["workflow_type"] == "adaptation" and sup["config"]["adapt_of"] == "custom:camp1/herg"
+
+
 def test_plan_llm_rejects_unknown_spec_field_and_composite_reward():
     with pytest.raises(ConfigError, match="unknown llm field"):
         build_training_plan({**BASE, "model_type": "ludwig_llm", "llm": {"bogus": 1}})
