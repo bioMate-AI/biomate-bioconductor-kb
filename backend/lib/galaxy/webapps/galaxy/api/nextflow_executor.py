@@ -5564,6 +5564,13 @@ def _evaluate_qc_from_s3(
         # ── ADMET completion assessment (no execution events) ─────────────
         original = get_run_state_store().get_run(run_id) or {}
         qc_overrides = original.get("qc_overrides", qc_overrides)
+        # Real SSE callback — broadcasts to /internal/sse-inject so the
+        # AutoLoopPanel receives autoloop_gate_results / autoloop_update events.
+        # Previously a no-op which left the UI empty even when gates evaluated.
+        def _sse_emit(event_type: str, data: Dict[str, Any]) -> None:
+            # Thin wrapper over the module-level _sse_inject, reusable by the critic hook.
+            _sse_inject(run_id, event_type, data)
+
         handler = NextflowQCGateHandler(
             invocation_id=run_id,
             work_dir=Path("/tmp"),
@@ -6189,8 +6196,17 @@ def _list_s3_work_output_files(work_s3_uri: str) -> list:
 # ONE resolver below so neither can regress independently.
 
 _MANIFEST_SCHEMA_VERSION = "1.0"
+# design.json carries its own schema version so the design block can evolve
+# independently of the results_manifest. Bumped to 1.1 when the design block gained
+# real per-class population + declared contract inputs (exposure / confounders /
+# batch). 1.0 = the legacy null-only block; readers must stay backward-compatible.
+_DESIGN_SCHEMA_VERSION = "1.1"
 _RESULTS_MANIFEST_NAME = "results_manifest.json"
 _DESIGN_MANIFEST_NAME = "design.json"
+# Standard filename a workflow MAY emit to declare its own design fields directly
+# (preferred, design_source="workflow"). Absent → we derive from the per-class QC
+# JSON (survival_qc.json / qc_metrics.json) or infer from the samplesheet.
+_DESIGN_FIELDS_NAME = "design_fields.json"
 
 
 def _default_nextflow_bucket() -> str:
@@ -6343,16 +6359,257 @@ def _param_is_input(key: str, value: Any) -> bool:
     return any(t in low for t in ("data", "input", "fasta", "gtf", "bam", "vcf", "csv", "file", "samplesheet"))
 
 
+# Param keys through which a user DECLARES the design intent. These are never
+# inferred — they are the scientist's statement of what the analysis is about, and
+# are the contract inputs the design-aware critics (confounding / batch) read.
+_EXPOSURE_PARAM_KEYS = ("exposure_of_interest", "exposure", "treatment", "primary_covariate")
+_CONFOUNDER_PARAM_KEYS = ("known_confounders", "confounders", "adjust_for", "covariates_known")
+_BATCH_PARAM_KEYS = ("known_batch", "batch", "batch_variables", "block", "blocking")
+
+
+def _as_str_list(v: Any) -> List[str]:
+    """Coerce a declared param (list, or a comma/semicolon string) to a str list."""
+    if v is None:
+        return []
+    if isinstance(v, (list, tuple)):
+        return [str(x).strip() for x in v if str(x).strip()]
+    if isinstance(v, str):
+        return [t.strip() for t in re.split(r"[;,]", v) if t.strip()]
+    return [str(v)]
+
+
+def _declared_design_inputs(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Pull the DECLARED (never-inferred) design contract inputs out of run params:
+    the exposure-of-interest, known confounders, and known batch variable(s). These
+    plus an optional user-supplied formula/covariates are what a design critic is
+    allowed to treat as ground truth about the scientist's intent."""
+    params = params or {}
+    exposure = None
+    for k in _EXPOSURE_PARAM_KEYS:
+        if params.get(k):
+            exposure = str(params[k]).strip()
+            break
+    confounders: List[str] = []
+    for k in _CONFOUNDER_PARAM_KEYS:
+        if params.get(k):
+            confounders = _as_str_list(params[k])
+            break
+    batch: List[str] = []
+    for k in _BATCH_PARAM_KEYS:
+        if params.get(k):
+            batch = _as_str_list(params[k])
+            break
+    declared_formula = params.get("formula") or params.get("design_formula")
+    declared_covs = _as_str_list(params.get("covariates")) if params.get("covariates") else []
+    return {
+        "exposure_of_interest": exposure,
+        "known_confounders": confounders,
+        "known_batch": batch,
+        "declared_formula": str(declared_formula).strip() if declared_formula else None,
+        "declared_covariates": declared_covs,
+    }
+
+
+def _parse_formula_terms(formula: Optional[str]) -> List[str]:
+    """Extract the modeled RHS terms from an R-style formula. Handles a leading
+    ``Surv(time, status) ~`` or ``~`` and splits the right-hand side on ``+``.
+    ``Surv(time, status) ~ treatment + ecog`` -> ['treatment', 'ecog'];
+    ``~block+condition`` -> ['block', 'condition']. Returns [] for None/intercept-only."""
+    if not formula or not isinstance(formula, str):
+        return []
+    rhs = formula.split("~", 1)[1] if "~" in formula else formula
+    terms: List[str] = []
+    for raw in rhs.split("+"):
+        t = raw.strip()
+        if not t or t in ("1", "0", "."):
+            continue
+        terms.append(t)
+    return terms
+
+
+def _design_from_survival_qc(qc: Dict[str, Any]) -> Dict[str, Any]:
+    """Derive the standardized design block from a Cox survival_qc.json. Prefers an
+    explicit embedded ``design`` block (emitted by the workflow); otherwise lifts the
+    primary covariate + omitted (candidate) covariates the workflow already emits into
+    {formula, covariates, candidate_covariates, exposure_of_interest}."""
+    emb = qc.get("design")
+    if isinstance(emb, dict) and emb.get("formula"):
+        out = dict(emb)
+        out.setdefault("design_source", "workflow")
+        out.setdefault("group_sizes", {})
+        out.setdefault("contrasts", [])
+        return out
+    primary = qc.get("primary_covariate")
+    omitted = [c.get("name") for c in (qc.get("omitted_confounders") or [])
+               if isinstance(c, dict) and c.get("name")]
+    modeled = ([primary] if primary else []) + list(omitted)
+    formula = None
+    if primary:
+        formula = f"Surv(time, status) ~ {' + '.join([primary] + list(omitted))}"
+    return {
+        "formula": formula,
+        "covariates": modeled,
+        "candidate_covariates": list(omitted),
+        "group_sizes": qc.get("group_sizes") or {},
+        "contrasts": [],
+        "exposure_of_interest": primary,
+        "events": qc.get("events") or qc.get("n_events") or qc.get("num_events"),
+        "n_samples": qc.get("n_samples") or qc.get("n_obs") or qc.get("total_n"),
+        "model_type": "cox",
+        "design_source": "workflow",
+    }
+
+
+def _design_from_diffab_qc(qc: Dict[str, Any]) -> Dict[str, Any]:
+    """Derive the standardized design block from a differentialabundance qc_metrics.json.
+    The workflow emits ``design_qc`` per contrast ({naive_design, final_design,
+    blocking_var, confounded}); we lift the (corrected) final design formula, its
+    modeled covariates, the candidate blocking factor(s), and the contrast list. Prefers
+    an explicit embedded ``design`` block when the workflow emitted one."""
+    design_qc = qc.get("design_qc")
+    entries: List[Dict[str, Any]] = []
+    if isinstance(design_qc, dict):
+        entries = [dict(v, id=k) for k, v in design_qc.items() if isinstance(v, dict)]
+    elif isinstance(design_qc, list):
+        entries = [e for e in design_qc if isinstance(e, dict)]
+    emb = qc.get("design")
+    if (not entries) and not (isinstance(emb, dict) and emb.get("formula")):
+        return {}
+    if not entries:
+        entries = []
+    primary = entries[0] if entries else {}
+    final_design = primary.get("final_design") or primary.get("naive_design")
+    covariates = _parse_formula_terms(final_design)
+    candidates = [e.get("blocking_var") for e in entries
+                  if e.get("blocking_var") and e.get("blocking_var") not in (None, "NA")]
+    # The contrast variable is the last modeled term of a ~[block+]condition design.
+    exposure = covariates[-1] if covariates else None
+    contrasts = []
+    for e in entries:
+        cid = e.get("id")
+        if cid:
+            contrasts.append({"id": cid, "blocking": e.get("blocking_var"),
+                              "confounded": bool(e.get("confounded"))})
+    derived = {
+        "formula": final_design,
+        "covariates": covariates,
+        "candidate_covariates": [c for c in candidates if c],
+        "group_sizes": qc.get("group_sizes") or {},
+        "contrasts": contrasts,
+        "exposure_of_interest": exposure,
+        "n_samples": qc.get("n_samples") or qc.get("n_obs"),
+        "model_type": "de",
+        "design_source": "workflow",
+    }
+    emb = qc.get("design")
+    if isinstance(emb, dict) and emb.get("formula"):
+        # explicit emitted block wins for the formula/covariates/exposure it declares,
+        # but keep the richer contrast list we derived from design_qc.
+        out = dict(derived)
+        out.update({k: v for k, v in emb.items() if v not in (None, "", [], {})})
+        out["contrasts"] = contrasts or out.get("contrasts", [])
+        return out
+    return derived
+
+
+def _infer_design_from_samplesheet(csv_text: str, declared: Dict[str, Any]) -> Dict[str, Any]:
+    """nf-core fallback: infer group_sizes + candidate covariates from the samplesheet.
+    A formula is NOT invented (honest: nf-core pipelines don't declare one) unless the
+    user declared an exposure; group_sizes come from the exposure/condition column."""
+    import csv as _csv
+    import io as _io
+    try:
+        rows = list(_csv.DictReader(_io.StringIO(csv_text)))
+    except Exception:
+        return {}
+    if not rows:
+        return {}
+    cols = [c for c in (rows[0].keys()) if c]
+    sample_cols = {c for c in cols if c.lower() in ("sample", "sample_id", "sampleid", "id", "name")}
+    candidate_cols = [c for c in cols if c not in sample_cols]
+    # Pick the grouping column: the declared exposure if present, else the first
+    # non-sample column with 2..n-1 distinct values (a plausible condition factor).
+    exposure = declared.get("exposure_of_interest")
+    group_col = exposure if (exposure in candidate_cols) else None
+    if group_col is None:
+        for c in candidate_cols:
+            vals = {r.get(c) for r in rows if r.get(c) not in (None, "")}
+            if 2 <= len(vals) < len(rows):
+                group_col = c
+                break
+    group_sizes: Dict[str, int] = {}
+    if group_col:
+        for r in rows:
+            k = r.get(group_col)
+            if k not in (None, ""):
+                group_sizes[str(k)] = group_sizes.get(str(k), 0) + 1
+    return {
+        "formula": None,
+        "covariates": [],
+        "candidate_covariates": [c for c in candidate_cols if c != group_col],
+        "group_sizes": group_sizes,
+        "contrasts": [],
+        "exposure_of_interest": group_col,
+        "n_samples": len(rows),
+        "design_source": "inferred",
+    }
+
+
+def _load_design_artifact(
+    s3_output_files: Optional[list],
+    artifact_loader: Optional[Callable[[str], Optional[bytes]]],
+    names: tuple,
+) -> Optional[Dict[str, Any]]:
+    """Best-effort: find the first of ``names`` among the resolved outputs and load +
+    parse it via the injected loader. Returns the parsed dict or None. Never raises."""
+    if not artifact_loader or not s3_output_files:
+        return None
+    import json as _json
+    want = {n.lower() for n in names}
+    for f in s3_output_files:
+        fname = str(f.get("name") or f.get("filename") or "").rsplit("/", 1)[-1].lower()
+        s3_uri = str(f.get("s3_uri") or "")
+        if fname in want or any(s3_uri.lower().endswith("/" + n) for n in want):
+            try:
+                raw = artifact_loader(s3_uri) if s3_uri else None
+                if raw is None:
+                    continue
+                text = raw.decode("utf-8") if isinstance(raw, (bytes, bytearray)) else str(raw)
+                parsed = _json.loads(text)
+                if isinstance(parsed, dict):
+                    return parsed
+            except Exception as exc:
+                log.debug("[design] failed to load %s: %s", s3_uri, exc)
+    return None
+
+
 def _build_design_json(
-    run_id: str, info: Optional[Dict[str, Any]], params: Optional[Dict[str, Any]]
+    run_id: str,
+    info: Optional[Dict[str, Any]],
+    params: Optional[Dict[str, Any]],
+    s3_output_files: Optional[list] = None,
+    artifact_loader: Optional[Callable[[str], Optional[bytes]]] = None,
 ) -> Dict[str, Any]:
-    """Standardized per-run experimental-design record (schema v1.0). Captures the
-    structured substrate a downstream critic/judgment step reads: the inputs, the
-    scalar parameters, and (best-effort) design fields (formula, covariates, group
-    sizes) when cheaply derivable from params. Fields that need output parsing are
-    left null here and filled by consumers. Generic mechanism; Cox is the first
-    producer and leaves formula/covariates null (they are derived at runtime from
-    the clinical-data columns and recoverable from cox_coefficients.csv)."""
+    """Standardized per-run experimental-design record (schema v1.1).
+
+    This is the Phase-0 run contract's *design* half — the substrate every
+    design-aware critic reads. Unlike the legacy v1.0 (which hardcoded a null design
+    block for 100% of workflows), the design block is now populated per workflow class
+    from whoever actually knows the design:
+
+      * **DECLARED inputs** (``exposure_of_interest`` / ``known_confounders`` /
+        ``known_batch``) come straight from the run params — the scientist's intent,
+        never inferred.
+      * **bioc** (Cox, diffab) — folded from the design the workflow emits: a
+        ``design_fields.json`` if present, else derived from the per-class QC JSON
+        (``survival_qc.json`` / ``qc_metrics.json``) it already writes.
+      * **nf-core** — ``group_sizes`` / candidate covariates inferred from the
+        samplesheet; ``formula`` stays null (honest — nf-core pipelines don't declare one).
+
+    Backward-compatible + additive: the legacy keys (``formula``, ``covariates``,
+    ``group_sizes``) are retained; new keys (``candidate_covariates``, ``contrasts``,
+    the declared inputs, ``design_source``) are added; schema_version is bumped to 1.1.
+    Best-effort throughout — any population failure leaves the honest null block."""
     from datetime import datetime, timezone
     info = info or {}
     params = params or info.get("parameters") or {}
@@ -6366,8 +6623,83 @@ def _build_design_json(
         else:
             scalars[k] = v
     nf_path = str(info.get("nextflow_path", ""))
+
+    # 1) DECLARED contract inputs (never inferred).
+    declared = _declared_design_inputs(params)
+
+    # 2) Start from the honest null block, then populate per class. The numeric fields
+    #    (events / n_samples / n_covariates / group_sizes) are what the Power/EPV +
+    #    output-presence critics read; they stay null/empty until a class populates them.
+    design_block: Dict[str, Any] = {
+        "formula": declared.get("declared_formula"),
+        "covariates": list(declared.get("declared_covariates") or []),
+        "candidate_covariates": [],
+        "group_sizes": {},
+        "contrasts": [],
+        "exposure_of_interest": declared.get("exposure_of_interest"),
+        "known_confounders": list(declared.get("known_confounders") or []),
+        "known_batch": list(declared.get("known_batch") or []),
+        "events": None,            # # events (Cox deaths / minority-class) — for EPV
+        "n_samples": None,         # total observations
+        "n_covariates": None,      # len(covariates) when known
+        "model_type": None,        # "cox" | "de" | "logistic" | …
+        "expected_outputs": [],    # declared expected output names
+        "design_source": "declared" if declared.get("declared_formula") else None,
+    }
+
+    # 3) Fold in the design the workflow emits (preferred), then the per-class QC JSON.
+    try:
+        emitted: Optional[Dict[str, Any]] = None
+        df = _load_design_artifact(s3_output_files, artifact_loader, (_DESIGN_FIELDS_NAME,))
+        if isinstance(df, dict):
+            emitted = df.get("design") if isinstance(df.get("design"), dict) else df
+            emitted = dict(emitted or {})
+            emitted.setdefault("design_source", "workflow")
+        if emitted is None:
+            sv = _load_design_artifact(s3_output_files, artifact_loader, ("survival_qc.json",))
+            if isinstance(sv, dict):
+                emitted = _design_from_survival_qc(sv)
+        if emitted is None:
+            da = _load_design_artifact(s3_output_files, artifact_loader, ("qc_metrics.json",))
+            if isinstance(da, dict) and da.get("design_qc") is not None:
+                emitted = _design_from_diffab_qc(da)
+        # 4) nf-core fallback: infer from the samplesheet when the emitted design
+        #    gave us neither a formula nor group sizes (i.e. not a bioc design).
+        _need_infer = (not emitted) or (
+            emitted.get("formula") in (None, "") and not emitted.get("group_sizes")
+        )
+        if _need_infer:
+            ss = None
+            for key in ("samplesheet", "input"):
+                val = inputs.get(key) or params.get(key)
+                if isinstance(val, str) and val:
+                    raw = artifact_loader(val) if artifact_loader else None
+                    if raw:
+                        ss = raw.decode("utf-8") if isinstance(raw, (bytes, bytearray)) else str(raw)
+                        break
+            if ss:
+                inferred = _infer_design_from_samplesheet(ss, declared)
+                emitted = _merge_design(inferred, emitted)
+        if emitted:
+            design_block = _merge_design(design_block, emitted)
+    except Exception as exc:
+        log.warning("[design] population failed for run %s: %s", run_id, exc)
+
+    # Derived numerics the Power/EPV critic reads: n_covariates from the modeled set,
+    # and n_samples backfilled from the group sizes when the class didn't emit a total.
+    if design_block.get("n_covariates") in (None, "") and design_block.get("covariates"):
+        design_block["n_covariates"] = len(design_block["covariates"])
+    if design_block.get("n_samples") in (None, "") and design_block.get("group_sizes"):
+        try:
+            design_block["n_samples"] = sum(
+                int(v) for v in design_block["group_sizes"].values()
+                if isinstance(v, (int, float))
+            ) or None
+        except Exception:
+            pass
+
     return {
-        "schema_version": _MANIFEST_SCHEMA_VERSION,
+        "schema_version": _DESIGN_SCHEMA_VERSION,
         "kind": "design",
         "run_id": run_id,
         "workflow": (nf_path.rsplit("/", 1)[-1] or nf_path),
@@ -6376,13 +6708,23 @@ def _build_design_json(
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "inputs": inputs,
         "parameters": scalars,
-        "design": {
-            # Best-effort; null when not derivable from params alone.
-            "formula": None,
-            "covariates": [],
-            "group_sizes": {},
-        },
+        "design": design_block,
     }
+
+
+def _merge_design(base: Optional[Dict[str, Any]], overlay: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Merge a populated design block over a base: a non-empty overlay value wins, but
+    DECLARED fields (exposure/confounders/batch) in the base are never overwritten by
+    an inferred value — the scientist's declaration outranks inference."""
+    out = dict(base or {})
+    for k, v in (overlay or {}).items():
+        if v in (None, "", [], {}):
+            continue
+        # declared contract inputs are authoritative when already present
+        if k in ("exposure_of_interest", "known_confounders", "known_batch") and out.get(k):
+            continue
+        out[k] = v
+    return out
 
 
 def _write_run_manifests_to_s3(
@@ -6416,6 +6758,150 @@ def _write_run_manifests_to_s3(
     except Exception as exc:
         log.warning("[Nextflow] manifest write failed for %s: %s", outdir, exc)
         return False
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Transport adapters — lifted to MODULE scope so both the QC-gate path AND the
+# post-run critic hook can use them (the hook attaches outside any function that
+# previously closed over these as locals). Pure refactor of the former
+# `_sse_emit` closure + the new lazy S3 artifact loader the RunContext needs.
+# ─────────────────────────────────────────────────────────────────────────────
+def _sse_inject(invocation_id: str, event_type: str, data: Dict[str, Any]) -> None:
+    """POST one SSE event to the frontend's /internal/sse-inject relay so the
+    AutoLoopPanel receives it. Best-effort — never raises (a transport failure must
+    not block the completion path). Lifted from the nested closure in
+    ``_evaluate_qc_from_s3`` so the critic hook can reuse the SAME channel."""
+    import json as _json
+    import urllib.request as _urllib
+    _inject_url = f"{_resolve_frontend_url()}/internal/sse-inject"
+    try:
+        req = _urllib.Request(
+            _inject_url,
+            data=_json.dumps({
+                "invocation_id": invocation_id,
+                "event_type": event_type,
+                "data": data,
+            }).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+        )
+        with _urllib.urlopen(req, timeout=5):
+            pass
+    except Exception as exc:
+        log.debug("[autoloop SSE] inject failed for %s: %s", event_type, exc)
+
+
+def _make_s3_artifact_loader(run_meta: Optional[Dict[str, Any]] = None):
+    """Build the lazy artifact loader the RunContext / design populator inject.
+
+    Returns a callable ``loader(ref) -> Optional[bytes]`` that downloads an S3 object
+    (``s3://…``) to bytes via the executor's existing ``aws s3 cp`` pattern, or reads a
+    local file when ``ref`` is a path. Results are memoized per loader instance so two
+    critics reading the same ``survival_qc.json`` don't double-download. It does
+    blocking network I/O, so callers MUST invoke it OUTSIDE ``_runs_lock`` (same
+    discipline as the S3 QC eval). Never raises — any failure returns None so a critic
+    fails closed rather than crashing the completion path."""
+    import subprocess as _sub
+    _cache: Dict[str, Optional[bytes]] = {}
+
+    def _loader(ref: str) -> Optional[bytes]:
+        if not ref or not isinstance(ref, str):
+            return None
+        if ref in _cache:
+            return _cache[ref]
+        data: Optional[bytes] = None
+        try:
+            if ref.startswith("s3://"):
+                result = _sub.run(
+                    [_aws_cli_bin(), "s3", "cp", ref, "-"],
+                    capture_output=True, timeout=30,
+                )
+                if result.returncode == 0:
+                    data = result.stdout
+                else:
+                    log.debug("[critics] aws s3 cp failed for %s: %s", ref, result.returncode)
+            elif os.path.exists(ref):
+                with open(ref, "rb") as fh:
+                    data = fh.read()
+        except Exception as exc:
+            log.debug("[critics] artifact loader error for %s: %s", ref, exc)
+            data = None
+        _cache[ref] = data
+        return data
+
+    return _loader
+
+
+# Path-token → registry/critic domain hints, so a run is stamped with a REAL domain at
+# launch instead of "unknown". "unknown" is both (a) a full-registry-scan trigger —
+# registry.for_context falls back to all() only when the domain is falsy — and, worse,
+# (b) a truthy-but-wrong value: for_domain("unknown") returns only the "*" bucket, so a
+# domain's own critics (e.g. the survival critics for a Cox run) are never dispatched.
+# Stamping the real domain keeps dispatch O(domain) AND makes the right critics fire.
+_WORKFLOW_DOMAIN_PATH_HINTS = (
+    ("cox_proportional", "survival"),
+    ("survival", "survival"),
+    ("differentialabundance", "transcriptomics"),
+    ("differential_abundance", "transcriptomics"),
+    ("deseq2", "transcriptomics"),
+    ("rnaseq", "transcriptomics"),
+    ("rna_seq", "transcriptomics"),
+)
+
+
+def _run_critic_hook(run_id: str, run_meta: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Build the critic_report for a completed run.
+
+    A gap/failed run has no readable contract (design / results_manifest were built
+    ONLY in the else-branch of the output-resolution-gap check, and only on
+    returncode == 0), so the design-aware critics have nothing to read. Such a run is
+    stamped with an explicit ``{"status": "not_judged", "reason": "no readable
+    contract"}`` marker so it does NOT present as clean — an absent critic_report would
+    look like "judged, nothing wrong", the exact fail-silent-on-the-highest-value-runs
+    hole.
+
+    A healthy run (readable contract present) runs the design-aware critics against the
+    contract and returns the serialized CriticReport. The whole thing is fail-open: the
+    ``galaxy.ai.critics`` import is INSIDE the try so a module-load error degrades at
+    RUNTIME (never a dev crash-loop — and ``import galaxy.ai.critics`` is in the pre-sync
+    import check so it's caught at author time); any critic error returns a not_judged
+    marker rather than raising, so the completion path is NEVER blocked by judgment.
+    Advisory-only (``auto_apply=False``, empty auto-apply allowlist)."""
+    if not (run_meta.get("design") or run_meta.get("results_manifest")):
+        return {"status": "not_judged", "reason": "no readable contract"}
+    try:
+        from galaxy.ai.critics import run_critics_from_run_meta
+        _loader = _make_s3_artifact_loader(run_meta)
+        report = run_critics_from_run_meta(
+            run_meta,
+            artifact_loader=_loader,
+            emit=lambda _et, _d: _sse_inject(run_id, _et, _d),
+            auto_apply=False,            # advisory-only; empty auto-apply allowlist
+        )
+        doc = report.to_dict()
+        log.info("[critics] run %s: %d critic(s) ran, %d published finding(s)",
+                 run_id, len(report.critics_run),
+                 len([f for f in report.findings if f.published]))
+        return doc
+    except Exception as exc:
+        log.warning("[critics] post-run hook failed for run %s: %s", run_id, exc)
+        return {"status": "not_judged",
+                "reason": "critic hook error: %s" % exc.__class__.__name__}
+
+
+def _infer_workflow_domain(nf_path: str) -> str:
+    """Infer a run's workflow_domain from its nextflow path when the request did not
+    declare one. Path hints first (authoritative for the critic domains), then the
+    workflow DB, then "unknown" as the honest last resort."""
+    low = str(nf_path or "").lower()
+    for hint, dom in _WORKFLOW_DOMAIN_PATH_HINTS:
+        if hint in low:
+            return dom
+    base = low.rsplit("/", 1)[-1].replace(".nf", "")
+    try:
+        db = _lookup_workflow_domain_from_db(base)
+    except Exception:
+        db = None
+    return db or "unknown"
 
 
 # CryoSPARC-specific: map S3 output directory names → 0-indexed step IDs
@@ -7131,7 +7617,15 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                 # them in one standard place. Best-effort; never fails the run.
                 try:
                     _results_manifest = _build_results_manifest(run_id, _run_rec_snap, _s3_output_files)
-                    _design_manifest = _build_design_json(run_id, _run_rec_snap, _run_rec_snap.get("params") or _run_rec_snap.get("parameters"))
+                    # Pass a lazy S3 loader + the resolved outputs so the design block
+                    # can be populated from the design the workflow emits (survival_qc /
+                    # qc_metrics / design_fields) or inferred from the samplesheet. This
+                    # does best-effort blocking S3 reads — safe here (lock-free region).
+                    _design_manifest = _build_design_json(
+                        run_id, _run_rec_snap, _run_rec_snap.get("params") or _run_rec_snap.get("parameters"),
+                        s3_output_files=_s3_output_files,
+                        artifact_loader=_make_s3_artifact_loader(_run_rec_snap),
+                    )
                     _write_run_manifests_to_s3(_outdir_for_s3, _results_manifest, _design_manifest)
                 except Exception as _man_exc:
                     log.warning("[Nextflow run %s] manifest build failed: %s", run_id, _man_exc)
@@ -7161,6 +7655,17 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                     _runs[run_id]["output_resolution_gap"] = True
                 run_meta = dict(_runs[run_id])
         log.info("[Nextflow run %s] finished — status=%s returncode=%d", run_id, final_status, returncode)
+
+        # ── Critic layer: post-run judgment ───────────────────────────────────────
+        # A gap/failed run (no readable contract) is stamped "not_judged" so it does NOT
+        # look clean; healthy-run judgment is wired by the hook attach (PR-2). Runs
+        # lock-free (it does best-effort S3 reads) and is fail-open.
+        _critic_report = _run_critic_hook(run_id, run_meta)
+        if _critic_report is not None:
+            run_meta["critic_report"] = _critic_report
+            with _runs_lock:
+                if run_id in _runs:
+                    _runs[run_id]["critic_report"] = _critic_report
 
         # Emit structured log lines for every Batch job ID found in .nextflow.log
         _scrape_batch_job_ids(run_id)
@@ -9186,7 +9691,10 @@ def _execute_nextflow_impl(
     # Validate qc_overrides and qc_profile if provided
     qc_overrides = request.qc_overrides or {}
     qc_profile = request.qc_profile or None
-    workflow_domain = request.workflow_domain or "unknown"
+    # Stamp a REAL domain (from the nf path) when the request didn't declare one, so
+    # the post-run critic registry dispatches by domain instead of full-scanning (and
+    # so a domain's own critics actually fire — "unknown" would silently skip them).
+    workflow_domain = request.workflow_domain or _infer_workflow_domain(str(nf_path))
     try:
         from galaxy.jobs.qc_trace_monitor import NextflowQCGateHandler
         # Auto-infer qc_profile from workflow path when not explicitly provided

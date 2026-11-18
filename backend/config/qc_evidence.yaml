@@ -2272,3 +2272,136 @@ rare_disease:
       finding: >
         Phase E surfaces AI-MARRVEL rank, OUTRIDER/FRASER concordance,
         and VEP consequence in a single clinician-review table.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# design_rules — the critic layer's grounding substrate AND closed citation vocab.
+#
+# Unlike the (domain, gate_name) -> [papers] threshold evidence above, these are
+# keyed by a STABLE DESIGN-RULE KEY (e.g. survival.adjust_confounders). A critic
+# cites by this key; the critic hook validates that the key exists here and reads
+# the DOI + provenance grade FROM this entry — it never trusts an author- (or LLM-)
+# supplied DOI/grade. A citation whose key is absent from this section is treated as
+# UNCITED and is NOT published (capped to advisory, kept for audit). This is the
+# structural fix for guardrail G1 ("citation = validity, not presence").
+#
+# Schema (per key):
+#   <domain.rule_key>:
+#     claim:      str   # the methodological rule, in one sentence (authoritative text)
+#     source:     str   # human-readable citation (paper / guideline / statement)
+#     doi:        str   # DOI or stable URL for the source (authoritative)
+#     provenance: GOLD|SILVER|BRONZE   # grade; drives the hook's severity ceiling
+#
+# Loaded by lib/galaxy/ai/critics/evidence.py (design_rule / all_design_rule_keys).
+# The hand-written seed table in that module is a fallback only; this section wins.
+design_rules:
+  survival.adjust_confounders:
+    claim: >
+      A Cox model must adjust for known prognostic covariates; an omitted
+      covariate associated with both the exposure and the outcome confounds
+      the primary hazard ratio and must be added to the design formula.
+    source: >
+      STROBE statement, item 16a (confounder-adjusted estimates);
+      Therneau & Grambsch, Modeling Survival Data (2000), ch. 3.
+    doi: "10.1016/j.jclinepi.2007.11.008"
+    provenance: GOLD
+
+  survival.ph_assumption:
+    claim: >
+      The proportional-hazards assumption must be tested with scaled Schoenfeld
+      residuals; a global or per-covariate p < 0.05 indicates a time-varying
+      effect that biases a single constant hazard ratio.
+    source: >
+      Grambsch & Therneau, "Proportional hazards tests and diagnostics based on
+      weighted residuals", Biometrika 81(3):515-526 (1994).
+    doi: "10.1093/biomet/81.3.515"
+    provenance: GOLD
+
+  survival.ph_time_transform:
+    claim: >
+      A proportional-hazards violation is remediated by stratifying on the
+      offending covariate or modelling it as a time-varying effect (e.g. a tt()
+      time transform) — not by reporting the unadjusted single hazard ratio.
+    source: >
+      Therneau, Crowson & Atkinson, "Using Time Dependent Covariates and Time
+      Dependent Coefficients in the Cox Model" (survival package vignette, 2023).
+    doi: "10.1093/biomet/81.3.515"
+    provenance: SILVER
+
+  # ── Power / events-per-variable / sample-size (WS2 power.epv critic) ────────
+  power.epv_floor:
+    claim: >
+      A risk model (Cox PH or logistic regression) needs >= ~10 events per
+      estimated coefficient (EPV >= 10); below this the estimates, standard
+      errors and significance tests are unstable, biased and over-fit.
+    source: >
+      Peduzzi et al. 1996, J Clin Epidemiol 49(12):1373-1379; Peduzzi et al.
+      1995 (Cox), J Clin Epidemiol 48(12):1503-1510 (doi 10.1016/0895-4356(95)00048-8).
+    doi: "10.1016/S0895-4356(96)00236-3"
+    provenance: GOLD
+
+  power.min_replicates:
+    claim: >
+      Differential-expression testing requires replication: >=3 biological
+      replicates per group are the practical minimum to estimate within-group
+      dispersion, >=6 recommended; with <2 dispersion is not estimable.
+    source: >
+      Schurch et al. 2016, RNA 22(6):839-851.
+    doi: "10.1261/rna.053959.115"
+    provenance: GOLD
+
+  power.overparameterized:
+    claim: >
+      A model estimating as many or more parameters than independent
+      observations is over-fit or non-identifiable; ~5-10 observations per
+      parameter are required for stable estimation.
+    source: >
+      Harrell, Regression Modeling Strategies 2nd ed. (2015), ch.4.
+    doi: "10.1007/978-3-319-19425-7"
+    provenance: SILVER
+
+  # ── Output presence / null-result floor (WS2 output.presence critic) ───────
+  output.expected_outputs_present:
+    claim: >
+      A completed analysis must emit its declared primary output artifacts
+      (result table/model/figure); a run producing none has not produced
+      usable, reusable science and must not be presented as a success.
+    source: >
+      Wilkinson et al. 2016 (FAIR Principles), Sci Data 3:160018.
+    doi: "10.1038/sdata.2016.18"
+    provenance: SILVER
+
+  output.null_result_reporting:
+    claim: >
+      An empty result table or zero significant features is a legitimate NULL
+      result, not a pipeline success; it must be reported honestly and
+      distinguished from a run that failed to produce output.
+    source: >
+      Wasserstein & Lazar 2016 (ASA Statement on p-Values), Am Stat 70(2):129-133.
+    doi: "10.1080/00031305.2016.1154108"
+    provenance: SILVER
+
+  # ── Design / QC floor keys for not-yet-built critics (benchmark stubs ground
+  #    here today; the real rnaseq batch-confounding + QC-floor critics will cite
+  #    these same keys when they land). ───────────────────────────────────────
+  design.batch_confounding:
+    claim: >
+      A technical covariate (batch) collinear with the biological condition
+      confounds the condition effect and cannot be separated from it; this is a
+      validity threat (not a precision one) and is uncorrectable post-hoc —
+      removing the batch removes the biological signal.
+    source: >
+      Leek et al. 2010, 'Tackling the widespread and critical impact of batch
+      effects in high-throughput data', Nat Rev Genet 11:733-739.
+    doi: "10.1038/nrg2825"
+    provenance: GOLD
+
+  qc.metric_floor:
+    claim: >
+      A quantitative QC metric below its accepted floor (e.g. mapping rate, RIN,
+      assignment rate) indicates the inputs/outputs are not trustworthy for the
+      downstream analysis and the run must not be presented as valid.
+    source: >
+      Conesa et al. 2016, 'A survey of best practices for RNA-seq data analysis',
+      Genome Biol 17:13; nf-core/rnaseq QC guidance.
+    doi: "10.1186/s13059-016-0881-8"
+    provenance: SILVER
