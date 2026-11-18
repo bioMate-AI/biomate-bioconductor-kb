@@ -28,7 +28,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
-import { GraduationCap, Library, FlaskConical, ChevronRight, AlertTriangle } from "lucide-react"
+import { GraduationCap, Library, FlaskConical, Sparkles, ChevronRight, AlertTriangle } from "lucide-react"
 import { useModels, useTrainTrack, useOptimiseTrack } from "./models-api"
 import { useActiveProjectSafe } from "@/contexts/active-project-context"
 import { ModelObjectLoader } from "./model-object"
@@ -39,6 +39,7 @@ import { CodeSandboxPath } from "./code-sandbox-path"
 import { formatRunTime, openRunManager, runStatusLabel } from "./training-logic"
 import { TrainingRegistration } from "./training-registration"
 import { RoundsSection } from "./dmta-rounds"
+import { AdaptTrack } from "./adapt-track"
 import type { ModelSummary } from "./types"
 
 /** Resolve /models?tab=molecular|library|train|0|1|2 → tab index. */
@@ -56,13 +57,15 @@ export function tabIndexFromSearch(search: string): number | undefined {
 export type TrainPath = "ui" | "code"
 
 /**
- * House style (adaptation) is hidden, not deleted: its ONLY data source is the
- * regulatory_pair_recorder behind the IND editor, which is itself commented out
- * of the nav, so the tab could only ever render its empty state. AdaptTrack's
- * API hooks (useAdaptTrack / useAdaptToggle / useAdaptRetrain) and their tests
- * remain; re-enable the tab and the IND editor together.
+ * Adaptation (house style) is now surfaced as a first-class track. It wires the
+ * AdaptTrack component to the live hooks (useAdaptTrack / useAdaptToggle /
+ * useAdaptRetrain). The track is honest about what it does: it compiles the
+ * phrasings you keep on BioMate's drafts into a retrieval index it reuses when it
+ * writes (personalisation), NOT a model-weight retrain. When no edit pairs have
+ * been recorded yet it shows an honest empty state rather than being hidden.
+ * (Kept as an exported const — now false — so callers/tests can still reference it.)
  */
-export const HOUSE_STYLE_HIDDEN = true
+export const HOUSE_STYLE_HIDDEN = false
 
 /**
  * The Code sandbox path is hidden for now (not deleted). It is a bare run_code
@@ -73,9 +76,9 @@ export const HOUSE_STYLE_HIDDEN = true
 export const CODE_PATH_HIDDEN = true
 
 /** Tab ids, in display order. */
-export const MODELS_TRACKS = ["train", "library", "molecular"] as const
+export const MODELS_TRACKS = ["train", "library", "molecular", "adapt"] as const
 export type ModelsTrack = (typeof MODELS_TRACKS)[number]
-const TRACK_ICONS = [GraduationCap, Library, FlaskConical]
+const TRACK_ICONS = [GraduationCap, Library, FlaskConical, Sparkles]
 
 // ── 模型库 — catalog ─────────────────────────────────────────────────────────
 function CatalogTable({ rows, onOpenModel }: { rows: ModelSummary[]; onOpenModel: (id: string) => void }) {
@@ -556,6 +559,13 @@ export function ModelsPanel({
                 <p className="text-fs-xs text-muted-foreground">{t("models.loop_model_note")}</p>
                 <TrainingLauncher family="molecular" />
               </div>
+            </TabsContent>
+
+            <TabsContent value="3" className="space-y-3">
+              <p className="text-fs-xs text-muted-foreground" data-testid="tab-purpose-adapt">
+                {t("models.tab_purpose_adapt")}
+              </p>
+              <AdaptTrack project={projectArg} />
             </TabsContent>
           </Tabs>
         </CardContent>

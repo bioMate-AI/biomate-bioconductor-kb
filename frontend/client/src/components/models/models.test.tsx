@@ -92,24 +92,25 @@ function mockFetchByUrl(map: Record<string, unknown>) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 describe("ModelsPanel — tabs", () => {
-  it("renders exactly the three tabs: Train · Model library · Design loop", () => {
+  it("renders exactly the four tabs: Train · Model library · Design loop · Adapt", () => {
     mockFetchByUrl({ "/api/models": CATALOG })
     render(<ModelsPanel project="Test project" />, { wrapper: wrapper() })
-    for (let i = 0; i < 3; i++) expect(screen.getByTestId(`models-track-${i}`)).toBeTruthy()
-    expect(screen.queryByTestId("models-track-3")).toBeNull()
+    for (let i = 0; i < 4; i++) expect(screen.getByTestId(`models-track-${i}`)).toBeTruthy()
     expect(screen.queryByTestId("models-track-4")).toBeNull()
     const tabs = screen.getByTestId("models-tabs")
     expect(within(tabs).getByText("Train")).toBeTruthy()
     expect(within(tabs).getByText("Model library")).toBeTruthy()
     expect(within(tabs).getByText("Design loop")).toBeTruthy()
+    expect(within(tabs).getByText("Adapt")).toBeTruthy()
   })
 
-  it("hides House style and the workflow-search / DL-FM sections entirely", async () => {
+  it("surfaces the Adapt track but still hides the workflow-search / DL-FM sections", async () => {
     mockFetchByUrl({ "/api/models": CATALOG })
     render(<ModelsPanel project="Test project" />, { wrapper: wrapper() })
-    expect(HOUSE_STYLE_HIDDEN).toBe(true)
-    expect(screen.queryByText("House style")).toBeNull()
-    expect(screen.queryByTestId("track-adapt")).toBeNull()
+    // Adaptation is now a first-class, surfaced track.
+    expect(HOUSE_STYLE_HIDDEN).toBe(false)
+    expect(within(screen.getByTestId("models-tabs")).getByText("Adapt")).toBeTruthy()
+    // The sections that were removed stay gone.
     expect(screen.queryByTestId("dl-fm-tab")).toBeNull()
     expect(screen.queryByTestId("dl-section-prebuilt")).toBeNull()
     // No workflow catalog search is issued from the Models panel any more.
