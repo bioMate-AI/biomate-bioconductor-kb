@@ -13,7 +13,9 @@ export type SpecValues = Record<string, string | boolean>;
 // 'column' renders as a dropdown of the dataset's REAL columns (the launcher
 // passes them), so a role like instruction/output/target is never a free-text box.
 export type SpecFieldKind = 'text' | 'number' | 'bool' | 'select' | 'column' | 'json';
-export interface SpecField { key: string; kind: SpecFieldKind; options?: string[]; min?: number }
+// showWhen: render this field only when another field currently equals a value
+// (e.g. reward_spec only for reward='composite') — so irrelevant knobs stay hidden.
+export interface SpecField { key: string; kind: SpecFieldKind; options?: string[]; min?: number; showWhen?: { key: string; value: string } }
 
 const LLM_COMMON: SpecField[] = [
   { key: 'base_model', kind: 'text' },
@@ -29,8 +31,8 @@ export const SPEC_FIELDS: Partial<Record<PanelModelType, SpecField[]>> = {
     // 'composite' = rule-following: a JSON list of weighted scorers + gates the model
     // is optimized toward (interpreted safely, no eval — see trl_trainer.make_reward_fn).
     { key: 'reward', kind: 'select', options: ['length', 'keyword', 'numeric_answer', 'composite'] },
-    { key: 'reward_keyword', kind: 'text' },
-    { key: 'reward_spec', kind: 'json' }],
+    { key: 'reward_keyword', kind: 'text', showWhen: { key: 'reward', value: 'keyword' } },
+    { key: 'reward_spec', kind: 'json', showWhen: { key: 'reward', value: 'composite' } }],
   scrna_diffusion: [
     { key: 'finetune', kind: 'bool' },
     { key: 'base_checkpoint', kind: 'text' },
@@ -107,6 +109,9 @@ export function specPayload(type: PanelModelType, values: SpecValues): Record<st
   if (!key || !fields) return {};
   const spec: Record<string, unknown> = {};
   for (const field of fields) {
+    // A field hidden by showWhen (e.g. reward_spec when reward≠composite) is never
+    // sent — its value is irrelevant to the chosen mode and the user can't see it.
+    if (field.showWhen && String(values[field.showWhen.key] ?? '') !== field.showWhen.value) continue;
     const raw = values[field.key];
     if (field.kind === 'bool') { spec[field.key] = !!raw; continue; }
     const text = typeof raw === 'string' ? raw.trim() : '';

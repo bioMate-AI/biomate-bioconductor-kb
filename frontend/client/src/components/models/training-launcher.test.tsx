@@ -411,4 +411,18 @@ describe("training-specs", () => {
       num_generations: "4", reward: "length", reward_keyword: "", reward_spec: "not json" }).llm as any).reward_spec)
       .toBeUndefined()
   })
+
+  it("sends only the reward config that applies to the chosen reward (showWhen gating)", () => {
+    // reward='keyword' → reward_keyword sent, a stale reward_spec is NOT.
+    const kw = specPayload("trl_grpo", { base_model: "m", adapter: "lora", max_sequence_length: "128",
+      num_generations: "4", reward: "keyword", reward_keyword: "safe", reward_spec: '[{"kind":"banned"}]' }).llm as any
+    expect(kw.reward_keyword).toBe("safe")
+    expect(kw.reward_spec).toBeUndefined()
+    // reward='composite' → reward_spec sent, a stale reward_keyword is NOT.
+    const comp = specPayload("trl_grpo", { base_model: "m", adapter: "lora", max_sequence_length: "128",
+      num_generations: "4", reward: "composite", reward_keyword: "stale",
+      reward_spec: '[{"kind":"contains_any","weight":1,"terms":["safe"]}]' }).llm as any
+    expect(comp.reward_keyword).toBeUndefined()
+    expect(comp.reward_spec).toEqual([{ kind: "contains_any", weight: 1, terms: ["safe"] }])
+  })
 })

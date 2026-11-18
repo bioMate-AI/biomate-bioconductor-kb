@@ -373,7 +373,9 @@ export function TrainingLauncher({ family, adaptOf, llmOnly }: { family: Launche
             </>
           )}
 
-          {(SPEC_FIELDS[modelType as PanelModelType] ?? []).map(field => (
+          {(SPEC_FIELDS[modelType as PanelModelType] ?? [])
+            .filter(field => !field.showWhen || String(spec[field.showWhen.key] ?? '') === field.showWhen.value)
+            .map(field => (
             <label key={field.key} className={field.kind === 'bool' ? 'flex items-center gap-2 text-xs' : 'block text-xs'}>
               {field.kind === 'bool' ? (
                 <>
