@@ -2306,3 +2306,29 @@ design_rules:
       Wasserstein & Lazar 2016 (ASA Statement on p-Values), Am Stat 70(2):129-133.
     doi: "10.1080/00031305.2016.1154108"
     provenance: SILVER
+
+  # ── Design / QC floor keys for not-yet-built critics (benchmark stubs ground
+  #    here today; the real rnaseq batch-confounding + QC-floor critics will cite
+  #    these same keys when they land). ───────────────────────────────────────
+  design.batch_confounding:
+    claim: >
+      A technical covariate (batch) collinear with the biological condition
+      confounds the condition effect and cannot be separated from it; this is a
+      validity threat (not a precision one) and is uncorrectable post-hoc —
+      removing the batch removes the biological signal.
+    source: >
+      Leek et al. 2010, 'Tackling the widespread and critical impact of batch
+      effects in high-throughput data', Nat Rev Genet 11:733-739.
+    doi: "10.1038/nrg2825"
+    provenance: GOLD
+
+  qc.metric_floor:
+    claim: >
+      A quantitative QC metric below its accepted floor (e.g. mapping rate, RIN,
+      assignment rate) indicates the inputs/outputs are not trustworthy for the
+      downstream analysis and the run must not be presented as valid.
+    source: >
+      Conesa et al. 2016, 'A survey of best practices for RNA-seq data analysis',
+      Genome Biol 17:13; nf-core/rnaseq QC guidance.
+    doi: "10.1186/s13059-016-0881-8"
+    provenance: SILVER

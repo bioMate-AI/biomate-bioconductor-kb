@@ -53,6 +53,10 @@ _EV_EPV = Evidence(
     provenance=Provenance.GOLD,
 )
 
+# NB: these two stubs ground through the real design-rule KB (qc_evidence.yaml), so
+# their Evidence carries a ``kb_key`` that resolves there — exactly like a real critic.
+# The hardened hook (G1) publishes an issue ONLY when its Evidence grounds against a
+# KB key, so without kb_key these stubs would be suppressed as uncited.
 _EV_BATCH = Evidence(
     claim=(
         "A technical covariate (batch) that is collinear with the biological condition "
@@ -63,6 +67,7 @@ _EV_BATCH = Evidence(
            "in high-throughput data', Nat Rev Genet 11:733-739 (2010)",
     doi="10.1038/nrg2825",
     provenance=Provenance.GOLD,
+    kb_key="design.batch_confounding",
 )
 
 _EV_QC = Evidence(
@@ -75,6 +80,7 @@ _EV_QC = Evidence(
            "RNA-seq data analysis', Genome Biol 17:13 (2016)",
     doi="10.1186/s13059-016-0881-8",
     provenance=Provenance.SILVER,
+    kb_key="qc.metric_floor",
 )
 
 _EV_OUTPUT = Evidence(

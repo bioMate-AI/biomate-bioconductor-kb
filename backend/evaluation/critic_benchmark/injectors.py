@@ -223,7 +223,8 @@ def _power_contract(n_events: int, n_cov: int) -> Dict[str, Any]:
             "inputs": {"clinical": "clinical.csv"},
             "parameters": {},
         },
-        "manifest": _manifest([_file("design_qc.json", "qc")],
+        "manifest": _manifest([_file("cox_model_summary.csv", "table"),
+                               _file("design_qc.json", "qc")],
                               "cox_proportional_hazards_regression", "survival"),
         "inline_artifacts": {"design_qc.json": {"n_events": n_events, "n_covariates": n_cov}},
     }
