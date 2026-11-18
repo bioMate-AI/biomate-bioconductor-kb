@@ -33,6 +33,9 @@ export interface ModelTrainingPlanDependencies {
 export const PLAN_FORWARDED_FIELDS = [
   'model_type', 'task_type', 'target_col', 'smiles_col', 'featurizer', 'metric',
   'gate_threshold', 'model_name', 'epochs', 'learning_rate', 'llm', 'sc', 'diffusion',
+  // Adaptation: the registered model this run adapts (→ registers as its next version).
+  // The backend validates it; dataset identity stays server-resolved.
+  'adapt_of',
 ] as const;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

@@ -36,7 +36,7 @@ interface ProjectFile { id: string; name: string; s3_key: string; source?: strin
 
 const FIELD = 'block w-full rounded border bg-background px-2 py-1.5 text-sm';
 
-export function TrainingLauncher({ family }: { family: LauncherFamily }) {
+export function TrainingLauncher({ family, adaptOf }: { family: LauncherFamily; adaptOf?: string }) {
   const context = useActiveProjectSafe();
   const queryClient = useQueryClient();
   const [project, setProject] = useState(context?.activeProjectId ?? '');
@@ -225,7 +225,10 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
         ...(needsSmiles ? { smiles_col: smilesCol } : {}),
         ...(gateValue !== undefined ? { gate_threshold: gateValue } : {}),
         ...(epochs.trim() ? { epochs: Number(epochs) } : {}),
-        ...(modelName.trim() ? { model_name: modelName.trim() } : {}),
+        // Adapting forces the output name to the base model's (so it versions it),
+        // so a user-typed name is only sent for a fresh training run.
+        ...(!adaptOf && modelName.trim() ? { model_name: modelName.trim() } : {}),
+        ...(adaptOf ? { adapt_of: adaptOf } : {}),
         ...specPayload(modelType, spec),
       });
       setRunId(id); setLaunched(plan);
@@ -244,9 +247,13 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
   return (
     <form className="space-y-3 rounded border p-3" data-testid={`training-launcher-${family}`} onSubmit={submit}>
       <p className="text-sm font-semibold">
-        {family === 'molecular' ? t('models.launch_heading_molecular') : t('models.launch_heading_general')}
+        {adaptOf
+          ? t('models.adapt_launch_heading', { model: adaptOf })
+          : family === 'molecular' ? t('models.launch_heading_molecular') : t('models.launch_heading_general')}
       </p>
-      <p className="text-xs text-muted-foreground">{t('models.launch_intro')}</p>
+      <p className="text-xs text-muted-foreground">
+        {adaptOf ? t('models.adapt_launch_intro') : t('models.launch_intro')}
+      </p>
       {family === 'molecular' && (
         <p className="text-fs-xs text-muted-foreground" data-testid="launcher-molecular-path-note">
           {t('models.launch_molecular_path_note')}
@@ -390,10 +397,14 @@ export function TrainingLauncher({ family }: { family: LauncherFamily }) {
             </label>
           ))}
 
-          <label className="block text-xs">{t('models.setup_name')}
-            <input className={FIELD} value={modelName} data-testid="launcher-name"
-              onChange={e => { setNameTouched(true); setModelName(e.target.value); }} />
-          </label>
+          {/* Adapting versions the base model, so the output name is fixed (the base's);
+              no name field. A fresh training run names its new model here. */}
+          {!adaptOf && (
+            <label className="block text-xs">{t('models.setup_name')}
+              <input className={FIELD} value={modelName} data-testid="launcher-name"
+                onChange={e => { setNameTouched(true); setModelName(e.target.value); }} />
+            </label>
+          )}
           <label className="block text-xs">{t('models.spec_epochs_optional')}
             <input className={FIELD} type="number" min="1" step="1" value={epochs} data-testid="launcher-epochs"
               onChange={e => setEpochs(e.target.value)} />

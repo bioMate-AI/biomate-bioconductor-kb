@@ -57,6 +57,15 @@ describe('POST /api/model-training/plan contract', () => {
     expect(r.body).toMatchObject({ ...PLAN, projectId: PROJECT, fileId: FILE });
   });
 
+  it('forwards adapt_of so the backend registers the run as the base model\'s next version', async () => {
+    const d = deps();
+    await planModelTraining({ userId: 'owner-1', body: {
+      projectId: PROJECT, fileId: FILE, model_type: 'trl_dpo', adapt_of: 'custom:camp1/herg',
+    } }, d);
+    const [, sent] = d.requestGalaxyPlan.mock.calls[0] as unknown as [string, Record<string, unknown>];
+    expect(sent.adapt_of).toBe('custom:camp1/herg');
+  });
+
   it('surfaces the Galaxy validation message as the error', async () => {
     const d = deps({ requestGalaxyPlan: vi.fn(async () => ({ status: 400, body: { detail: 'target_col is required: choose the column to predict' } })) });
     const r = await planModelTraining({ userId: 'u', body: { projectId: PROJECT, fileId: FILE, model_type: 'sklearn_tabular' } }, d);

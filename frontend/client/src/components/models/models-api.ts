@@ -279,6 +279,10 @@ export interface TrainingPlanRequest {
   metric?: string
   gate_threshold?: number
   model_name?: string
+  /** When set, this run ADAPTS the registered model with this id: its artifact
+   * registers as that model's next version (the backend forces the output name to
+   * the base's so versioning keys on it). Absent ⇒ an ordinary new-model training run. */
+  adapt_of?: string
   epochs?: number
   learning_rate?: number
   llm?: Record<string, unknown>

@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useAdaptTrack, useAdaptToggle, useAdaptRetrain } from "./models-api"
+import { AdaptModel } from "./adapt-model"
 
 export function AdaptTrack({ project }: { project?: string }) {
   const ctx = useActiveProjectSafe()
@@ -47,6 +48,10 @@ export function AdaptTrack({ project }: { project?: string }) {
 
   return (
     <div className="space-y-3" data-testid="adapt-track">
+      {/* General model adaptation (SFT / DPO / RL / rule-following → new version). */}
+      <AdaptModel project={project} />
+
+      {/* House-style text personalisation (retrieval, not weight training). */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm">{t("models.adapt_heading")}</CardTitle>

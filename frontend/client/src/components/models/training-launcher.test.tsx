@@ -147,6 +147,21 @@ describe("TrainingLauncher — general data", () => {
     await waitFor(() => expect(screen.getByTestId("launcher-run-status").textContent).toContain("Running"))
   })
 
+  it("threads adapt_of and omits a user name when adapting a model (→ versions the base)", async () => {
+    const calls = mockApi()
+    render(<TrainingLauncher family="general" adaptOf="custom:camp1/herg" />, { wrapper: wrapper() })
+    await pickTableFile()
+    fireEvent.change(screen.getByTestId("launcher-target"), { target: { value: "subtype" } })
+    await waitFor(() => expect((screen.getByTestId("launcher-metric") as HTMLSelectElement).value).toBe("accuracy"))
+    // Adapting versions the base, so there is no "name your model" field.
+    expect(screen.queryByTestId("launcher-name")).toBeNull()
+    fireEvent.click(screen.getByTestId("launcher-submit"))
+    await waitFor(() => expect(calls.some(c => c.url.includes("/api/model-training/plan"))).toBe(true))
+    const plan = calls.find(c => c.url.includes("/api/model-training/plan"))!
+    expect(plan.body.adapt_of).toBe("custom:camp1/herg")
+    expect(plan.body.model_name).toBeUndefined()   // name forced from the base, not sent
+  })
+
   it("surfaces a rejected plan without launching anything", async () => {
     const calls = mockApi({ plan: { ok: false, status: 400, body: { error: "target_col is required: choose the column to predict" } } })
     render(<TrainingLauncher family="general" />, { wrapper: wrapper() })
