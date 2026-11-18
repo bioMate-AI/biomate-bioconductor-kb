@@ -214,8 +214,22 @@ def test_plan_adapt_of_marks_adaptation_and_threads_base_ref():
 def test_plan_llm_rejects_unknown_spec_field_and_composite_reward():
     with pytest.raises(ConfigError, match="unknown llm field"):
         build_training_plan({**BASE, "model_type": "ludwig_llm", "llm": {"bogus": 1}})
+    # composite WITHOUT a reward_spec is still rejected (nothing to optimize toward).
     with pytest.raises(ConfigError, match="composite"):
         build_training_plan({**BASE, "model_type": "trl_grpo", "llm": {"reward": "composite"}})
+
+
+def test_plan_grpo_composite_reward_with_spec_is_accepted():
+    """Rule-following: GRPO composite + a reward_spec (rule list) now plans cleanly."""
+    rules = [{"kind": "contains_any", "weight": 1, "terms": ["safe"]},
+             {"kind": "banned", "weight": 1, "terms": ["toxic"]}]
+    out = build_training_plan({**BASE, "model_type": "trl_grpo", "llm": {
+        "reward": "composite", "reward_spec": rules,
+    }})
+    cfg = out["config"]
+    assert cfg["llm"]["reward"] == "composite"
+    assert cfg["llm"]["reward_spec"] == rules
+    assert out["workflow_ga"]["parameters"]["task_type"] == "text_generation"
 
 
 def test_plan_scrna_diffusion_routes_to_its_wrapper_and_image():

@@ -400,4 +400,15 @@ describe("training-specs", () => {
       target_column: "subtype", n_rows_to_generate: "500", guidance_scale: "1", diffusion_steps: "100", noise_schedule: "cosine" }))
       .toEqual({ tabular: { framework: "tabddpm", finetune: false, target_column: "subtype", n_rows_to_generate: 500, guidance_scale: 1, diffusion_steps: 100, noise_schedule: "cosine" } })
   })
+
+  it("parses the GRPO composite reward_spec JSON (rule-following); skips invalid/empty", () => {
+    const rules = '[{"type":"keyword","weight":1,"keyword":"safe"},{"type":"gate","metric":"length","min":5}]'
+    expect(specPayload("trl_grpo", { base_model: "m", adapter: "lora", max_sequence_length: "128",
+      num_generations: "4", reward: "composite", reward_keyword: "", reward_spec: rules }).llm)
+      .toMatchObject({ reward: "composite", reward_spec: JSON.parse(rules) })
+    // Invalid JSON (and empty) is dropped — the backend validates composite rewards.
+    expect((specPayload("trl_grpo", { base_model: "m", adapter: "lora", max_sequence_length: "128",
+      num_generations: "4", reward: "length", reward_keyword: "", reward_spec: "not json" }).llm as any).reward_spec)
+      .toBeUndefined()
+  })
 })

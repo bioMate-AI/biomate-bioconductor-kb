@@ -1611,6 +1611,7 @@
     "spec_output_col": "Response column",
     "spec_reward": "Reward function",
     "spec_reward_keyword": "Reward keyword",
+    "spec_reward_spec": "Reward rules — JSON (rule-following; used when reward = composite)",
     "spec_target_column": "Condition on column (optional)",
     "spec_target_pdb": "Target structure (PDB, optional)",
     "tab_library": "Model library",

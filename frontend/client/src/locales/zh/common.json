@@ -2119,6 +2119,7 @@
     "spec_output_col": "回答列",
     "spec_reward": "奖励函数",
     "spec_reward_keyword": "奖励关键词",
+    "spec_reward_spec": "奖励规则 — JSON（规则遵循；当奖励函数选择 “composite” 时使用）",
     "spec_target_column": "按列进行条件约束（可不填）",
     "spec_target_pdb": "靶点结构（PDB，可不填）",
     "tab_library": "模型库",

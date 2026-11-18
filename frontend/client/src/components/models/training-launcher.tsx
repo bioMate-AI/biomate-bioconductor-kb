@@ -397,6 +397,12 @@ export function TrainingLauncher({ family, adaptOf, llmOnly }: { family: Launche
                       <option value="">{tOr('models.spec_column_none', '— none —')}</option>
                       {columns.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
+                  ) : field.kind === 'json' ? (
+                    // reward_spec for rule-following (composite) GRPO — a JSON rule list.
+                    <textarea className={`${FIELD} font-mono`} rows={3} spellCheck={false}
+                      placeholder={tOr('models.spec_reward_spec_ph', '[{"kind":"contains_any","weight":1,"terms":["safe"]},{"kind":"banned","weight":1,"terms":["toxic"]}]')}
+                      value={String(spec[field.key] ?? '')} data-testid={`launcher-spec-${field.key}`}
+                      onChange={e => setSpec(s => ({ ...s, [field.key]: e.target.value }))} />
                   ) : (
                     <input className={FIELD} type={field.kind === 'number' ? 'number' : 'text'}
                       step={field.kind === 'number' ? 'any' : undefined} min={field.min}

@@ -12,7 +12,7 @@ import type { PanelModelType } from './training-logic';
 export type SpecValues = Record<string, string | boolean>;
 // 'column' renders as a dropdown of the dataset's REAL columns (the launcher
 // passes them), so a role like instruction/output/target is never a free-text box.
-export type SpecFieldKind = 'text' | 'number' | 'bool' | 'select' | 'column';
+export type SpecFieldKind = 'text' | 'number' | 'bool' | 'select' | 'column' | 'json';
 export interface SpecField { key: string; kind: SpecFieldKind; options?: string[]; min?: number }
 
 const LLM_COMMON: SpecField[] = [
@@ -26,8 +26,11 @@ export const SPEC_FIELDS: Partial<Record<PanelModelType, SpecField[]>> = {
   trl_dpo: [...LLM_COMMON, { key: 'beta', kind: 'number', min: 0 }],
   trl_grpo: [...LLM_COMMON,
     { key: 'num_generations', kind: 'number', min: 2 },
-    { key: 'reward', kind: 'select', options: ['length', 'keyword', 'numeric_answer'] },
-    { key: 'reward_keyword', kind: 'text' }],
+    // 'composite' = rule-following: a JSON list of weighted scorers + gates the model
+    // is optimized toward (interpreted safely, no eval — see trl_trainer.make_reward_fn).
+    { key: 'reward', kind: 'select', options: ['length', 'keyword', 'numeric_answer', 'composite'] },
+    { key: 'reward_keyword', kind: 'text' },
+    { key: 'reward_spec', kind: 'json' }],
   scrna_diffusion: [
     { key: 'finetune', kind: 'bool' },
     { key: 'base_checkpoint', kind: 'text' },
@@ -71,7 +74,7 @@ const LLM_BASE = { base_model: 'HuggingFaceTB/SmolLM2-135M-Instruct', adapter: '
 export const SPEC_DEFAULTS: Partial<Record<PanelModelType, SpecValues>> = {
   ludwig_llm: { ...LLM_BASE, instruction_col: 'instruction', output_col: 'output' },
   trl_dpo: { ...LLM_BASE, beta: '0.1' },
-  trl_grpo: { ...LLM_BASE, num_generations: '4', reward: 'length', reward_keyword: '' },
+  trl_grpo: { ...LLM_BASE, num_generations: '4', reward: 'length', reward_keyword: '', reward_spec: '' },
   // finetune defaults to false: a warm-start needs staged weights the user must
   // name, and SCDiffusionSpec/DiffusionSpec.validate() rejects finetune without one.
   scrna_diffusion: {
@@ -107,6 +110,13 @@ export function specPayload(type: PanelModelType, values: SpecValues): Record<st
     const raw = values[field.key];
     if (field.kind === 'bool') { spec[field.key] = !!raw; continue; }
     const text = typeof raw === 'string' ? raw.trim() : '';
+    if (field.kind === 'json') {
+      // reward_spec: a JSON list. Only sent when it parses to an array; invalid or
+      // empty JSON is skipped (the backend validates composite rewards).
+      if (text === '') continue;
+      try { const parsed = JSON.parse(text); if (Array.isArray(parsed)) spec[field.key] = parsed; } catch { /* skip invalid */ }
+      continue;
+    }
     if (field.kind === 'number') {
       if (text === '') continue;
       const n = Number(text);

@@ -186,9 +186,12 @@ def build_training_config(req: dict) -> TrainingConfig:
     llm = diffusion = sc = None
     if model_type in LLM_MODEL_TYPES:
         llm = _spec(LLMSpec, req.get("llm"), "llm")
-        if llm.reward == "composite":
-            raise ConfigError("a composite GRPO reward needs a reward_spec; choose a built-in "
-                              "reward (length / keyword / numeric_answer)")
+        # Rule-following: composite is allowed WHEN a reward_spec (the rule list) is given;
+        # LLMSpec.validate enforces it is a non-empty list. Without one, fail clearly here.
+        if llm.reward == "composite" and not llm.reward_spec:
+            raise ConfigError("a composite GRPO reward needs a reward_spec (a non-empty list of "
+                              "weighted scoring rules), or choose a built-in reward "
+                              "(length / keyword / numeric_answer)")
     elif model_type == "scrna_diffusion":
         sc = _spec(SCDiffusionSpec, req.get("sc"), "sc")
     else:
