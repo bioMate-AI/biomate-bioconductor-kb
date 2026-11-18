@@ -36,7 +36,7 @@ interface ProjectFile { id: string; name: string; s3_key: string; source?: strin
 
 const FIELD = 'block w-full rounded border bg-background px-2 py-1.5 text-sm';
 
-export function TrainingLauncher({ family, adaptOf }: { family: LauncherFamily; adaptOf?: string }) {
+export function TrainingLauncher({ family, adaptOf, llmOnly }: { family: LauncherFamily; adaptOf?: string; llmOnly?: boolean }) {
   const context = useActiveProjectSafe();
   const queryClient = useQueryClient();
   const [project, setProject] = useState(context?.activeProjectId ?? '');
@@ -158,8 +158,12 @@ export function TrainingLauncher({ family, adaptOf }: { family: LauncherFamily; 
 
   const smilesColumns = useMemo(() => detectSmilesColumns(columns, sampleRows), [columns, sampleRows]);
   const modelTypes = useMemo(
-    () => availableModelTypes(family, kind, columns, smilesColumns, sampleRows),
-    [family, kind, columns, smilesColumns, sampleRows],
+    () => {
+      const avail = availableModelTypes(family, kind, columns, smilesColumns, sampleRows);
+      // Fine-tuning an LLM base → only LLM methods (DPO/SFT/GRPO), never a tabular model.
+      return llmOnly ? avail.filter((t) => LLM_TYPES.includes(t)) : avail;
+    },
+    [family, kind, columns, smilesColumns, sampleRows, llmOnly],
   );
 
   // Default the model type to the first one this dataset supports.
@@ -303,7 +307,7 @@ export function TrainingLauncher({ family, adaptOf }: { family: LauncherFamily; 
 
       {file && !modelTypes.length && profileState !== 'loading' && (
         <p className="text-xs text-destructive" data-testid="launcher-no-model-types">
-          {family === 'molecular' ? t('models.launch_needs_smiles_file') : t('models.launch_unsupported_file')}
+          {family === 'molecular' ? t('models.launch_needs_smiles_file') : llmOnly ? t('models.launch_needs_llm_file') : t('models.launch_unsupported_file')}
         </p>
       )}
 

@@ -90,7 +90,7 @@ export function AdaptModel({ project }: { project?: string }) {
 
       {/* Once a base is chosen, the launcher drives data upload + method + launch.
           adaptOf is set only for your own models, so they version; a base trains fresh. */}
-      {baseId && <TrainingLauncher family="general" adaptOf={adaptOf} />}
+      {baseId && <TrainingLauncher family="general" adaptOf={adaptOf} llmOnly={isBuiltIn} />}
     </div>
   )
 }

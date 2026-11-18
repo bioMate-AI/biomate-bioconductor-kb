@@ -1414,6 +1414,7 @@
     "launch_start": "Start training",
     "launch_starting": "Starting…",
     "launch_unsupported_file": "This file cannot be used for training. Supported inputs: a table (CSV/TSV/JSONL/parquet), single-cell data (.h5ad), or protein structures (.pdb/.cif).",
+    "launch_needs_llm_file": "To fine-tune this language model, upload text data — instruction/output columns for SFT, or prompt/chosen/rejected for DPO.",
     "library_catalog_heading": "Model library",
     "library_catalog_hint": "Browse the models available to you — BioMate's built-in ones and the ones you've registered. Click a row to inspect it (evidence, lineage, versions). To run one, use 'Run a model' below.",
     "llm_gpu_note": "LLM fine-tuning runs on a GPU worker; a small base model keeps the run short.",

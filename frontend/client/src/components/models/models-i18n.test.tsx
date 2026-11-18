@@ -22,8 +22,8 @@ const CJK = /[㐀-鿿豈-﫿]/
 // in Latin script in a Chinese UI. Anything else in Latin script is a leak.
 const LATIN_ALLOWED = new Set([
   "scikit", "learn", "ludwig", "lora", "qlora", "dpo", "grpo", "sft", "rl", "cpu", "llm", "scdiffusion", "rfdiffusion",
-  // DPO preference-pair column identifiers (data field names, kept Latin in zh UI).
-  "prompt", "chosen", "rejected",
+  // DPO/SFT column identifiers (data field names, kept Latin in zh UI).
+  "prompt", "chosen", "rejected", "instruction", "output",
   "rdkit", "smiles", "roc", "auc", "f1", "r²", "hugging", "face", "pdb", "cif", "h5ad", "csv", "tsv",
   "jsonl", "parquet", "plddt", "pae", "contig", "kl", "beta", "obs", "gpu", "id", "a30", "a33", "ai",
   "biomate", "nvidia", "boltz", "tabddpm", "tabsyn", "smollm2", "bace",

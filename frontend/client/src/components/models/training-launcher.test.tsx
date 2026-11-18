@@ -162,6 +162,18 @@ describe("TrainingLauncher — general data", () => {
     expect(plan.body.model_name).toBeUndefined()   // name forced from the base, not sent
   })
 
+  it("constrains to LLM methods when fine-tuning an LLM base (llmOnly)", async () => {
+    mockApi() // default profile = a generic tabular table (no text/preference columns)
+    render(<TrainingLauncher family="general" llmOnly />, { wrapper: wrapper() })
+    await waitFor(() => expect((screen.getByTestId("launcher-dataset") as HTMLSelectElement).options.length).toBeGreaterThan(1))
+    fireEvent.change(screen.getByTestId("launcher-dataset"), { target: { value: `file:${TABLE_FILE.id}` } })
+    // A plain table yields NO LLM methods under llmOnly → no model-type select, and the
+    // hint points the user at text/preference data rather than a tabular model.
+    await waitFor(() => expect(screen.getByTestId("launcher-no-model-types")).toBeTruthy())
+    expect(screen.queryByTestId("launcher-model-type")).toBeNull()
+    expect(screen.getByTestId("launcher-no-model-types").textContent).toMatch(/language model|text data/i)
+  })
+
   it("surfaces a rejected plan without launching anything", async () => {
     const calls = mockApi({ plan: { ok: false, status: 400, body: { error: "target_col is required: choose the column to predict" } } })
     render(<TrainingLauncher family="general" />, { wrapper: wrapper() })
