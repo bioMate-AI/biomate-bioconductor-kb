@@ -4423,11 +4423,35 @@ def _run_critic_hook(run_id: str, run_meta: Dict[str, Any]) -> Optional[Dict[str
     stamped with an explicit ``{"status": "not_judged", "reason": "no readable
     contract"}`` marker so it does NOT present as clean — an absent critic_report would
     look like "judged, nothing wrong", the exact fail-silent-on-the-highest-value-runs
-    hole. Healthy runs return None HERE; the actual critic dispatch is wired by the hook
-    attach (PR-2), which replaces this body."""
+    hole.
+
+    A healthy run (readable contract present) runs the design-aware critics against the
+    contract and returns the serialized CriticReport. The whole thing is fail-open: the
+    ``galaxy.ai.critics`` import is INSIDE the try so a module-load error degrades at
+    RUNTIME (never a dev crash-loop — and ``import galaxy.ai.critics`` is in the pre-sync
+    import check so it's caught at author time); any critic error returns a not_judged
+    marker rather than raising, so the completion path is NEVER blocked by judgment.
+    Advisory-only (``auto_apply=False``, empty auto-apply allowlist)."""
     if not (run_meta.get("design") or run_meta.get("results_manifest")):
         return {"status": "not_judged", "reason": "no readable contract"}
-    return None
+    try:
+        from galaxy.ai.critics import run_critics_from_run_meta
+        _loader = _make_s3_artifact_loader(run_meta)
+        report = run_critics_from_run_meta(
+            run_meta,
+            artifact_loader=_loader,
+            emit=lambda _et, _d: _sse_inject(run_id, _et, _d),
+            auto_apply=False,            # advisory-only; empty auto-apply allowlist
+        )
+        doc = report.to_dict()
+        log.info("[critics] run %s: %d critic(s) ran, %d published finding(s)",
+                 run_id, len(report.critics_run),
+                 len([f for f in report.findings if f.published]))
+        return doc
+    except Exception as exc:
+        log.warning("[critics] post-run hook failed for run %s: %s", run_id, exc)
+        return {"status": "not_judged",
+                "reason": "critic hook error: %s" % exc.__class__.__name__}
 
 
 def _infer_workflow_domain(nf_path: str) -> str:
