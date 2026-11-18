@@ -200,6 +200,17 @@ def train_trl(cfg: TrainingConfig, ds: LoadedDataset, artifact_dir: str) -> Trai
     raise ValueError(f"train_trl got non-TRL model_type={cfg.model_type}")
 
 
+def _use_bf16() -> bool:
+    """bf16 when a CUDA GPU is present (the GPU tier's CUDA trl-training image), else
+    fp32. On the CPU image TRL/transformers abort with 'setup doesn't support
+    bf16/gpu', so precision must follow the actual hardware, not be hard-coded."""
+    try:
+        import torch
+        return bool(torch.cuda.is_available())
+    except Exception:
+        return False
+
+
 def _train_dpo(cfg: TrainingConfig, artifact_dir: str) -> TrainingResult:
     try:
         from trl import DPOConfig, DPOTrainer
@@ -230,9 +241,9 @@ def _train_dpo(cfg: TrainingConfig, artifact_dir: str) -> TrainingResult:
         logging_steps=1,
         report_to=[],
         save_strategy="no",
-        # CPU image: fp32 only. TRL/transformers otherwise default to bf16 for
-        # GPU efficiency, which aborts with "setup doesn't support bf16/gpu".
-        bf16=False,
+        # Precision follows the hardware: bf16 on the CUDA GPU image, fp32 on CPU
+        # (TRL aborts with "setup doesn't support bf16/gpu" on a CPU image).
+        bf16=_use_bf16(),
         fp16=False,
     )
     log.info("[trl-dpo] %s on %s: %d pairs, %d epochs, beta=%.3f, adapter=%s",
@@ -284,8 +295,8 @@ def _train_grpo(cfg: TrainingConfig, artifact_dir: str) -> TrainingResult:
         logging_steps=1,
         report_to=[],
         save_strategy="no",
-        # CPU image: fp32 only (see DPO note above).
-        bf16=False,
+        # bf16 on GPU, fp32 on CPU (see DPO note).
+        bf16=_use_bf16(),
         fp16=False,
     )
     log.info("[trl-grpo] %s on %s: %d prompts, %d epochs, G=%d, reward=%s, adapter=%s",

@@ -2,8 +2,22 @@
 import pytest
 
 from galaxy.ai.ml_training.routing import (
-    detect_training_intent, extract_training_config, route_ml_training,
+    detect_training_intent, extract_training_config, route_ml_training, nextflow_path_for,
 )
+
+
+def test_llm_gpu_tier_is_opt_in(monkeypatch):
+    """DPO/GRPO run on the CPU wrapper by default; only ML_TRAINING_GPU_LLM=1 routes
+    them to the GPU wrapper (so the flag can't silently require unprovisioned infra)."""
+    monkeypatch.delenv("ML_TRAINING_GPU_LLM", raising=False)
+    assert nextflow_path_for("trl_dpo") == "ml_training/chemprop_train.nf"
+    assert nextflow_path_for("trl_grpo") == "ml_training/chemprop_train.nf"
+    monkeypatch.setenv("ML_TRAINING_GPU_LLM", "1")
+    assert nextflow_path_for("trl_dpo") == "ml_training/trl_train.nf"
+    assert nextflow_path_for("trl_grpo") == "ml_training/trl_train.nf"
+    # Diffusion routing is unaffected by the flag; supervised types stay on the default.
+    assert nextflow_path_for("protein_diffusion") == "ml_training/diffusion_train.nf"
+    assert nextflow_path_for("sklearn_tabular") == "ml_training/chemprop_train.nf"
 
 
 @pytest.mark.parametrize("text,expected", [

@@ -411,7 +411,19 @@ def nextflow_path_for(model_type: str) -> str:
         return "ml_training/diffusion_train.nf"
     if model_type == "scrna_diffusion":
         return "ml_training/scrna_diffusion_train.nf"
+    # GPU tier for LLM preference/RL fine-tuning (DPO/GRPO). OFF BY DEFAULT: these
+    # run on the verified CPU path (chemprop_train.nf dispatches by --model-type,
+    # small models). Set ML_TRAINING_GPU_LLM=1 only AFTER the CUDA trl-training image
+    # is built and a GPU Batch queue sized for real models is provisioned — then they
+    # route to the process_gpu wrapper. See docs/20261118_ML_TRAINING_GPU_TIER.md.
+    if model_type in ("trl_dpo", "trl_grpo") and _gpu_llm_enabled():
+        return "ml_training/trl_train.nf"
     return "ml_training/chemprop_train.nf"
+
+
+def _gpu_llm_enabled() -> bool:
+    """True only when the GPU LLM tier is explicitly turned on AND its infra exists."""
+    return os.environ.get("ML_TRAINING_GPU_LLM", "").strip().lower() in ("1", "true", "yes", "on")
 
 
 def route_ml_training(
