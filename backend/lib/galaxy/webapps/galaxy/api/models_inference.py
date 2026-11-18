@@ -333,6 +333,26 @@ def _recorded_active_version(campaign_id: str, model_name: str) -> str:
         raise HTTPException(status_code=503, detail="Model version store is unavailable") from exc
 
 
+def _recorded_versions(campaign_id: str, model_name: str) -> List[int]:
+    """All recorded version numbers for (campaign, model_name), oldest first.
+
+    This is what makes an ADAPTED model show its lineage: adapting registers a new
+    version under the same (campaign, name), so the version history here grows by one.
+    Read-only; returns [] when the store or table is absent."""
+    import sqlite3
+    path = _campaign_db(campaign_id)
+    try:
+        with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as conn:
+            if not conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='custom_model_versions'").fetchone():
+                return []
+            rows = conn.execute(
+                "SELECT version FROM custom_model_versions WHERE campaign_id=? AND model_name=? ORDER BY version",
+                (campaign_id, model_name)).fetchall()
+            return [int(r[0]) for r in rows]
+    except sqlite3.Error as exc:
+        raise HTTPException(status_code=503, detail="Model version store is unavailable") from exc
+
+
 def _custom_catalog(owner_id: Optional[str] = None) -> List[Dict[str, Any]]:
     """Catalog rows for registered custom models (usedByCount = campaigns using name)."""
     regs = _iter_custom_registrations(owner_id)
@@ -561,6 +581,8 @@ def get_model(model_id: str, owner_id: Optional[str] = Header(None, alias="X-Bio
         }
         consumers: List[str] = []
         confidence_band = None
+        # BioNeMo models are hosted/pretrained — a single catalog version, no history.
+        versions_list: List[Dict[str, Any]] = [{"v": row["version"], "verdict": evidence["gate"]["verdict"]}]
     else:
         parsed = _parse_custom_id(model_id)
         # parsed is guaranteed non-None because _find_catalog_row matched a custom id.
@@ -573,10 +595,19 @@ def get_model(model_id: str, owner_id: Optional[str] = Header(None, alias="X-Bio
             "calibration": None,
             "evalSetId": None,
         }
+        # Full recorded version history (adapting registers a new version under the
+        # same campaign+name, so this grows). priorVersions = every version other than
+        # the active one; the versions list reflects the whole lineage.
+        recorded = _recorded_versions(campaign_id, model_name)
+        active = str(row["version"])
+        verdict = evidence["gate"]["verdict"]
+        prior = [str(v) for v in recorded if str(v) != active]
+        versions_list = ([{"v": str(v), "verdict": verdict} for v in recorded]
+                         or [{"v": row["version"], "verdict": verdict}])
         lineage = {
             "datasetVersion": None,
             "trainingRunId": campaign_id,  # the campaign that produced it
-            "priorVersions": [],
+            "priorVersions": prior,
         }
         confidence_band = None
 
@@ -592,7 +623,7 @@ def get_model(model_id: str, owner_id: Optional[str] = Header(None, alias="X-Bio
         "lineage": lineage,
         "consumers": consumers,
         "interface": {"kind": interface_kind},
-        "versions": [{"v": row["version"], "verdict": evidence["gate"]["verdict"]}],
+        "versions": versions_list,
     }
 
 

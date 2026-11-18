@@ -118,9 +118,15 @@ def build_training_config(req: dict) -> TrainingConfig:
         raise ConfigError("dataset_s3_uri must be an s3:// URI of a project file")
     dataset_name = _text(req, "dataset_name") or s3_uri.rsplit("/", 1)[-1]
     # When set, this run adapts an existing registered model: its artifact registers
-    # as that model's NEXT VERSION (lineage) rather than a fresh model. Applies to any
-    # model_type; the registration step resolves the base and stamps priorVersions.
+    # as that model's NEXT VERSION rather than a fresh model. Versioning is keyed by
+    # (campaign, model_name) and the campaign is always the owner's own scope, so the
+    # ONLY thing that makes it a new version is taking the base model's NAME. Derive
+    # that from the registry id "<prefix>/<name>" and force it (adapting, by
+    # definition, versions the base — the user does not separately name the output).
     adapt_of = _text(req, "adapt_of") or None
+    adapt_base_name = adapt_of.rsplit("/", 1)[-1].strip() if adapt_of else ""
+    if adapt_of and not adapt_base_name:
+        raise ConfigError("adapt_of must be a model id of the form '<prefix>/<name>'")
 
     hp = Hyperparams()
     epochs = _number(req, "epochs", int)
@@ -163,7 +169,7 @@ def build_training_config(req: dict) -> TrainingConfig:
             hp.learning_rate = lr
         dataset = DatasetSpec(s3_uri=s3_uri, smiles_col=smiles_col, target_col=target,
                               split=split, cv_folds=5)
-        name = _text(req, "model_name") or f"{target} {task_type} model"
+        name = adapt_base_name or _text(req, "model_name") or f"{target} {task_type} model"
         return TrainingConfig(
             name=name, task_type=task_type, model_type=model_type, featurizer=featurizer,
             dataset=dataset, hyperparams=hp, metric=metric, gate_threshold=gate,
@@ -187,7 +193,7 @@ def build_training_config(req: dict) -> TrainingConfig:
         sc = _spec(SCDiffusionSpec, req.get("sc"), "sc")
     else:
         diffusion = _spec(DiffusionSpec, req.get("diffusion"), "diffusion")
-    name = _text(req, "model_name") or f"{model_type} · {dataset_name}"
+    name = adapt_base_name or _text(req, "model_name") or f"{model_type} · {dataset_name}"
     return TrainingConfig(
         name=name, task_type=task_type, model_type=model_type, featurizer="none",
         dataset=DatasetSpec(s3_uri=s3_uri, split="random"), hyperparams=hp,

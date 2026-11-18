@@ -195,11 +195,20 @@ def test_plan_adapt_of_marks_adaptation_and_threads_base_ref():
     assert ga["description"].startswith("Adapt ")
     assert "new version of custom:camp1/potency-llm" in ga["description"]
     assert adapt["config"]["adapt_of"] == "custom:camp1/potency-llm"   # survives to_dict/asdict
+    # The output takes the BASE model's name → registers as its next version (same
+    # per-owner campaign + same name ⇒ register_trained_version makes version N+1).
+    assert ga["name"] == "potency-llm"
 
-    # Model-type-agnostic: a supervised adaptation is tagged the same way.
+    # Model-type-agnostic: a supervised adaptation is tagged + named the same way.
     sup = build_training_plan({**BASE, "model_type": "sklearn_tabular", "target_col": "subtype",
                                "task_type": "classification", "adapt_of": "custom:camp1/herg"})
     assert sup["workflow_type"] == "adaptation" and sup["config"]["adapt_of"] == "custom:camp1/herg"
+    assert sup["workflow_ga"]["name"] == "herg"
+
+    # A malformed id (no name segment) is rejected, not silently turned into a fresh model.
+    with pytest.raises(ConfigError, match="adapt_of must be a model id"):
+        build_training_plan({**BASE, "model_type": "sklearn_tabular", "target_col": "subtype",
+                             "task_type": "classification", "adapt_of": "custom:camp1/"})
 
 
 def test_plan_llm_rejects_unknown_spec_field_and_composite_reward():
