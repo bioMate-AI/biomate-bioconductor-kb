@@ -4397,6 +4397,39 @@ def _make_s3_artifact_loader(run_meta: Optional[Dict[str, Any]] = None):
     return _loader
 
 
+# Path-token → registry/critic domain hints, so a run is stamped with a REAL domain at
+# launch instead of "unknown". "unknown" is both (a) a full-registry-scan trigger —
+# registry.for_context falls back to all() only when the domain is falsy — and, worse,
+# (b) a truthy-but-wrong value: for_domain("unknown") returns only the "*" bucket, so a
+# domain's own critics (e.g. the survival critics for a Cox run) are never dispatched.
+# Stamping the real domain keeps dispatch O(domain) AND makes the right critics fire.
+_WORKFLOW_DOMAIN_PATH_HINTS = (
+    ("cox_proportional", "survival"),
+    ("survival", "survival"),
+    ("differentialabundance", "transcriptomics"),
+    ("differential_abundance", "transcriptomics"),
+    ("deseq2", "transcriptomics"),
+    ("rnaseq", "transcriptomics"),
+    ("rna_seq", "transcriptomics"),
+)
+
+
+def _infer_workflow_domain(nf_path: str) -> str:
+    """Infer a run's workflow_domain from its nextflow path when the request did not
+    declare one. Path hints first (authoritative for the critic domains), then the
+    workflow DB, then "unknown" as the honest last resort."""
+    low = str(nf_path or "").lower()
+    for hint, dom in _WORKFLOW_DOMAIN_PATH_HINTS:
+        if hint in low:
+            return dom
+    base = low.rsplit("/", 1)[-1].replace(".nf", "")
+    try:
+        db = _lookup_workflow_domain_from_db(base)
+    except Exception:
+        db = None
+    return db or "unknown"
+
+
 # CryoSPARC-specific: map S3 output directory names → 0-indexed step IDs
 # (matching _CRYOSPARC_STEP_PHASES in ai_assistant.py)
 _CRYOSPARC_S3_DIR_TO_STEP: Dict[str, int] = {
@@ -6496,7 +6529,10 @@ def _execute_nextflow_impl(
     # Validate qc_overrides and qc_profile if provided
     qc_overrides = request.qc_overrides or {}
     qc_profile = request.qc_profile or None
-    workflow_domain = request.workflow_domain or "unknown"
+    # Stamp a REAL domain (from the nf path) when the request didn't declare one, so
+    # the post-run critic registry dispatches by domain instead of full-scanning (and
+    # so a domain's own critics actually fire — "unknown" would silently skip them).
+    workflow_domain = request.workflow_domain or _infer_workflow_domain(str(nf_path))
     try:
         from galaxy.jobs.qc_trace_monitor import NextflowQCGateHandler
         # Auto-infer qc_profile from workflow path when not explicitly provided
