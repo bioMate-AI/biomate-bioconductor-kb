@@ -27,9 +27,12 @@ from .base import (
     Issue,
     Remediation,
     Evidence,
+    Precondition,
     Severity,
     Provenance,
     RemediationKind,
+    sanitize_untrusted_text,
+    MAX_UNTRUSTED_TEXT_LEN,
 )
 from .run_context import RunContext, OutputFile
 from .registry import CriticRegistry, get_registry, register_builtin_critics, default_registry
@@ -45,9 +48,12 @@ __all__ = [
     "Issue",
     "Remediation",
     "Evidence",
+    "Precondition",
     "Severity",
     "Provenance",
     "RemediationKind",
+    "sanitize_untrusted_text",
+    "MAX_UNTRUSTED_TEXT_LEN",
     "RunContext",
     "OutputFile",
     "CriticRegistry",
