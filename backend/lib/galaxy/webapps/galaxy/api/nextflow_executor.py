@@ -536,7 +536,17 @@ _DEFAULT_CLASSII_ALLELES = [
 
 def _is_mhc_classI_workflow(nextflow_path: str) -> bool:
     base = (nextflow_path or "").lower()
-    return "mhc_binding_prediction" in base and "classii" not in base and "class_ii" not in base
+    # Never treat a class-II / epitopeprediction engine as a class-I trigger source
+    # (prevents re-firing the chain on the auto-launched class-II run itself).
+    if ("classii" in base or "class_ii" in base or "mhc_ii" in base
+            or "epitopeprediction" in base):
+        return False
+    # Two class-I-only producers both need the CD4-help (class-II) arm auto-chained on:
+    #   - the standalone class-I MHC binding predictor (mhc_binding_prediction), and
+    #   - the end-to-end neoantigen vaccine design subworkflow, which uses MHCflurry 2
+    #     (class-I ONLY — class-II is explicitly out of scope there) to produce a
+    #     ranked class-I panel + vaccine_construct.json, so it likewise lacks CD4 help.
+    return "mhc_binding_prediction" in base or "neoantigen_vaccine_design" in base
 
 
 def _resolve_classII_workflow() -> Optional[str]:
@@ -554,12 +564,16 @@ def _resolve_classII_workflow() -> Optional[str]:
         if db_path.exists():
             with _sql.connect(str(db_path)) as conn:
                 cur = conn.cursor()
+                # The workflows table stores the logical nf path in `filename`
+                # (there is no `nextflow_path` column) — e.g. the indexed
+                # nf-core/epitopeprediction row has filename
+                # 'nfcore/epitopeprediction/main.nf'.
                 cur.execute(
-                    "SELECT nextflow_path FROM workflows "
-                    "WHERE nextflow_path IS NOT NULL AND nextflow_path != '' "
-                    "AND (lower(nextflow_path) LIKE '%epitopeprediction%' "
+                    "SELECT filename FROM workflows "
+                    "WHERE filename IS NOT NULL AND filename != '' "
+                    "AND (lower(filename) LIKE '%epitopeprediction%' "
                     "  OR lower(name) LIKE '%class ii%' OR lower(name) LIKE '%class-ii%' "
-                    "  OR lower(nextflow_path) LIKE '%classii%') LIMIT 20")
+                    "  OR lower(filename) LIKE '%classii%') LIMIT 20")
                 for (nf_path,) in cur.fetchall():
                     try:
                         _resolve_nextflow_path(nf_path)

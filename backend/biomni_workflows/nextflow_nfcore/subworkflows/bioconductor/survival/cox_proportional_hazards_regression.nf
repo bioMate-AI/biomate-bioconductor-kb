@@ -30,6 +30,7 @@ process BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION {
     output:
     tuple val(meta), path("*.csv"),  emit: tables, optional: true
     tuple val(meta), path("*.pdf"),  emit: plots,  optional: true
+    tuple val(meta), path("cox_survival_curves.pdf"), emit: survival_curves, optional: true
     tuple val(meta), path("*.rds"),  emit: objects, optional: true
     tuple val(meta), path("*.json"), emit: reports, optional: true
     tuple val(meta), path("survival_qc.json"), emit: qc_metrics, optional: true
@@ -311,6 +312,66 @@ process BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION {
           remediation\$note   <- "PH assumption holds (no covariate and GLOBAL p < 0.05); the naive HRs are trustworthy. No second model fabricated."
         }
 
+        # ============================================================
+        # Model-based survival curves from the FITTED Cox model
+        # ============================================================
+        # survfit() on a coxph fit yields the model-based (adjusted) survival
+        # function — a KM-style curve derived from the fit, NOT a raw
+        # Kaplan-Meier of the data. When the primary covariate is
+        # low-cardinality we draw one adjusted curve per group (other
+        # covariates held at their median / modal value via survfit newdata),
+        # so the figure shows the fitted survival separation the HR implies;
+        # otherwise we draw the single baseline model curve. If a remediated
+        # (stratified / time-transformed) model was fit, its model-based
+        # survival curve is added too, so the PDF matches the model actually
+        # reported. Honest: every curve comes from a fitted Cox object.
+        tryCatch({
+          pdf("cox_survival_curves.pdf")
+          prim <- .covs[1]
+          drew <- FALSE
+          if (length(prim) == 1 && !is.na(prim) && nzchar(prim)) {
+            pv <- clinical_data[[prim]]
+            low_card <- is.factor(pv) || is.character(pv) || is.logical(pv) ||
+                        length(unique(pv[!is.na(pv)])) <= 6
+            if (isTRUE(low_card)) {
+              lv <- sort(unique(pv[!is.na(pv)]))
+              nd <- clinical_data[rep(1L, length(lv)), .covs, drop = FALSE]
+              rownames(nd) <- NULL
+              for (.cn in .covs) {
+                col <- clinical_data[[.cn]]
+                if (is.numeric(col)) {
+                  nd[[.cn]] <- stats::median(col, na.rm = TRUE)
+                } else {
+                  tb <- sort(table(col), decreasing = TRUE)
+                  nd[[.cn]] <- factor(names(tb)[1], levels = levels(factor(col)))
+                }
+              }
+              nd[[prim]] <- if (is.numeric(pv)) lv else factor(as.character(lv), levels = levels(factor(pv)))
+              sfit <- tryCatch(survfit(fit, newdata = nd), error = function(e) NULL)
+              if (!is.null(sfit)) {
+                plot(sfit, col = seq_along(lv), lwd = 2, xlab = "time", ylab = "model-based survival",
+                     main = paste0("Cox model-based survival by ", prim))
+                legend("topright", legend = paste0(prim, " = ", lv), col = seq_along(lv), lwd = 2, bty = "n")
+                drew <- TRUE
+              }
+            }
+          }
+          if (!drew) {
+            sfit0 <- survfit(fit)
+            plot(sfit0, xlab = "time", ylab = "model-based survival",
+                 main = "Cox model-based survival curve (naive fit)")
+          }
+          # Guard: overlay the remediated/adjusted model's curve when it exists.
+          if (exists("fit_rem") && !is.null(fit_rem)) {
+            sfit_rem <- tryCatch(survfit(fit_rem), error = function(e) NULL)
+            if (!is.null(sfit_rem)) {
+              plot(sfit_rem, xlab = "time", ylab = "model-based survival",
+                   main = "Cox model-based survival curve (remediated / adjusted fit)")
+            }
+          }
+          dev.off()
+        }, error = function(e) { try(dev.off(), silent = TRUE); message("survival-curve plot failed: ", conditionMessage(e)) })
+
         # Minimal dependency-free JSON writer for the remediation headline.
         .jesc <- function(s) gsub('"', '\\\\"', as.character(s))
         .jval <- function(v) {
@@ -421,6 +482,7 @@ workflow BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION_WORKFLOW {
     emit:
     tables     = BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION.out.tables
     plots      = BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION.out.plots
+    survival_curves = BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION.out.survival_curves
     objects    = BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION.out.objects
     reports    = BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION.out.reports
     qc_metrics = BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION.out.qc_metrics

@@ -47,6 +47,9 @@
  * Outputs (published to the S3 outdir):
  *   rctd_cell_type_proportions.csv  per-spot normalized cell-type proportions
  *   rctd_spot_dominant.csv          per-spot dominant type + fraction + nUMI
+ *   rctd_spot_coordinates.csv       per-spot spatial coordinates (spot_id, x, y)
+ *   rctd_spatial_map.pdf            spatial composition map: per-spot dominant
+ *                                   cell type rendered at its x/y coordinate
  *   rctd_summary.json               self-correction log + QC + mean proportions
  *
  * Container: biomate/bioc-domain-spatial (Matrix / SingleCellExperiment +
@@ -79,6 +82,8 @@ process RCTD_DECONVOLUTION {
     output:
     path "rctd_cell_type_proportions.csv", emit: proportions
     path "rctd_spot_dominant.csv",          emit: dominant
+    path "rctd_spot_coordinates.csv",       emit: coordinates
+    path "rctd_spatial_map.pdf",            emit: spatial_map
     path "rctd_summary.json",               emit: summary
     path "versions.yml",                    emit: versions
 
@@ -245,6 +250,34 @@ process RCTD_DECONVOLUTION {
     )
     write.csv(dom_df, "rctd_spot_dominant.csv", row.names = FALSE)
 
+    # ---- Per-spot spatial coordinates + a REAL spatial composition map -----------
+    # The Visium/synthetic spots carry (x, y); emit them aligned to the deconvolved
+    # spots so the map is plotted from the SAME spots that received proportions.
+    map_spots <- rownames(norm_w)
+    coords_df <- as.data.frame(spatial\$coords)
+    cc <- coords_df[map_spots, , drop = FALSE]
+    # tolerate coord frames whose x/y are not literally named 'x'/'y'
+    cx <- if (!is.null(cc\$x)) cc\$x else cc[[1]]
+    cy <- if (!is.null(cc\$y)) cc\$y else cc[[2]]
+    coords_out <- data.frame(spot_id = map_spots, x = cx, y = cy)
+    write.csv(coords_out, "rctd_spot_coordinates.csv", row.names = FALSE)
+
+    # Spatial composition map: each spot drawn at its (x, y), coloured by the RCTD
+    # dominant cell type (dom_df is already aligned to rownames(norm_w)).
+    dom_type <- dom_df\$dominant_type
+    types_u  <- sort(unique(dom_type))
+    pal      <- grDevices::hcl.colors(max(1L, length(types_u)), palette = "Dark 3")
+    col_idx  <- match(dom_type, types_u)
+    grDevices::pdf("rctd_spatial_map.pdf", width = 8, height = 7)
+    graphics::par(mar = c(4.5, 4.5, 3.5, 1))
+    plot(coords_out\$x, coords_out\$y,
+         col = pal[col_idx], pch = 19, cex = 0.9, asp = 1,
+         xlab = "spatial x", ylab = "spatial y",
+         main = sprintf("RCTD per-spot dominant cell type (%d spots)", nrow(coords_out)))
+    graphics::legend("topright", legend = types_u, col = pal, pch = 19,
+                     bty = "n", cex = 0.85, title = "Dominant type")
+    grDevices::dev.off()
+
     # ---- QC + self-correction log ------------------------------------------------
     mean_props <- round(colMeans(norm_w), 5)
     max_mean_prop <- max(mean_props)
@@ -276,6 +309,12 @@ process RCTD_DECONVOLUTION {
         n_cell_types_resolved = n_types_resolved
       ),
       mean_cell_type_proportions = as.list(mean_props),
+      outputs = list(
+        proportions = "rctd_cell_type_proportions.csv",
+        dominant = "rctd_spot_dominant.csv",
+        coordinates = "rctd_spot_coordinates.csv",
+        spatial_map = "rctd_spatial_map.pdf"
+      ),
       status = "ok",
       note = "Per-spot cell-type proportions from the real spacexr RCTD engine. Built-in demo data is SYNTHETIC and illustrative, not patient tissue. Self-correction (mismatched -> matched reference swap) is executed in-workflow via the shared-informative-gene floor."
     )
@@ -300,6 +339,8 @@ process RCTD_DECONVOLUTION {
     """
     printf 'spot,T_cell,B_cell,Macrophage,Tumor_epithelial,Fibroblast\\nspot_0001,0.6,0.1,0.1,0.1,0.1\\n' > rctd_cell_type_proportions.csv
     printf 'spot,dominant_type,dominant_fraction,n_umi\\nspot_0001,T_cell,0.6,600\\n' > rctd_spot_dominant.csv
+    printf 'spot_id,x,y\\nspot_0001,12.3,45.6\\n' > rctd_spot_coordinates.csv
+    printf '%%PDF-1.4\\n%% stub spatial map\\n' > rctd_spatial_map.pdf
     printf '{"tool":"spacexr RCTD","status":"stub"}\\n' > rctd_summary.json
     printf '"RCTD_DECONVOLUTION":\\n    spacexr: stub\\n' > versions.yml
     """
@@ -315,6 +356,8 @@ workflow SPATIAL_DECONVOLUTION_RCTD {
     emit:
     proportions = RCTD_DECONVOLUTION.out.proportions
     dominant    = RCTD_DECONVOLUTION.out.dominant
+    coordinates = RCTD_DECONVOLUTION.out.coordinates
+    spatial_map = RCTD_DECONVOLUTION.out.spatial_map
     summary     = RCTD_DECONVOLUTION.out.summary
     versions    = RCTD_DECONVOLUTION.out.versions
 }

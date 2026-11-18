@@ -50,6 +50,8 @@
  *
  * Outputs (published to the S3 outdir):
  *   clonotype_table.csv        per-timepoint clonotypes (v/j/junction, count, freq)
+ *   clonotype_dynamics.csv     cross-timepoint tracking: per clonotype key, pre_freq,
+ *                              post_freq, log2FC, status (Expanded/Contracted/Stable)
  *   repertoire_diversity.csv   per-timepoint diversity, basis = raw AND rarefied
  *   repertoire_summary.json    self-correction log + pre/post comparison + QC
  *
@@ -82,9 +84,10 @@ process BUILD_CLONOTYPES {
     tuple val(airr_tsv), val(airr_data)
 
     output:
-    path "clonotype_table.csv", emit: clonotypes
-    path "clone_counts.json",   emit: counts
-    path "versions.yml",        emit: versions
+    path "clonotype_table.csv",    emit: clonotypes
+    path "clonotype_dynamics.csv", emit: dynamics
+    path "clone_counts.json",      emit: counts
+    path "versions.yml",           emit: versions
 
     script:
     """
@@ -95,7 +98,7 @@ process BUILD_CLONOTYPES {
     export SEED='${params.seed}'
 
     python3 << 'PYEOF'
-import os, json, csv, random, sys
+import os, json, csv, random, sys, math
 
 seed = int(os.environ.get("SEED", "1234") or 1234)
 random.seed(seed)
@@ -138,19 +141,43 @@ else:
     tps = spec.get("timepoints") or []
     if not tps:
         sys.exit("FATAL: no timepoints in params.airr_data and no AIRR TSV supplied.")
+    # ---- SHARED clonotype pool across timepoints ------------------------------
+    # A single UNION pool of clone templates (v_call, j_call, junction_aa) is shared
+    # by every timepoint. Each timepoint maps its abundance-ranked clones onto a
+    # RANDOM injective subset of this pool (drawn with a SEPARATE RNG), so many
+    # clonotypes genuinely recur across the pre/post pair at different abundances
+    # (some expand, some contract) while a few are unique to one timepoint. The
+    # template a rank maps to never changes that rank's abundance, so the global RNG
+    # stream — and therefore every diversity / rarefaction number — is byte-identical
+    # to the per-timepoint model; only cross-timepoint clone IDENTITY is added.
+    pool_rng = random.Random(seed + 101)
+    max_clones = max(int(t["n_clones"]) for t in tps)
+    POOL_SIZE = int(max_clones * 1.25) + 1               # union large enough for real overlap + some unique
+    SHARED_POOL = []
+    for ci in range(POOL_SIZE):
+        L = pool_rng.choice([12, 13, 14, 15, 16, 17])
+        core = "".join(pool_rng.choice(AA) for _ in range(L - 4))
+        SHARED_POOL.append({
+            "v_call": pool_rng.choice(V_GENES),
+            "j_call": pool_rng.choice(J_GENES),
+            "junction_aa": "C" + core + "F%04d" % ci,   # unique template, shared across timepoints
+        })
     for t in tps:
         label = t["label"]
         n_seq = int(t["n_sequences"])
         n_clones = int(t["n_clones"])
         skew = float(t.get("skew", 1.1))
-        # Build n_clones clone templates with a power-law abundance (Zipf-like).
+        # Injective map: abundance-rank i -> a shared template (distinct within the
+        # timepoint). Across timepoints the subsets overlap, so clones recur.
+        template_ids = pool_rng.sample(range(POOL_SIZE), n_clones)
+        # The global-RNG draws below exactly mirror the original per-clone draws, so
+        # the sequence sampling (and thus every diversity number) is unchanged.
         clones = []
         for ci in range(n_clones):
-            clones.append({
-                "v_call": random.choice(V_GENES),
-                "j_call": random.choice(J_GENES),
-                "junction_aa": make_junction("%s%04d" % (label[:2], ci)),
-            })
+            random.choice(V_GENES)                       # preserve global RNG stream
+            random.choice(J_GENES)                       # preserve global RNG stream
+            make_junction("%s%04d" % (label[:2], ci))    # preserve global RNG stream
+            clones.append(SHARED_POOL[template_ids[ci]]) # identity from the shared pool
         weights = [1.0 / ((rank + 1) ** skew) for rank in range(n_clones)]
         wsum = sum(weights)
         weights = [w / wsum for w in weights]
@@ -187,10 +214,52 @@ with open("clonotype_table.csv", "w", newline="") as fh:
             clone_id = "%s_clone_%05d" % (tp, idx)
             w.writerow([tp, clone_id] + list(k) + [n, round(n / total, 8)])
 
+# ---- Cross-timepoint clonotype tracking (pre vs post) -------------------------
+# Because the timepoints draw from a SHARED clonotype pool, a clone can genuinely
+# appear in both pre and post at different frequencies. Track each clonotype KEY
+# across the two timepoints and label its dynamics. Clones seen at only one
+# timepoint get ~0 frequency in the other (a small pseudocount keeps log2FC finite).
+tp_list = sorted(clone_counts)
+pre_tp = next((t for t in tp_list if "pre" in t.lower()), tp_list[0])
+post_tp = next((t for t in tp_list if "post" in t.lower()),
+               tp_list[-1] if len(tp_list) > 1 else tp_list[0])
+pre_cc = clone_counts.get(pre_tp, {})
+post_cc = clone_counts.get(post_tp, {})
+pre_total = sum(pre_cc.values()) or 1
+post_total = sum(post_cc.values()) or 1
+all_keys = set(pre_cc) | set(post_cc)
+EPS = 1e-6           # frequency pseudocount so log2FC is finite for one-timepoint clones
+FC_T = 1.0           # |log2FC| >= 1 (2-fold) -> Expanded / Contracted, else Stable
+dyn_rows = []
+for k in all_keys:
+    pf = pre_cc.get(k, 0) / pre_total
+    qf = post_cc.get(k, 0) / post_total
+    lfc = math.log2((qf + EPS) / (pf + EPS))
+    status = "Expanded" if lfc >= FC_T else ("Contracted" if lfc <= -FC_T else "Stable")
+    dyn_rows.append((k, pf, qf, lfc, status))
+# rank by post frequency, then by magnitude of change
+dyn_rows.sort(key=lambda r: (r[2], abs(r[3])), reverse=True)
+dyn_cols = list(clone_key) + ["pre_freq", "post_freq", "log2FC", "status"]
+with open("clonotype_dynamics.csv", "w", newline="") as fh:
+    w = csv.writer(fh)
+    w.writerow(dyn_cols)
+    for k, pf, qf, lfc, status in dyn_rows:
+        w.writerow(list(k) + [round(pf, 8), round(qf, 8), round(lfc, 5), status])
+n_expanded = sum(1 for r in dyn_rows if r[4] == "Expanded")
+n_contracted = sum(1 for r in dyn_rows if r[4] == "Contracted")
+n_shared = sum(1 for k in all_keys if k in pre_cc and k in post_cc)
+
 # ---- Emit raw per-timepoint counts for the diversity/rarefaction step ---------
 out = {
     "source": source,
     "clone_key": clone_key,
+    "tracking": {
+        "pre_timepoint": pre_tp,
+        "post_timepoint": post_tp,
+        "clonotypes_shared_pre_and_post": n_shared,
+        "expanded": n_expanded,
+        "contracted": n_contracted,
+    },
     "timepoints": {
         tp: {
             "n_sequences": sum(cc.values()),
@@ -378,6 +447,7 @@ workflow AIRRFLOW {
 
     emit:
     clonotypes = BUILD_CLONOTYPES.out.clonotypes
+    dynamics   = BUILD_CLONOTYPES.out.dynamics
     diversity  = DIVERSITY_RAREFACTION.out.diversity
     summary    = DIVERSITY_RAREFACTION.out.summary
     versions   = BUILD_CLONOTYPES.out.versions
