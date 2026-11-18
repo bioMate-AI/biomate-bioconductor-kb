@@ -45,23 +45,36 @@ const CUSTOM = { id: "custom:camp1/herg", name: "herg", family: "python", versio
 const HOSTED = { id: "bionemo:boltz2", name: "Boltz-2", family: "structure", version: "2.0", origin: "self_host", usedByCount: 0 }
 
 describe("AdaptModel", () => {
-  it("lists only adaptable (own/custom) models and reveals the launcher on selection", async () => {
+  it("always offers a built-in base to fine-tune, plus your own models to version", async () => {
     mockModels([CUSTOM, HOSTED])
     render(<AdaptModel project="proj-1" />, { wrapper: wrapper() })
     const sel = (await screen.findByTestId("adapt-model-base")) as HTMLSelectElement
+    // Owned models load async; wait for them to appear in the picker.
+    await waitFor(() => expect([...sel.options].map((o) => o.value)).toContain("custom:camp1/herg"))
     const vals = [...sel.options].map((o) => o.value).filter(Boolean)
-    expect(vals).toEqual(["custom:camp1/herg"]) // hosted BioNeMo excluded
-    // No launcher until a base is chosen.
-    expect(screen.queryByTestId("training-launcher-general")).toBeNull()
-    fireEvent.change(sel, { target: { value: "custom:camp1/herg" } })
-    await waitFor(() => expect(screen.getByTestId("training-launcher-general")).toBeTruthy())
+    expect(vals).toContain("base:llm-small")       // built-in base always present
+    expect(vals).not.toContain("bionemo:boltz2")   // hosted BioNeMo excluded
   })
 
-  it("shows an honest empty state when there are no adaptable models", async () => {
-    mockModels([HOSTED])
+  it("is usable with NO registered models — the built-in base keeps it functional", async () => {
+    mockModels([HOSTED]) // nothing of the user's
     render(<AdaptModel project="proj-1" />, { wrapper: wrapper() })
-    expect(await screen.findByTestId("adapt-model-empty")).toBeTruthy()
-    expect(screen.queryByTestId("adapt-model-base")).toBeNull()
+    const sel = (await screen.findByTestId("adapt-model-base")) as HTMLSelectElement
+    expect([...sel.options].map((o) => o.value).filter(Boolean)).toEqual(["base:llm-small"])
+    expect(screen.queryByTestId("adapt-model-empty")).toBeNull() // not a dead empty state
+  })
+
+  it("reveals the launcher and shows the right mode (new model vs next version)", async () => {
+    mockModels([CUSTOM])
+    render(<AdaptModel project="proj-1" />, { wrapper: wrapper() })
+    const sel = (await screen.findByTestId("adapt-model-base")) as HTMLSelectElement
+    expect(screen.queryByTestId("training-launcher-general")).toBeNull()
+    fireEvent.change(sel, { target: { value: "base:llm-small" } })
+    await waitFor(() => expect(screen.getByTestId("training-launcher-general")).toBeTruthy())
+    expect(screen.getByTestId("adapt-model-mode").textContent).toMatch(/new model/i)
+    await waitFor(() => expect([...sel.options].map((o) => o.value)).toContain("custom:camp1/herg"))
+    fireEvent.change(sel, { target: { value: "custom:camp1/herg" } })
+    await waitFor(() => expect(screen.getByTestId("adapt-model-mode").textContent).toMatch(/next version/i))
   })
 
   it("keeps the scope honest — CPU/small-model today, GPU tier deferred", async () => {

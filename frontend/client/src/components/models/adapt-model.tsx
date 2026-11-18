@@ -1,13 +1,15 @@
 /**
- * Adapt a model — the general model-adaptation flow.
+ * Adapt a model — the general model-adaptation flow (always usable).
  *
- * Pick one of your registered models and adapt it to new data or requirements via the
- * real ml_training methods (SFT / DPO / RL(GRPO) / rule-following). It launches through
- * the ordinary training plan→execute path, tagged as an adaptation, and the result
- * registers as the base model's NEXT VERSION (the backend forces the output name to the
- * base's so versioning keys on it). HONEST scope: LLM DPO/GRPO/SFT run on the verified
- * CPU/small-model path today; large/GPU-scale adaptation is a separate, deferred tier —
- * the copy says so and never implies otherwise.
+ * Start from a BUILT-IN base model (always available, so the tab functions out of the
+ * box even before you've trained anything) OR one of your own registered models, add
+ * new data / requirements, and fine-tune via the real ml_training methods
+ * (SFT / DPO / RL(GRPO)). Adapting YOUR model registers its NEXT VERSION (the backend
+ * forces the output name to the base's so versioning keys on it); a built-in base
+ * trains a new specialized model (it has no prior version to increment).
+ *
+ * HONEST scope: runs on the verified CPU / small-model path today (SmolLM2-135M);
+ * large / GPU-scale adaptation is a separate, deferred tier — the copy says so.
  *
  * Reuses the catalog (useModels) + the existing TrainingLauncher (with an adaptOf prop),
  * so the data upload, method selection and launch are the tested launcher machinery.
@@ -21,15 +23,22 @@ import { TrainingLauncher } from "./training-launcher"
 
 const SELECT = "mt-1 w-full rounded border bg-background px-2 py-1 text-xs"
 
+// Built-in starting points you can fine-tune — always available so the tab is usable
+// even before you've registered any models of your own. Only the verified CPU/small
+// model is offered; larger bases arrive with the GPU tier (kept honest, not implied).
+const BUILT_IN_BASES = [{ id: "base:llm-small", labelKey: "adapt_base_llm_small" }]
+
 export function AdaptModel({ project }: { project?: string }) {
   const ctx = useActiveProjectSafe()
   const projectId = project || ctx?.activeProjectId || ""
   const models = useModels()
   const [baseId, setBaseId] = useState("")
 
-  // Adaptable = models you can version: your own registered/custom models. Hosted
-  // BioNeMo models are inference-only pretrained artifacts — not adaptable here.
-  const adaptable = (models.data ?? []).filter((m) => m.origin === "custom")
+  // Your own registered models can be versioned; hosted BioNeMo models are inference-only.
+  const owned = (models.data ?? []).filter((m) => m.origin === "custom")
+  const isBuiltIn = baseId.startsWith("base:")
+  // Only your own models thread adapt_of (→ next version). A built-in base trains fresh.
+  const adaptOf = baseId && !isBuiltIn ? baseId : undefined
 
   return (
     <div className="space-y-2" data-testid="adapt-model">
@@ -44,36 +53,44 @@ export function AdaptModel({ project }: { project?: string }) {
           <p className="text-fs-xs text-muted-foreground/70" data-testid="adapt-model-scope">
             {t("models.adapt_model_scope_note")}
           </p>
-          {models.isPending ? (
-            <p role="status" className="text-fs-xs text-muted-foreground">{t("models.activity_loading")}</p>
-          ) : adaptable.length === 0 ? (
-            <p className="text-fs-xs text-muted-foreground" data-testid="adapt-model-empty">
-              {t("models.adapt_model_empty")}
-            </p>
-          ) : (
-            <label className="block text-xs">
-              {t("models.adapt_model_base")}
-              <select
-                className={SELECT}
-                value={baseId}
-                data-testid="adapt-model-base"
-                onChange={(e) => setBaseId(e.target.value)}
-              >
-                <option value="">{t("models.adapt_model_choose")}</option>
-                {adaptable.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name} (v{m.version})
+          <label className="block text-xs">
+            {t("models.adapt_model_base")}
+            <select
+              className={SELECT}
+              value={baseId}
+              data-testid="adapt-model-base"
+              onChange={(e) => setBaseId(e.target.value)}
+            >
+              <option value="">{t("models.adapt_model_choose")}</option>
+              <optgroup label={t("models.adapt_model_group_base")}>
+                {BUILT_IN_BASES.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {t(`models.${b.labelKey}`)}
                   </option>
                 ))}
-              </select>
-            </label>
+              </optgroup>
+              {owned.length > 0 && (
+                <optgroup label={t("models.adapt_model_group_yours")}>
+                  {owned.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} (v{m.version})
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
+          </label>
+          {baseId && (
+            <p className="text-fs-xs text-muted-foreground/70" data-testid="adapt-model-mode">
+              {isBuiltIn ? t("models.adapt_model_mode_base") : t("models.adapt_model_mode_version")}
+            </p>
           )}
         </CardContent>
       </Card>
 
-      {/* Once a base is chosen, the launcher drives data upload + method + launch,
-          threading adapt_of so the result versions that model. */}
-      {baseId && <TrainingLauncher family="general" adaptOf={baseId} />}
+      {/* Once a base is chosen, the launcher drives data upload + method + launch.
+          adaptOf is set only for your own models, so they version; a base trains fresh. */}
+      {baseId && <TrainingLauncher family="general" adaptOf={adaptOf} />}
     </div>
   )
 }
