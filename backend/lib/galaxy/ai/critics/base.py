@@ -344,8 +344,12 @@ class Critic(ABC):
 
         Default: domain matches (or critic is domain-agnostic) AND every required
         artifact is listed in the results manifest. Override for finer control.
+
+        A ``domain`` of ``""`` or ``"*"`` is a wildcard: the critic is
+        domain-agnostic and the domain gate is skipped entirely (it still has to
+        pass the required-artifact check below).
         """
-        if self.domain and ctx.workflow_domain and self.domain != ctx.workflow_domain:
+        if self.domain not in ("", "*") and ctx.workflow_domain and self.domain != ctx.workflow_domain:
             # Allow a soft match on nextflow_path / workflow name for runs that did
             # not stamp a domain (common for bioc subworkflows).
             if self.domain not in (ctx.workflow or "").lower() and \

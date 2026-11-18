@@ -200,14 +200,9 @@ class PowerEPVCritic(Critic):
     critic_id = "power.epv"
     required_artifacts: List[str] = []  # universal: gate on data inside detect()
 
-    def applies_to(self, ctx: RunContext) -> bool:
-        """Universal critic: concerns EVERY run (the base ``applies_to`` would reject a
-        literal ``"*"`` domain against a concrete one). Self-selection happens inside
-        ``detect`` by whether the design facts are actually present."""
-        for art in self.required_artifacts:
-            if ctx.find_artifact(art) is None:
-                return False
-        return True
+    # NB: no applies_to override — base.Critic treats domain "*" as a universal
+    # match and still runs the required-artifact check. Self-selection happens
+    # inside detect() by whether the design facts are actually present.
 
     def detect(self, ctx: RunContext) -> List[Issue]:
         events, n_cov, n_samples, group_sizes, model_type = _design_facts(ctx)

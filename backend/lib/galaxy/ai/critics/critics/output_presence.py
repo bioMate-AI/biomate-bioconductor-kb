@@ -116,14 +116,9 @@ class OutputPresenceCritic(Critic):
     critic_id = "output.presence"
     required_artifacts: List[str] = []  # universal: gate on the manifest inside detect()
 
-    def applies_to(self, ctx: RunContext) -> bool:
-        """Universal critic: concerns EVERY run (the base ``applies_to`` would reject a
-        literal ``"*"`` domain against a concrete one). Self-selection happens inside
-        ``detect`` (it stays silent when no manifest is declared)."""
-        for art in self.required_artifacts:
-            if ctx.find_artifact(art) is None:
-                return False
-        return True
+    # NB: no applies_to override — base.Critic treats domain "*" as a universal
+    # match and still runs the required-artifact check. Self-selection happens
+    # inside detect() (it stays silent when no manifest is declared).
 
     def detect(self, ctx: RunContext) -> List[Issue]:
         issues: List[Issue] = []

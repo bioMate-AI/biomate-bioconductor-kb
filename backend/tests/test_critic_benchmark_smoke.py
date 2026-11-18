@@ -39,8 +39,9 @@ class CriticBenchmarkSmoke(unittest.TestCase):
     def test_registry_has_real_and_stub_critics(self):
         ids = {c.critic_id for c in self.registry.all()}
         self.assertIn("survival.confounding", ids)        # real
-        self.assertIn("power.events_per_variable", ids)   # WS2 stub
-        self.assertIn("output.presence_floor", ids)       # WS2 stub
+        self.assertIn("power.epv", ids)                   # WS2 real (swapped in)
+        self.assertIn("output.presence", ids)             # WS2 real (swapped in)
+        self.assertIn("qc.metric_floor", ids)             # stub (no real critic yet)
 
     def test_five_archetypes_scored(self):
         self.assertEqual(self.result["n_archetypes"], 5)

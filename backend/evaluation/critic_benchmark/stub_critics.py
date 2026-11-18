@@ -339,22 +339,26 @@ class OutputPresenceFloorCritic(Critic):
 # Registry assembly — real critics + stubs
 # ─────────────────────────────────────────────────────────────────────────────
 
-#: Stub critics scored as the first benchmark entries (WS2 Power/EPV + output-presence
-#: first, plus the RNA-seq imbalanced-confounding and QC-floor critics).
+#: Stubs that still stand in for archetypes with NO real critic yet. The WS2
+#: Power/EPV and output-presence stubs have been RETIRED now that the real
+#: `power.epv` and `output.presence` critics are merged and registered below —
+#: only the RNA-seq imbalanced-confounding and generic QC-floor archetypes remain
+#: stubbed (no real critic exists for them).
 STUB_CRITIC_CLASSES = (
-    PowerEPVCritic,
-    OutputPresenceFloorCritic,
     RNASeqImbalancedConfoundingCritic,
     QCThresholdFloorCritic,
 )
 
 
 def build_registry(include_real: bool = True, include_stubs: bool = True) -> CriticRegistry:
-    """Assemble a fresh registry with the real survival critics + the WS2 stubs.
+    """Assemble a fresh registry with the REAL critics under test + the remaining stubs.
 
     The benchmark accepts *any* registered critic, so this is the only place that
-    decides which critics are under test. Swap a stub for the real WS2 critic here
-    when that branch merges — nothing else changes.
+    decides which critics are under test. The real critics now registered are the
+    survival pair (``survival.confounding`` + ``survival.proportional_hazards``) and
+    the two WS2 safe-first critics (``power.epv`` + ``output.presence``). Stubs remain
+    ONLY for archetypes with no real critic yet (``qc.metric_floor`` and the RNA-seq
+    ``rnaseq.imbalanced_confounding`` flag).
     """
     reg = CriticRegistry()
     if include_real:
@@ -362,7 +366,10 @@ def build_registry(include_real: bool = True, include_stubs: bool = True) -> Cri
             SurvivalConfoundingCritic,
             SurvivalPHCritic,
         )
-        for cls in (SurvivalConfoundingCritic, SurvivalPHCritic):
+        from galaxy.ai.critics.critics.power import PowerEPVCritic as RealPowerEPVCritic
+        from galaxy.ai.critics.critics.output_presence import OutputPresenceCritic
+        for cls in (SurvivalConfoundingCritic, SurvivalPHCritic,
+                    RealPowerEPVCritic, OutputPresenceCritic):
             reg.register(cls())
     if include_stubs:
         for cls in STUB_CRITIC_CLASSES:

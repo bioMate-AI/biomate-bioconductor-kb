@@ -18,12 +18,12 @@ artifact, so only the target critic's ``applies_to`` passes):
   design.batch_imbalance  -> rnaseq.imbalanced_confounding        (stub, correct)
       positive       : batch collinear with condition (validity threat)
       hard_negative  : a BALANCED covariate (not a confounder) — must NOT fire
-  power.epv               -> power.events_per_variable            (stub, WS2)
+  power.epv               -> power.epv                           (REAL, WS2)
       positive       : events-per-variable < 10 (drop replicates)
       hard_negative  : EPV just above the floor (must NOT fire — no over-flagging)
   qc.threshold            -> qc.metric_floor                      (stub)
       positive       : a QC metric corrupted below its floor
-  output.presence         -> output.presence_floor               (stub, WS2)
+  output.presence         -> output.presence                     (REAL, WS2)
       positive       : the primary result output dropped from the manifest
 
 Ground-truth per item:
@@ -63,13 +63,13 @@ ARCHETYPES: Dict[str, ArchetypeSpec] = {
         "batch_confounded_with_condition",
         clinical=False, governance="deterministic_advisory", has_hard_negative=True),
     "power.epv": ArchetypeSpec(
-        "power.epv", "power.events_per_variable", "underpowered_epv",
+        "power.epv", "power.epv", "low_epv",
         clinical=False, governance="deterministic_advisory", has_hard_negative=True),
     "qc.threshold": ArchetypeSpec(
         "qc.threshold", "qc.metric_floor", "qc_below_floor",
         clinical=False, governance="deterministic_advisory", has_hard_negative=False),
     "output.presence": ArchetypeSpec(
-        "output.presence", "output.presence_floor", "missing_expected_output",
+        "output.presence", "output.presence", "missing_expected_outputs",
         clinical=False, governance="deterministic_advisory", has_hard_negative=False),
 }
 
@@ -209,18 +209,23 @@ def batch_hard_negative(i: int) -> Dict[str, Any]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _power_contract(n_events: int, n_cov: int) -> Dict[str, Any]:
+    # Design facts live in the design block (where WS1 populates them and the real
+    # power.epv critic reads them first) AND in a design_qc.json fallback the critic
+    # also recognises — exactly the shape a real Cox run emits.
     return {
         "design": {
             "workflow": "cox_proportional_hazards_regression",
             "workflow_domain": "survival",
-            "design": {"formula": "Surv(time, status) ~ arm + age + sex", "covariates": ["arm", "age", "sex"],
+            "design": {"formula": "Surv(time, status) ~ arm + age + sex",
+                       "covariates": ["arm", "age", "sex"],
+                       "n_events": n_events, "n_covariates": n_cov,
                        "group_sizes": {}},
             "inputs": {"clinical": "clinical.csv"},
             "parameters": {},
         },
-        "manifest": _manifest([_file("power_qc.json", "qc")],
+        "manifest": _manifest([_file("design_qc.json", "qc")],
                               "cox_proportional_hazards_regression", "survival"),
-        "inline_artifacts": {"power_qc.json": {"n_events": n_events, "n_covariates": n_cov}},
+        "inline_artifacts": {"design_qc.json": {"n_events": n_events, "n_covariates": n_cov}},
     }
 
 
@@ -295,11 +300,16 @@ def qc_positive(i: int) -> Dict[str, Any]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _output_contract(files: List[Dict[str, Any]]) -> Dict[str, Any]:
+    # A real DESeq2 run declares its primary outputs in the design block; the real
+    # output.presence critic reads design.expected_outputs (filenames) and flags any
+    # that the manifest does not contain.
     return {
         "design": {
             "workflow": "differential_expression_deseq2",
             "workflow_domain": "rnaseq",
-            "design": {"formula": "~condition", "covariates": ["condition"], "group_sizes": {}},
+            "design": {"formula": "~condition", "covariates": ["condition"],
+                       "expected_outputs": ["deseq2_results.csv", "dds_object.rds"],
+                       "group_sizes": {}},
             "inputs": {"counts": "counts.tsv"},
             "parameters": {},
         },
