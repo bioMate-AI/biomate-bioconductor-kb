@@ -2006,7 +2006,7 @@
     "registered_artifacts": "你的已训练模型",
     "registered_count": "已登记 {{count}} 个",
     "registration_failed": "无法读取或登记该训练结果。",
-    "registration_not_serving": "已登记的产物版本不会自动部署用于推理。",
+    "registration_not_serving": "已登记的制品用于保存与溯源，并非独立的推理端点。如需对新输入运行模型，请在“模型库 → 运行模型”中进行。",
     "registration_pending": "正在检查训练产物…",
     "registration_refresh_failed": "登记已返回，但版本列表刷新失败。请先查看版本再重试。",
     "registry_catalog_error": "无法加载模型库。",

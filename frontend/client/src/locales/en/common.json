@@ -1498,7 +1498,7 @@
     "registered_artifacts": "Your trained models",
     "registered_count": "{{count}} registered",
     "registration_failed": "Could not read or register this training result.",
-    "registration_not_serving": "A registered artifact version is not automatically deployed for inference.",
+    "registration_not_serving": "A registered artifact is saved for your records and lineage — it is not a standalone inference endpoint. To run a model on new inputs, use Model library → Run a model.",
     "registration_pending": "Checking training artifacts…",
     "registration_refresh_failed": "Registration returned, but the versions could not be refreshed. Check the versions before retrying.",
     "registry_catalog_error": "Could not load the model library.",
