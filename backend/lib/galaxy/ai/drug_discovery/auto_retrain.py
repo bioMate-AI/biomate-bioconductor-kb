@@ -52,6 +52,13 @@ CAMPAIGN_OBJECTIVE = "composite_score"
 class CampaignDataError(ValueError):
     """Campaign assay data cannot be turned into a valid training set."""
 
+
+class OptimizerError(RuntimeError):
+    """The surrogate fit or the proposal step raised. Distinct from a missing
+    prerequisite (which returns None): the data and library exist, but the
+    optimizer actually failed — so the caller must surface the real reason, not
+    the misleading 'requires assay data and a cached virtual library' message."""
+
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
@@ -546,7 +553,11 @@ def refit_and_propose(
         )
     except Exception as exc:
         log.error("auto_retrain[%s]: optimizer failed — %s", campaign_id, exc)
-        return None
+        # Prereqs were present (assay data + cached library, checked above); the
+        # optimizer itself raised. Surface it instead of returning None, which the
+        # endpoint would mistranslate into "requires assay data and a cached
+        # virtual library".
+        raise OptimizerError(f"optimizer failed: {exc}") from exc
 
     # Persist and audit
     auto_p = persist_round(db_path, opt, proposal, triggered_by, report)

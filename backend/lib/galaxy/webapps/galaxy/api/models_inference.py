@@ -973,6 +973,15 @@ def optimise_track(project: Optional[str] = None, owner_id: Optional[str] = Head
     return {"active": False}
 
 
+def _safe_is_loop_running(is_loop_running, campaign_id: str) -> bool:
+    """is_loop_running, never fatal — a False on error is honest (we can't confirm
+    the loop is alive) and never blocks rendering the round."""
+    try:
+        return bool(is_loop_running(campaign_id))
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _optimise_for_campaign(campaign_id: str) -> Optional[Dict[str, Any]]:
     from pathlib import Path
 
@@ -980,7 +989,7 @@ def _optimise_for_campaign(campaign_id: str) -> Optional[Dict[str, Any]]:
     if not Path(db_path).exists():
         return None
     try:
-        from galaxy.ai.drug_discovery.auto_retrain import list_auto_proposals
+        from galaxy.ai.drug_discovery.auto_retrain import list_auto_proposals, is_loop_running
     except Exception as exc:  # noqa: BLE001
         log.debug("optimise: auto_retrain unavailable: %s", exc)
         return None
@@ -1038,7 +1047,12 @@ def _optimise_for_campaign(campaign_id: str) -> Optional[Dict[str, Any]]:
 
     return {
         "active": True,
-        "running": True,
+        # Honest liveness: whether the background auto-retrain loop is actually
+        # running for this campaign, not a blanket True. (Best-effort: the loop
+        # registry is per-worker today, so this can read False on a worker that
+        # does not own the loop — the cross-worker fix is a separate change; but
+        # it no longer claims "running" for a stopped loop.)
+        "running": bool(_safe_is_loop_running(is_loop_running, campaign_id)),
         "round": round_no,
         "modality": _campaign_modality(campaign_id),
         "surrogates": [

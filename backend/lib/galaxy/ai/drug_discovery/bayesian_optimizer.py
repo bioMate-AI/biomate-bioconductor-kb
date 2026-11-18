@@ -104,13 +104,14 @@ class BayesianOptimizer:
     #: rather than small-molecule SMILES (Morgan/Tanimoto GP).
     SEQUENCE_MODALITIES = ("peptide", "biologic")
 
-    #: Soft bonus added to a candidate's selection score when it is inside the
-    #: applicability domain. acq_norm and diversity are each in [0, 1], so this
-    #: breaks ties toward trustworthy candidates without overriding a clearly
-    #: better-acquisition out-of-domain candidate (and has no effect when no
-    #: candidate is in-domain). Tuned to surface actionable proposals without
-    #: killing exploration.
-    _AD_SELECTION_BONUS = 0.25
+    #: Multiplicative trust-discount applied to the acquisition of OUT-of-domain
+    #: candidates (in-domain keep full weight). 0.5 means an out-of-domain
+    #: candidate must have ~2× the acquisition of an in-domain one to be preferred;
+    #: when every candidate is out-of-domain the discount is uniform and has no
+    #: effect, preserving exploration. (Replaces an earlier flat additive bonus
+    #: that was ~25% of the acquisition range and silently reshaped most of the
+    #: batch rather than acting as the documented tie-break.)
+    _AD_OOD_DISCOUNT = 0.5
 
     def __init__(
         self,
@@ -329,6 +330,30 @@ class BayesianOptimizer:
                 keep.append(i)
         return keep, excluded
 
+    def _pairwise_similarity(self, A, B):
+        """Pairwise similarity in [0, 1] (1 = identical) between feature rows,
+        using the metric that matches the modality. Small molecules use
+        fingerprint Tanimoto. Sequences use cosine similarity on
+        training-standardized dense descriptors mapped to [0, 1]: binary-count
+        Tanimoto is invalid on dense continuous vectors (its union term can go
+        negative → a degenerate ≈0 similarity that silently kills the diversity
+        term and reports a meaningless diversity_score)."""
+        import numpy as np
+        if self._entity_kind != "sequence":
+            return tanimoto_similarity(A, B)
+        tr = np.atleast_2d(np.asarray(self._dataset.features, dtype=np.float64))
+        mean = tr.mean(axis=0)
+        std = tr.std(axis=0)
+        std = np.where(std > 1e-12, std, 1.0)
+        As = (np.atleast_2d(np.asarray(A, dtype=np.float64)) - mean) / std
+        Bs = (np.atleast_2d(np.asarray(B, dtype=np.float64)) - mean) / std
+        an = np.linalg.norm(As, axis=1, keepdims=True)
+        bn = np.linalg.norm(Bs, axis=1, keepdims=True)
+        As = As / np.where(an > 1e-12, an, 1.0)
+        Bs = Bs / np.where(bn > 1e-12, bn, 1.0)
+        cos = As @ Bs.T
+        return np.clip((cos + 1.0) / 2.0, 0.0, 1.0)
+
     def _ad_mask(self, n_cand, cand_smiles, X_lib, pred_scores, pred_stds):
         """Applicability-domain in/out for every candidate, via the checker that
         matches the modality. Returns (in_domain: np.ndarray[bool], status_by_index:
@@ -448,23 +473,27 @@ class BayesianOptimizer:
         ad_in_domain, ad_status_by_index = self._ad_mask(
             n_cand, cand_smiles, X_lib, pred_scores, pred_stds)
 
-        # Greedy batch construction with a diversity bonus and a soft preference
-        # for in-domain candidates. The AD bonus only breaks ties toward
-        # trustworthy candidates; when none are in-domain it is uniform (all
-        # False) and has no effect, so early exploratory rounds still propose the
-        # best-acquisition extrapolations.
+        # Greedy batch construction. Out-of-domain candidates have their
+        # acquisition DISCOUNTED by _AD_OOD_DISCOUNT — a "trust discount": we
+        # believe the surrogate's predicted improvement less where it extrapolates
+        # beyond the training domain. This is a multiplicative penalty on the
+        # acquisition, not a flat additive bonus, so an in-domain candidate is
+        # preferred when acquisition is comparable, but a clearly-better
+        # out-of-domain candidate (acquisition ≳ 1/discount × the best in-domain)
+        # can still be selected, and when EVERY candidate is out-of-domain the
+        # discount is uniform (no effect) and exploration is unchanged.
+        ad_trust = np.where(ad_in_domain, 1.0, self._AD_OOD_DISCOUNT)
         selected_indices: list[int] = []
         selection_scores: list[float] = []
         remaining = list(range(n_cand))
         for _ in range(min(n_propose, n_cand)):
             if selected_indices:
-                sim = tanimoto_similarity(X_lib[remaining], X_lib[selected_indices])
+                sim = self._pairwise_similarity(X_lib[remaining], X_lib[selected_indices])
                 diversity = 1.0 - sim.max(axis=1)
             else:
                 diversity = np.ones(len(remaining))
-            combined = ((1.0 - diversity_weight) * acq_norm[remaining]
-                        + diversity_weight * diversity
-                        + self._AD_SELECTION_BONUS * ad_in_domain[remaining].astype(float))
+            combined = ((1.0 - diversity_weight) * acq_norm[remaining] * ad_trust[remaining]
+                        + diversity_weight * diversity)
             k = int(np.argmax(combined))
             selected_indices.append(remaining.pop(k))
             selection_scores.append(round(float(combined[k]), 6))
@@ -502,7 +531,7 @@ class BayesianOptimizer:
         ]
 
         if len(selected_indices) >= 2:
-            sim = tanimoto_similarity(X_lib[selected_indices], X_lib[selected_indices])
+            sim = self._pairwise_similarity(X_lib[selected_indices], X_lib[selected_indices])
             iu = np.triu_indices(len(selected_indices), k=1)
             diversity_score = float(np.mean(1.0 - sim[iu]))
         else:

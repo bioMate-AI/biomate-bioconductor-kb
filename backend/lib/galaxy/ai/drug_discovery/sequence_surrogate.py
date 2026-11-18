@@ -223,10 +223,16 @@ class SequenceGP:
         from sklearn.gaussian_process import GaussianProcessRegressor
         from sklearn.gaussian_process.kernels import ConstantKernel, Matern, WhiteKernel
 
-        n_dim = Xs.shape[1]
+        # Isotropic (single length-scale) Matern. An ARD kernel (one length-scale
+        # per descriptor) has as many hyperparameters as features (~31) and is
+        # under-determined by marginal likelihood at the n≈15-20 observations a
+        # cold-start campaign has — irrelevant-dimension length-scales run to the
+        # bounds and the posterior variance (hence EI and the CIs we report) is
+        # driven by overfit hyperparameters. One shared length-scale on the
+        # standardized features is far better posed at this n.
         kernel = (
             ConstantKernel(1.0, constant_value_bounds="fixed")
-            * Matern(length_scale=np.ones(n_dim), length_scale_bounds=LENGTH_SCALE_BOUNDS,
+            * Matern(length_scale=1.0, length_scale_bounds=LENGTH_SCALE_BOUNDS,
                      nu=self.matern_nu)
             + WhiteKernel(noise_level=NOISE_INIT, noise_level_bounds=NOISE_BOUNDS)
         )
