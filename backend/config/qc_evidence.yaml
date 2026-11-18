@@ -2199,3 +2199,57 @@ rare_disease:
       finding: >
         Phase E surfaces AI-MARRVEL rank, OUTRIDER/FRASER concordance,
         and VEP consequence in a single clinician-review table.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# design_rules — the critic layer's grounding substrate AND closed citation vocab.
+#
+# Unlike the (domain, gate_name) -> [papers] threshold evidence above, these are
+# keyed by a STABLE DESIGN-RULE KEY (e.g. survival.adjust_confounders). A critic
+# cites by this key; the critic hook validates that the key exists here and reads
+# the DOI + provenance grade FROM this entry — it never trusts an author- (or LLM-)
+# supplied DOI/grade. A citation whose key is absent from this section is treated as
+# UNCITED and is NOT published (capped to advisory, kept for audit). This is the
+# structural fix for guardrail G1 ("citation = validity, not presence").
+#
+# Schema (per key):
+#   <domain.rule_key>:
+#     claim:      str   # the methodological rule, in one sentence (authoritative text)
+#     source:     str   # human-readable citation (paper / guideline / statement)
+#     doi:        str   # DOI or stable URL for the source (authoritative)
+#     provenance: GOLD|SILVER|BRONZE   # grade; drives the hook's severity ceiling
+#
+# Loaded by lib/galaxy/ai/critics/evidence.py (design_rule / all_design_rule_keys).
+# The hand-written seed table in that module is a fallback only; this section wins.
+design_rules:
+  survival.adjust_confounders:
+    claim: >
+      A Cox model must adjust for known prognostic covariates; an omitted
+      covariate associated with both the exposure and the outcome confounds
+      the primary hazard ratio and must be added to the design formula.
+    source: >
+      STROBE statement, item 16a (confounder-adjusted estimates);
+      Therneau & Grambsch, Modeling Survival Data (2000), ch. 3.
+    doi: "10.1016/j.jclinepi.2007.11.008"
+    provenance: GOLD
+
+  survival.ph_assumption:
+    claim: >
+      The proportional-hazards assumption must be tested with scaled Schoenfeld
+      residuals; a global or per-covariate p < 0.05 indicates a time-varying
+      effect that biases a single constant hazard ratio.
+    source: >
+      Grambsch & Therneau, "Proportional hazards tests and diagnostics based on
+      weighted residuals", Biometrika 81(3):515-526 (1994).
+    doi: "10.1093/biomet/81.3.515"
+    provenance: GOLD
+
+  survival.ph_time_transform:
+    claim: >
+      A proportional-hazards violation is remediated by stratifying on the
+      offending covariate or modelling it as a time-varying effect (e.g. a tt()
+      time transform) — not by reporting the unadjusted single hazard ratio.
+    source: >
+      Therneau, Crowson & Atkinson, "Using Time Dependent Covariates and Time
+      Dependent Coefficients in the Cox Model" (survival package vignette, 2023).
+    doi: "10.1093/biomet/81.3.515"
+    provenance: SILVER

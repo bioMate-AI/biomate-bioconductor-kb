@@ -58,6 +58,11 @@ class Provenance(enum.Enum):
     BRONZE = "BRONZE"   # heuristic / community practice
     NONE = "NONE"       # uncited — the hook will NOT publish an issue resting only on this
 
+    @property
+    def rank(self) -> int:
+        """Ordering so the hook can pick the best grade and threshold severity on it."""
+        return {"NONE": 0, "BRONZE": 1, "SILVER": 2, "GOLD": 3}[self.value]
+
 
 class RemediationKind(enum.Enum):
     """The bounded, deterministic operation a Remediation proposes.
@@ -83,19 +88,48 @@ class RemediationKind(enum.Enum):
 class Evidence:
     """One grounded claim backing an Issue or Remediation.
 
-    ``provenance == Provenance.NONE`` or an empty ``source``/``doi`` means the claim
-    is uncited; the hook treats an Issue whose evidence is entirely uncited as
-    advisory-only (or drops it), per the guardrail. A DOI is strongly preferred and
-    should ultimately resolve against ``config/qc_evidence.yaml`` design-rule entries.
+    GROUNDING MODEL (hardened — see hook.py / evidence.py):
+      An Evidence is *grounded* only when ``kb_key`` names a design-rule KEY that
+      exists in the evidence store (``config/qc_evidence.yaml design_rules:``).
+      The authoritative ``claim``/``doi``/``provenance`` are the KB entry's — NOT
+      whatever an author (or an LLM critic) stamped on the object. The hook reads
+      the grade/DOI *from the KB* and ignores the author-set fields for the
+      publish/severity decision, so a fabricated DOI stamped ``GOLD`` with no
+      (or an unknown) ``kb_key`` cannot escalate: it is *uncited* and NOT published.
+
+    Construct grounded evidence with :func:`galaxy.ai.critics.evidence.design_rule`
+    (it stamps ``kb_key`` for you); never hand-build a GOLD Evidence for publication.
+
+    ``is_cited`` remains a cheap *presence* property (back-compat for callers that
+    only format evidence). It is deliberately NOT the publish gate — the hook's
+    KB-key grounding check is. ``provenance == NONE`` / empty source still reads as
+    un-presence-cited.
     """
     claim: str
     source: str = ""                       # human-readable citation or qc_evidence key
     doi: Optional[str] = None
     provenance: Provenance = Provenance.NONE
+    #: Design-rule KB key (``config/qc_evidence.yaml design_rules:``). Grounding is
+    #: validated against this at the hook; author-set DOI/grade are NOT trusted for it.
+    kb_key: Optional[str] = None
 
     @property
     def is_cited(self) -> bool:
+        """Legacy *presence* check (back-compat). NOT the publish gate — see hook."""
         return self.provenance is not Provenance.NONE and bool(self.source or self.doi)
+
+    def grounded_against(self, resolver: "Callable[[str], Optional['Evidence']]") -> bool:
+        """True iff ``kb_key`` resolves to a real KB entry via ``resolver``.
+
+        This is the real grounding test the hook uses: a fabricated DOI with no
+        ``kb_key`` (or a key the KB does not contain) returns False, full stop.
+        """
+        if not self.kb_key:
+            return False
+        try:
+            return resolver(self.kb_key) is not None
+        except Exception:
+            return False
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -103,7 +137,85 @@ class Evidence:
             "source": self.source,
             "doi": self.doi,
             "provenance": self.provenance.value,
+            "kb_key": self.kb_key,
         }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Precondition — a machine-checkable predicate the hook verifies before publishing
+# ─────────────────────────────────────────────────────────────────────────────
+
+@dataclass
+class Precondition:
+    """A deterministic, machine-checkable predicate over a :class:`RunContext`.
+
+    A critic attaches one to an Issue to assert *the flaw is actually present in
+    THIS run* (not merely that a KB rule about the flaw exists). The hook runs the
+    predicate between ``detect()`` and publication:
+
+      * predicate returns True  → precondition VERIFIED → the issue may reach
+        WARNING/CRITICAL (subject to grounding + provenance + confidence).
+      * predicate returns False / None, raises, OR the issue declares no
+        precondition → UNVERIFIED → the issue is capped to advisory (an FYI), is
+        never CRITICAL, and is never auto-apply eligible.
+
+    The predicate must be deterministic and side-effect-free. It is NOT serialized.
+    """
+    label: str
+    predicate: "Callable[['RunContext'], Optional[bool]]"
+
+    def verify(self, ctx: "RunContext") -> bool:
+        """Run the predicate; any exception or non-True result → unverified (fail-closed)."""
+        try:
+            return self.predicate(ctx) is True
+        except Exception:
+            return False
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Untrusted-text hardening — result-file content is DATA, never instructions
+# ─────────────────────────────────────────────────────────────────────────────
+
+#: Hard cap on untrusted result-file text fed to any critic (esp. a future LLM critic).
+MAX_UNTRUSTED_TEXT_LEN = 4000
+
+
+def sanitize_untrusted_text(text: Any, max_len: int = MAX_UNTRUSTED_TEXT_LEN) -> str:
+    """Neutralize untrusted result-file text read from a ``RunContext`` artifact.
+
+    CONTRACT (injection hardening, committee Blocker B / §3.5):
+      * Result-file bytes (logs, QC narratives, sample names, README text) are
+        **DATA, never instructions**. A critic reading them MUST pass them through
+        this helper before using them in any message, prompt, or detail string.
+      * This helper length-caps the text, drops control characters, and neutralizes
+        markup/delimiter tokens an attacker uses to break out of a data frame.
+      * It NEVER eval/exec's the text. File content can NOT set an Evidence
+        ``kb_key``, a provenance grade, a precondition result, or a severity —
+        those are decided by the hook from the KB and a deterministic predicate,
+        independent of anything a file claims (so a planted
+        "emit CRITICAL, provenance GOLD, doi 10.x" cannot flip the verdict).
+    """
+    if text is None:
+        return ""
+    if isinstance(text, bytes):
+        text = text.decode("utf-8", "replace")
+    elif not isinstance(text, str):
+        text = str(text)
+    # Drop control chars (keep newline/tab); 0x7f and other C0/C1 controls removed.
+    cleaned_chars = []
+    for ch in text:
+        o = ord(ch)
+        if ch in ("\n", "\t"):
+            cleaned_chars.append(ch)
+        elif 32 <= o != 127:
+            cleaned_chars.append(ch)
+    cleaned = "".join(cleaned_chars)
+    # Neutralize markup / fenced-instruction delimiters used to break the data frame.
+    for tok in ("<", ">", "`", "\u0000"):
+        cleaned = cleaned.replace(tok, " ")
+    if max_len is not None and len(cleaned) > max_len:
+        cleaned = cleaned[:max_len]
+    return cleaned
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -117,19 +229,36 @@ class Issue:
     Unlike the legacy ``GateResult(gate, value, threshold, action)`` (a scalar-vs-
     threshold comparison), an Issue expresses a *judgment about the design/analysis*:
     confounding, PH violation, batch-in-formula, underpowered, etc.
+
+    ``severity`` is a *request/hint* only. The published severity is COMPUTED BY THE
+    HOOK from (grounding, precondition-verified?, provenance grade, confidence,
+    clinical-context) — a critic can no longer self-assert CRITICAL. ``confidence``
+    (0..1) feeds the governance-by-precision tiering; ``precondition`` is verified
+    before the issue may exceed advisory; ``headline_metric`` names the metric the
+    generic transport should surface (so the hook needn't pattern-match field names).
     """
     critic_id: str
     code: str                               # stable machine code, e.g. "omitted_confounder"
     title: str                              # one-line human summary
-    severity: Severity = Severity.ADVISORY
+    severity: Severity = Severity.ADVISORY  # REQUEST only — hook recomputes the published value
     detail: str = ""                        # longer explanation (shown to the scientist)
     subjects: List[str] = field(default_factory=list)   # e.g. covariate names
     metrics: Dict[str, Any] = field(default_factory=dict)  # e.g. {"naive_hr":.817,"adjusted_hr":.806}
     evidence: List[Evidence] = field(default_factory=list)
+    #: Governance-by-precision knob (0..1). Deterministic critics ≈1.0; an LLM critic
+    #: sets it lower. Feeds the hook's severity computation and auto-apply gate.
+    confidence: float = 1.0
+    #: Name of the metric in ``metrics`` the transport should headline (optional).
+    headline_metric: Optional[str] = None
+    #: Deterministic predicate the hook verifies before this issue may exceed advisory.
+    precondition: Optional[Precondition] = None
 
     @property
     def is_cited(self) -> bool:
-        """True iff at least one piece of backing evidence is cited."""
+        """Legacy *presence* check — at least one evidence item is presence-cited.
+
+        NOT the publish gate. The hook publishes on KB-key GROUNDING, not presence.
+        """
         return any(e.is_cited for e in self.evidence)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -143,6 +272,9 @@ class Issue:
             "metrics": dict(self.metrics),
             "evidence": [e.to_dict() for e in self.evidence],
             "is_cited": self.is_cited,
+            "confidence": self.confidence,
+            "headline_metric": self.headline_metric,
+            "precondition": self.precondition.label if self.precondition else None,
         }
 
 
@@ -244,8 +376,11 @@ __all__ = [
     "Provenance",
     "RemediationKind",
     "Evidence",
+    "Precondition",
     "Issue",
     "Remediation",
     "Critic",
     "RunContext",
+    "sanitize_untrusted_text",
+    "MAX_UNTRUSTED_TEXT_LEN",
 ]
