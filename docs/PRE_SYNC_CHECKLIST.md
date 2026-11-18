@@ -66,6 +66,13 @@ Replace `<MODIFIED_MODULE>` with whatever file under `backend/lib/galaxy/` you t
 ```bash
 cd backend && PYTHONPATH=lib python3.9 -c "import galaxy.webapps.galaxy.api.nextflow_executor"
 ```
+When the change touches the critic layer (the post-run hook attaches via
+`from galaxy.ai.critics import …` inside `nextflow_executor.py`), ALSO import the
+critics package directly — the attach's `try/except` protects runtime, not import
+time, so a bad import in `galaxy.ai.critics` would crash Galaxy at module load:
+```bash
+cd backend && PYTHONPATH=lib python3.9 -c "import galaxy.ai.critics"
+```
 **Catches:** module-load failures — most importantly PEP 604 `X | Y` annotations on Python 3.9 (Galaxy container is 3.9), missing imports, syntax errors. ~3 s.
 
 This is the step that catches PEP 604 / missing-import bugs **before** they take dev down. The future-import gotcha exists because:

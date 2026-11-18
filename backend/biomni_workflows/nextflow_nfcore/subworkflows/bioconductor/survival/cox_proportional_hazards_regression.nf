@@ -131,7 +131,31 @@ process BIOC_SURVIVAL_COX_PROPORTIONAL_HAZARDS_REGRESSION {
             adjusted_primary_hr     = if (is.na(hr_of(primary)))  NULL else round(hr_of(primary), 4),
             schoenfeld_global_p     = if (is.na(gp))              NULL else gp,
             ph_violating_covariates = as.list(viol),
-            omitted_confounders     = omitted
+            omitted_confounders     = omitted,
+            # Explicit design block so the Phase-0 run contract (design.json) carries a
+            # real formula/covariates/exposure instead of nulls — the design-aware
+            # critics read this. 'exposure_of_interest' = the primary biomarker; the
+            # modeled covariates are the full adjusted set.
+            design                  = list(
+              formula              = paste0("Surv(time, status) ~ ", paste(covs, collapse = " + ")),
+              covariates           = as.list(covs),
+              candidate_covariates = as.list(setdiff(covs, primary)),
+              exposure_of_interest = primary,
+              model_type           = "cox",
+              # events / n_samples power the EPV (events-per-variable) critic; group_sizes
+              # (event vs censored, or exposure-arm Ns) powers the low-replicate critic.
+              events               = tryCatch(as.integer(sum(clinical_data\$status == 1, na.rm = TRUE)), error = function(e) NULL),
+              n_samples            = nrow(clinical_data),
+              n_covariates         = length(covs),
+              group_sizes          = tryCatch({
+                                       if (!is.null(primary) && length(unique(clinical_data[[primary]])) <= 10)
+                                         as.list(table(clinical_data[[primary]]))
+                                       else
+                                         as.list(c(event = sum(clinical_data\$status == 1, na.rm = TRUE),
+                                                   censored = sum(clinical_data\$status == 0, na.rm = TRUE)))
+                                     }, error = function(e) NULL),
+              design_source        = "workflow"
+            )
           )
           cat(jsonlite::toJSON(qc, auto_unbox = TRUE, null = "null", pretty = TRUE), file = "survival_qc.json")
         }, error = function(e) message("survival_qc emit failed: ", conditionMessage(e)))

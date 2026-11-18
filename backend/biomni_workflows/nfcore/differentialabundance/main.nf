@@ -320,6 +320,31 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
       harness_version  = "0.4.0-deseq2-designqc"
     )
     names(.qc\$design_qc) <- names(design_info)
+    # Explicit design block for the Phase-0 run contract (design.json): the (corrected)
+    # final design formula of the primary contrast, its modeled covariates, the
+    # candidate blocking factors, and the exposure-of-interest (contrast variable).
+    # Populated so the design-aware critics read a real formula instead of a null.
+    if (length(design_info) > 0) {
+      .primary_di <- design_info[[1]]
+      .final_fml  <- if (!is.null(.primary_di\$final_design)) .primary_di\$final_design else .primary_di\$naive_design
+      .covs       <- strsplit(sub("^~", "", .final_fml), "\\\\+")[[1]]
+      .covs       <- trimws(.covs[nzchar(trimws(.covs))])
+      .exposure   <- if (length(.covs) > 0) .covs[length(.covs)] else NA
+      .blocks     <- unique(unlist(lapply(design_info, function(d) if (!is.na(d\$blocking_var)) d\$blocking_var else NULL)))
+      # group_sizes = samples per exposure level (low-replicate critic); n_samples = total.
+      .grp <- tryCatch(as.list(table(metadata[[.exposure]])), error = function(e) NULL)
+      .qc\$design <- list(
+        formula              = .final_fml,
+        covariates           = as.list(.covs),
+        candidate_covariates = as.list(.blocks),
+        exposure_of_interest = if (is.na(.exposure)) NULL else .exposure,
+        model_type           = "de",
+        n_samples            = nrow(metadata),
+        n_covariates         = length(.covs),
+        group_sizes          = .grp,
+        design_source        = "workflow"
+      )
+    }
     # Surface the design-formula self-correction as a gate the harness renders.
     .conf <- Filter(function(x) isTRUE(x\$confounded), design_info)
     if (length(.conf) > 0) {
