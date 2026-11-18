@@ -5656,6 +5656,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  // Dedicated handler for a DMTA propose/refit round so it is a FIRST-CLASS run
+  // (billed + in the Runs dashboard), like the Adapt retrain. Registered BEFORE the
+  // wildcard. The trigger is synchronous (Galaxy returns the proposal), so the run
+  // reflects the terminal status immediately. Every round bills — same as any
+  // platform run. (Rounds fired by the backend auto-retrain loop do NOT pass through
+  // here; billing those needs a backend-emitted run/billing event — a follow-up.)
+  const _dmtaRoundHandler = async (req: any, res: any) => {
+    const campaignId = String(req.params.campaignId || '').trim();
+    if (!campaignId || campaignId.includes('/') || campaignId.includes('\\')) {
+      return res.status(400).json({ error: 'invalid campaign id' });
+    }
+    if (await _denyUnlessCampaignOwner(req, res, campaignId)) return;
+    const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+    let galaxyJson: any = {};
+    let galaxyStatus = 200;
+    try {
+      const resp = await fetchGalaxyAsUser(req,
+        `${galaxyUrl}/api/drug-discovery/${encodeURIComponent(campaignId)}/retrain/trigger`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(req.body || {}), signal: AbortSignal.timeout(120000) });
+      galaxyStatus = resp.status;
+      galaxyJson = await resp.json().catch(() => ({}));
+    } catch (err: any) {
+      return res.status(502).json({ error: 'DMTA round proxy error', detail: err.message });
+    }
+    // Best-effort first-class run reflecting the round; never changes the response.
+    try {
+      const userId = (req as any).user?.id || undefined;
+      const ok = galaxyStatus >= 200 && galaxyStatus < 300;
+      const round = galaxyJson?.round;
+      const nItems = Array.isArray(galaxyJson?.items) ? galaxyJson.items.length : undefined;
+      const run = await storage.createExecutionRun(
+        {
+          workflowDefinition: {
+            name: 'Design-loop round',
+            workflow_type: 'dmta_round',
+            description: ok && round != null
+              ? `Bayesian propose / refit — round ${round}${nItems != null ? `, ${nItems} candidates` : ''}`
+              : 'DMTA propose / refit round',
+            steps: { '1': { label: 'Refit surrogate + propose', tool_id: 'dmta_propose' } },
+          },
+          executionConfig: { mode: 'production', executionEngine: 'pipeline' },
+        } as any,
+        userId,
+        campaignId, // campaign id == project id
+      );
+      const dashStatus: ExecutionRunStatus = ok ? 'completed' : 'failed';
+      await storage.updateExecutionRunStatus(
+        run.id, dashStatus, ok ? undefined : String(galaxyJson?.detail || 'propose failed'));
+      if (ok) await storage.updateExecutionRunProgress(run.id, 1, 0, 'Refit surrogate + propose');
+      galaxyJson = { ...galaxyJson, runId: run.id };
+    } catch (e: any) {
+      console.warn('[drug-discovery] dmta round run registration failed:', e?.message);
+    }
+    return res.status(galaxyStatus).json(galaxyJson);
+  };
+  app.post("/api/drug-discovery/:campaignId/retrain/trigger", optionalAuth, _dmtaRoundHandler);
+
   app.all("/api/drug-discovery/*", optionalAuth, async (req: any, res: any) => {
     try {
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
