@@ -12375,7 +12375,18 @@ ${paramLines || '(none recorded)'}`;
             // SRA/ENA run/experiment/sample/study/project accessions nf-core/fetchngs fetches directly.
             const SRA_ENA_RE = /\b([SED]RR\d{5,}|[SED]RX\d{5,}|[SED]RS\d{5,}|[SED]RP\d{4,}|PRJ[NED][A-Z]?\d{4,})\b/i;
             const inlineParams = (request.workflowDefinition as any)?.inline_parameters;
+            // The samplesheet binding often lives in workflowDefinition.data_inputs[].bound_value
+            // (a client data-input mapping — the panel shows "Samplesheet -> SRRxxxxxxx resolved")
+            // rather than in required_params/parameters, so it is dropped from the launch params.
+            // Recover it here so the run is never launched with an empty --input.
+            const dataInputs: any[] = Array.isArray((request.workflowDefinition as any)?.data_inputs)
+              ? (request.workflowDefinition as any).data_inputs : [];
+            const inputDI = dataInputs.find((d: any) =>
+              ['input', 'samplesheet', 'reads'].includes(String(d?.name || '').toLowerCase()) &&
+              d?.bound && isBoundValue(d?.bound_value));
+            const boundInputVal = inputDI ? String(inputDI.bound_value) : '';
             const hay = [
+              boundInputVal,
               ...Object.values(providedParams).map((v: any) => String(v ?? '')),
               ...(request.inputs && typeof request.inputs === 'object' ? Object.values(request.inputs).map((v: any) => String(v ?? '')) : []),
               ...(inlineParams && typeof inlineParams === 'object' ? Object.values(inlineParams).map((v: any) => String(v ?? '')) : []),
@@ -12383,7 +12394,13 @@ ${paramLines || '(none recorded)'}`;
               String(request.workflowDefinition?.description ?? ''),
             ].join('  ');
             const acc = hay.match(SRA_ENA_RE)?.[0];
-            if (acc) {
+            if (boundInputVal && !SRA_ENA_RE.test(boundInputVal)) {
+              // A real samplesheet / FASTQ path is bound (not an accession) but was dropped from
+              // the launch params — carry it into --input so the run is not launched empty.
+              request.workflowDefinition.parameters = { ...(request.workflowDefinition.parameters || {}), input: boundInputVal };
+              request.params = { ...(request.params || {}), input: boundInputVal };
+              console.warn(`[execute-gate] "${wfLabel}": carried bound samplesheet into --input (${boundInputVal.slice(0, 80)}). Proceeding to launch.`);
+            } else if (acc) {
               // Reuse any reference already provided; otherwise auto-select an iGenomes
               // genome from the accession's ORGANISM (ENA lookup). Only human/mouse are
               // auto-selected; any other organism blocks and asks for a reference rather
