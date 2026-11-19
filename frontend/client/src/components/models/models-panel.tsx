@@ -527,6 +527,17 @@ export function ModelsPanel({
               <p className="text-fs-xs text-muted-foreground" data-testid="tab-purpose-train">
                 {t("models.tab_purpose_train")}
               </p>
+              {/* Up-front: the algorithm families trainable here, so the scope is clear
+                  before a dataset is picked (the exact options then adapt to the data). */}
+              <div className="rounded border bg-muted/30 p-2 text-fs-xs" data-testid="train-capabilities">
+                <p className="font-semibold text-muted-foreground">{t("models.train_capabilities_heading")}</p>
+                <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                  <li>• {t("models.train_cap_tabular")}</li>
+                  <li>• {t("models.train_cap_llm")}</li>
+                  <li>• {t("models.train_cap_generative")}</li>
+                </ul>
+                <p className="mt-1 text-muted-foreground/70">{t("models.train_cap_note")}</p>
+              </div>
               {!CODE_PATH_HIDDEN && (
                 <div className="flex flex-wrap gap-1" data-testid="train-path-toggle" role="group" aria-label={t("models.path_toggle_label")}>
                   <Button

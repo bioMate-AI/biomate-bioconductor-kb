@@ -69,17 +69,25 @@ export function AdaptModel({ project }: { project?: string }) {
                   </option>
                 ))}
               </optgroup>
-              {owned.length > 0 && (
-                <optgroup label={t("models.adapt_model_group_yours")}>
-                  {owned.map((m) => (
+              <optgroup label={t("models.adapt_model_group_yours")}>
+                {owned.length > 0 ? (
+                  owned.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name} (v{m.version})
                     </option>
-                  ))}
-                </optgroup>
-              )}
+                  ))
+                ) : (
+                  <option value="" disabled>
+                    {t("models.adapt_model_none_yet")}
+                  </option>
+                )}
+              </optgroup>
             </select>
           </label>
+          {/* How a model gets here — so the picker isn't a dead end when empty. */}
+          <p className="text-fs-xs text-muted-foreground/70" data-testid="adapt-model-source">
+            {t("models.adapt_model_source_hint")}
+          </p>
           {baseId && (
             <p className="text-fs-xs text-muted-foreground/70" data-testid="adapt-model-mode">
               {isBuiltIn ? t("models.adapt_model_mode_base") : t("models.adapt_model_mode_version")}

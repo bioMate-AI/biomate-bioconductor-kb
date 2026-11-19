@@ -12,7 +12,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
-import { AdaptTrack } from "./adapt-track"
+import { AdaptTrack, HouseStyleAdapt } from "./adapt-track"
+
+// House style personalises IND/regulatory drafts; with IND Report paused it is
+// hidden in the live AdaptTrack. These tests exercise the card directly; a
+// separate test asserts AdaptTrack gates it behind the flag.
 
 function wrapper() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -54,7 +58,7 @@ beforeEach(() => { vi.restoreAllMocks() })
 describe("AdaptTrack", () => {
   it("renders recorded pairs with before→after and an on/off toggle", async () => {
     mockFetch()
-    render(<AdaptTrack project="camp1" />, { wrapper: wrapper() })
+    render(<HouseStyleAdapt project="camp1" />, { wrapper: wrapper() })
     expect(await screen.findByTestId("adapt-pair-p1")).toBeTruthy()
     const p1 = screen.getByTestId("adapt-pair-p1")
     expect(within(p1).getByText("We observed")).toBeTruthy()
@@ -66,7 +70,7 @@ describe("AdaptTrack", () => {
 
   it("frames adaptation as retrieval personalisation, not a model retrain", async () => {
     mockFetch()
-    render(<AdaptTrack project="camp1" />, { wrapper: wrapper() })
+    render(<HouseStyleAdapt project="camp1" />, { wrapper: wrapper() })
     await screen.findByTestId("adapt-pair-p1")
     expect(screen.getByTestId("adapt-mechanism").textContent).toMatch(/does not retrain model weights/i)
     expect(screen.getByTestId("adapt-lora-note").textContent).toMatch(/LoRA/i)
@@ -74,7 +78,7 @@ describe("AdaptTrack", () => {
 
   it("shows an honest empty state when no pairs are recorded", async () => {
     mockFetch({ pairs: { pendingCount: 0, pairs: [] } })
-    render(<AdaptTrack project="camp1" />, { wrapper: wrapper() })
+    render(<HouseStyleAdapt project="camp1" />, { wrapper: wrapper() })
     expect(await screen.findByTestId("adapt-empty")).toBeTruthy()
     // With nothing enabled, Apply is disabled.
     expect((screen.getByTestId("adapt-apply") as HTMLButtonElement).disabled).toBe(true)
@@ -83,7 +87,7 @@ describe("AdaptTrack", () => {
   it("queues the retrieval-index build when Apply is clicked", async () => {
     let retrainCalled = false
     mockFetch({ capture: (u, init) => { if (u.includes("/retrain") && init?.method === "POST") retrainCalled = true } })
-    render(<AdaptTrack project="camp1" />, { wrapper: wrapper() })
+    render(<HouseStyleAdapt project="camp1" />, { wrapper: wrapper() })
     await screen.findByTestId("adapt-pair-p1") // wait for pairs → p1 enabled
     const apply = screen.getByTestId("adapt-apply")
     await waitFor(() => expect((apply as HTMLButtonElement).disabled).toBe(false))
@@ -95,9 +99,23 @@ describe("AdaptTrack", () => {
   it("persists a toggle via POST when a pair toggle is clicked", async () => {
     let toggled = ""
     mockFetch({ capture: (u, init) => { if (u.includes("/toggle") && init?.method === "POST") toggled = u } })
-    render(<AdaptTrack project="camp1" />, { wrapper: wrapper() })
+    render(<HouseStyleAdapt project="camp1" />, { wrapper: wrapper() })
     const t2 = await screen.findByTestId("adapt-toggle-p2")
     fireEvent.click(t2)
     await waitFor(() => expect(toggled).toContain("/api/model-tracks/adapt/p2/toggle"))
+  })
+
+  it("AdaptTrack shows model adaptation but hides house style while IND is paused", async () => {
+    // IND_REPORT_ENABLED is false in the test env → house style (an IND feature) is
+    // gated out; only the real model-adaptation flow renders.
+    global.fetch = vi.fn(async (url: any) => {
+      const u = String(url)
+      const body = u.includes("/api/models") && !u.includes("model-tracks") ? [] : {}
+      return { ok: true, status: 200, json: async () => body } as any
+    }) as unknown as typeof fetch
+    render(<AdaptTrack project="camp1" />, { wrapper: wrapper() })
+    expect(await screen.findByTestId("adapt-model")).toBeTruthy()
+    expect(screen.queryByTestId("adapt-apply")).toBeNull()
+    expect(screen.queryByTestId("adapt-pairs")).toBeNull()
   })
 })

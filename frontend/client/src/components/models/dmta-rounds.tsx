@@ -214,13 +214,18 @@ export function RoundsSection({
           ))
         )}
       </div>
+      {/* What this modality actually does — so peptide and biologic read as distinct
+          engines (different seed type + surrogate), not the same page with a new label. */}
+      <p className="text-fs-xs text-muted-foreground/80" data-testid={`optimise-modality-desc-${modality}`}>
+        {t(`models.rounds_modality_desc_${modality}`)}
+      </p>
       {modality !== "small_molecule" && (
         <div className="flex flex-wrap items-center gap-1.5" data-testid="optimise-generate">
           <input
             type="text" value={seed} onChange={(e) => setSeed(e.target.value)}
-            placeholder={t("models.rounds_gen_seed_placeholder")} spellCheck={false}
+            placeholder={t(`models.rounds_gen_seed_ph_${modality}`)} spellCheck={false}
             className="h-7 w-56 rounded border bg-background px-2 text-xs font-mono"
-            data-testid="optimise-gen-seed" aria-label={t("models.rounds_gen_seed_placeholder")}
+            data-testid="optimise-gen-seed" aria-label={t(`models.rounds_gen_seed_ph_${modality}`)}
           />
           <Button type="button" size="sm" variant="outline" className="h-7 text-xs"
             disabled={!!busy || !campaignId || !seed.trim()} onClick={generateLibrary}

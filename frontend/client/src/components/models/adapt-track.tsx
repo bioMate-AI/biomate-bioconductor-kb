@@ -18,10 +18,28 @@ import { useActiveProjectSafe } from "@/contexts/active-project-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { IND_REPORT_ENABLED } from "@/lib/feature-flags"
 import { useAdaptTrack, useAdaptToggle, useAdaptRetrain } from "./models-api"
 import { AdaptModel } from "./adapt-model"
 
+/**
+ * The Adapt tab: real model adaptation (always), plus — only while the IND /
+ * regulatory module is enabled — house-style text personalisation. House style
+ * personalises IND/regulatory drafts, so when IND Report is paused
+ * (IND_REPORT_ENABLED=false) it has no editor feeding it and is hidden, matching
+ * every other IND entry point (feature-flags.ts).
+ */
 export function AdaptTrack({ project }: { project?: string }) {
+  return (
+    <div className="space-y-3" data-testid="adapt-track">
+      {/* General model adaptation (SFT / DPO / RL / rule-following → new version). */}
+      <AdaptModel project={project} />
+      {IND_REPORT_ENABLED && <HouseStyleAdapt project={project} />}
+    </div>
+  )
+}
+
+export function HouseStyleAdapt({ project }: { project?: string }) {
   const ctx = useActiveProjectSafe()
   const projectId = project || ctx?.activeProjectId || ""
   const scoped = projectId || undefined
@@ -47,10 +65,7 @@ export function AdaptTrack({ project }: { project?: string }) {
   }
 
   return (
-    <div className="space-y-3" data-testid="adapt-track">
-      {/* General model adaptation (SFT / DPO / RL / rule-following → new version). */}
-      <AdaptModel project={project} />
-
+    <>
       {/* House-style text personalisation (retrieval, not weight training). */}
       <Card>
         <CardHeader className="pb-2">
@@ -150,6 +165,6 @@ export function AdaptTrack({ project }: { project?: string }) {
           ))}
         </div>
       )}
-    </div>
+    </>
   )
 }
