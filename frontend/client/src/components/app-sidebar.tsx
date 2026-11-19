@@ -50,7 +50,7 @@ interface ToolItem {
 }
 
 interface AppSidebarProps {
-  onNewChat?: () => void
+  onNewChat?: (projectId?: string | null) => void
   onChatSelect?: (chatId: string) => void
   onToolSelect?: (tool: ToolItem) => void
   onProjectSelect?: (projectId: string) => void
@@ -462,7 +462,7 @@ export function AppSidebar({
                       <button
                         style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 3, marginRight: 4, borderRadius: 4, color: 'var(--bm-accent, oklch(0.55 0.14 245))', background: 'transparent', border: 'none', cursor: 'pointer', flexShrink: 0 }}
                         data-testid={`project-new-chat-${proj.id}`}
-                        onClick={() => { setContextProjectId(proj.id); onNewChat(); }}
+                        onClick={() => { setContextProjectId(proj.id); onNewChat(proj.id); }}
                         aria-label={t("New Chat")}
                       ><Plus className="w-3.5 h-3.5" /></button>
                       </HintTip>

@@ -871,9 +871,13 @@ function App() {
   // used to guard against stale async callbacks overwriting the active session.
   const activeSessionIdRef = useRef<string | null>(null)
 
-  const handleNewChat = () => {
-    console.log('Creating new chat session')
-    const newSession = chatHistoryService.createNewSession()
+  const handleNewChat = (projectId?: string | null) => {
+    console.log('Creating new chat session', projectId ? `(project ${projectId})` : '(top-level)')
+    // Pass the project id explicitly from the caller (e.g. a project's "+"). Relying
+    // on the active-project context/localStorage here is racy — setActiveProjectId is
+    // async React state, so a just-clicked project isn't yet readable, and the chat
+    // would be created project-less and fall into "Other chats".
+    const newSession = chatHistoryService.createNewSession(projectId)
     activeSessionIdRef.current = newSession.id
     setCurrentChatSession(newSession)
 
