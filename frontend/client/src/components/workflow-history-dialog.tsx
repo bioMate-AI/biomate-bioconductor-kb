@@ -166,6 +166,14 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
   const [browseSearched, setBrowseSearched] = useState(false);
   const browseDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const browseReqRef = useRef(0);
+  // Rotating progress label so a slow search reads as working, not hung. The
+  // phases mirror the real backend stages: search -> rank -> card enrichment.
+  const [browsePhase, setBrowsePhase] = useState(0);
+  useEffect(() => {
+    if (!browseLoading) { setBrowsePhase(0); return; }
+    const t = setInterval(() => setBrowsePhase((p) => Math.min(p + 1, 2)), 1100);
+    return () => clearInterval(t);
+  }, [browseLoading]);
 
   function fetchRanked(query: string) {
     const q = query.trim();
@@ -617,8 +625,13 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
 
             <ScrollArea className="h-[340px] pr-3 mt-2">
               {browseLoading && (
-                <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" /> {tOr('common.loading', 'Loading…')}
+                <div className="flex items-center justify-center py-12 text-sm text-muted-foreground" data-testid="browse-loading" aria-live="polite">
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  <span className="transition-opacity duration-300">{[
+                    tOr('workflows_library.phase_search', 'Searching the catalog…'),
+                    tOr('workflows_library.phase_rank', 'Ranking matches…'),
+                    tOr('workflows_library.phase_details', 'Preparing result details…'),
+                  ][browsePhase]}</span>
                 </div>
               )}
               {browseError && !browseLoading && (
@@ -699,7 +712,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                         ) : null}
                         {r.card?.notFits?.length ? (
                           <div className="text-fs-xs mt-0.5 flex gap-1.5">
-                            <span className="font-semibold text-amber-700 dark:text-amber-500 shrink-0">{tOr('workflows_library.not_fits', 'Not')}</span>
+                            <span className="font-semibold text-amber-700 dark:text-amber-500 shrink-0">{tOr('workflows_library.instead', 'Instead')}</span>
                             <span className="text-muted-foreground">{r.card.notFits.join(' · ')}</span>
                           </div>
                         ) : null}

@@ -1,18 +1,22 @@
 """Surface rich "card" metadata for ranked workflow-search results.
 
-Reads purpose, where a workflow fits and does not fit, input/output file kinds,
-compute (CPU/GPU + memory) and a citation from the ``tools`` and
-``tool_knowledge`` catalog tables and attaches them to each ranked result as a
-compact ``card`` dict for the Workflows library UI.
+Reads purpose, where a workflow fits and the alternatives to consider,
+input/output kinds, and compute (CPU/GPU) from the ``workflows`` catalog table
+and attaches them to each ranked result as a compact ``card`` dict for the
+Workflows library UI.
 
 Design notes:
+  * The ranked results come from the ``workflows`` table (``search_ranked``
+    returns ``workflows.id``), so enrichment reads that same table and joins on
+    ``workflows.id`` — NOT ``tools.id``, which is a different id space.
+  * A name-match guard verifies the fetched row actually is the ranked result
+    before attaching a card, so a future id-space change can never misattribute
+    one workflow's metadata to another.
   * Stdlib only (sqlite3/json/re) — no Galaxy framework imports — so it loads and
     tests standalone.
-  * Prefers the clean structured sources (``structured_citations``,
-    ``tool_knowledge.use_cases``/``limitations``, ``scientific_context_v2``) and
-    drops HTML-contaminated fields, which some ``tools.citations`` rows contain.
   * Every field is optional: a workflow missing a source simply omits that key,
-    so the UI hides it rather than showing a blank.
+    so the UI hides it rather than showing a blank. Citations are not stored per
+    workflow, so they are omitted here (shown only if present).
   * The public entry point swallows its own errors; the caller additionally
     guards the import, so enrichment can never break the search path.
 """
@@ -27,13 +31,13 @@ from typing import Any, Dict, List, Optional
 
 log = logging.getLogger(__name__)
 
-# tools.db lives at backend/database/; this file is at backend/lib/galaxy/ai/.
+# galaxy_ai_tools.db lives at backend/database/; this file is at backend/lib/galaxy/ai/.
 DB_PATH = Path(__file__).resolve().parent.parent.parent.parent / "database" / "galaxy_ai_tools.db"
 
-_GPU_RE = re.compile(r"\b(gpu|cuda|nvidia|a100|v100|h100|t4|tesla|cupy)\b", re.IGNORECASE)
-# Marks a value as HTML/markup junk (seen in some raw citation rows) — never show it.
+_GPU_RE = re.compile(r"(cuda|nvidia|-gpu|_gpu|/gpu|a100|v100|h100)", re.IGNORECASE)
 _HTML_RE = re.compile(r"<[a-z/!][^>]*>|base\.mako|http-equiv|&lt;|&gt;", re.IGNORECASE)
-_MEM_RE = re.compile(r"\s*([\d.]+)\s*([A-Za-z]+)?")
+# annotation_v2 is "- key: value ;; value\n- key2: value ..." — split on the "- key:" heads.
+_SECTION_RE = re.compile(r"(?m)^\s*-\s+([a-z_]+)\s*:\s*")
 
 
 def _loads(raw: Any) -> Any:
@@ -45,41 +49,29 @@ def _loads(raw: Any) -> Any:
         return None
 
 
+def _norm(name: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", "", str(name or "").lower())
+
+
 def _clean_text(raw: Any) -> Optional[str]:
     if not raw:
         return None
     s = str(raw).strip()
-    if not s or _HTML_RE.search(s):
+    if not s or _HTML_RE.search(s) or s.startswith("{") or s.startswith("["):
         return None
-    return s
+    # Strip light markdown emphasis so '**name** is a pipeline…' reads cleanly.
+    s = s.replace("**", "").replace("`", "").strip()
+    return s or None
 
 
-def _clean_list(value: Any, limit: int) -> List[str]:
+def _kinds(value: Any, limit: int) -> List[str]:
+    """Coerce an input_types/output_types JSON list to readable tokens."""
     out: List[str] = []
-    if isinstance(value, list):
-        for item in value:
-            if not isinstance(item, str):
-                continue
-            t = item.strip()
-            if t and not _HTML_RE.search(t) and t not in out:
-                out.append(t)
-            if len(out) >= limit:
-                break
-    return out
-
-
-def _file_kinds(value: Any, limit: int) -> List[str]:
-    """Coerce an inputs/outputs JSON value to short file-kind tokens (``fasta``)."""
-    out: List[str] = []
-    if isinstance(value, list):
-        for item in value:
-            tok = None
+    data = _loads(value)
+    if isinstance(data, list):
+        for item in data:
             if isinstance(item, str):
-                tok = item
-            elif isinstance(item, dict):
-                tok = item.get("ext") or item.get("format") or item.get("type") or item.get("name")
-            if tok:
-                tok = str(tok).strip().lstrip(".").lower()
+                tok = item.strip().replace("_", " ")
                 if tok and tok not in out:
                     out.append(tok)
             if len(out) >= limit:
@@ -87,121 +79,114 @@ def _file_kinds(value: Any, limit: int) -> List[str]:
     return out
 
 
-def _memory(execution_info: Any) -> Optional[str]:
-    ei = _loads(execution_info)
-    if not isinstance(ei, dict):
-        return None
-    mem = ei.get("memory")
-    if not mem:
-        return None
-    m = _MEM_RE.match(str(mem))
-    if not m:
-        return None
-    num = m.group(1)
-    if "." in num:
-        num = num.rstrip("0").rstrip(".")
-    unit = (m.group(2) or "GB").upper()
-    if unit in ("G", "GB"):
-        unit = "GB"
-    elif unit in ("M", "MB"):
-        unit = "MB"
-    return "%s %s" % (num, unit)
+def _parse_annotation_v2(av2: Any) -> Dict[str, str]:
+    """Return {section_key: raw_value} from the '- key: value' annotation format."""
+    sections: Dict[str, str] = {}
+    if not av2:
+        return sections
+    text = str(av2)
+    parts = _SECTION_RE.split(text)
+    # parts = [preamble, key1, val1, key2, val2, ...]
+    i = 1
+    while i + 1 <= len(parts) - 1:
+        key = parts[i].strip()
+        val = parts[i + 1].strip()
+        if key:
+            sections[key] = val
+        i += 2
+    return sections
 
 
-def _hardware(execution_info: Any, requirements: Any, container_info: Any = None) -> Dict[str, Any]:
-    # Detect GPU from the tool's OWN signals only. execution_info carries a nested
-    # ``evidence_source.samples`` blob naming OTHER workflows, so scanning the whole
-    # string gives false positives — read just the tool-specific keys.
-    signals: List[str] = [str(requirements or ""), str(container_info or "")]
-    ei = _loads(execution_info)
-    if isinstance(ei, dict):
-        if ei.get("gpu") in (True, 1, "1"):
-            signals.append("gpu")
-        for key in ("type", "queue", "accelerator", "compute", "platform", "container", "image", "gpu"):
-            val = ei.get(key)
-            if val and not isinstance(val, (dict, list)):
-                signals.append(str(val))
-    return {
-        "kind": "GPU" if _GPU_RE.search(" ".join(signals)) else "CPU",
-        "memory": _memory(execution_info),
-    }
+def _split_items(raw: str, limit: int) -> List[str]:
+    out: List[str] = []
+    for chunk in str(raw).split(";;"):
+        t = chunk.strip().strip(".").strip()
+        if t and not _HTML_RE.search(t) and t not in out:
+            out.append(t)
+        if len(out) >= limit:
+            break
+    return out
 
 
-def _citation(structured_citations: Any, primary_citation: Any) -> Optional[Dict[str, Any]]:
-    """Return a compact citation from the structured sources only (never raw HTML)."""
-    for src in (primary_citation, structured_citations):
-        obj = _loads(src)
-        cit = None
-        if isinstance(obj, list):
-            cit = next(
-                (c for c in obj if isinstance(c, dict) and (c.get("title") or c.get("doi"))),
-                None,
-            )
-        elif isinstance(obj, dict):
-            cit = obj
-        if not cit or not (cit.get("title") or cit.get("doi")):
+def _alternatives(raw: str, limit: int) -> List[str]:
+    """Format 'name=reason ;; name=reason' alternatives into 'name — reason'."""
+    out: List[str] = []
+    for chunk in str(raw).split(";;"):
+        c = chunk.strip()
+        if not c:
             continue
-        authors = cit.get("authors") or []
-        lead = None
-        if isinstance(authors, list) and authors:
-            last = str(authors[0]).split()[-1]
-            lead = ("%s et al." % last) if len(authors) > 1 else last
-        title = _clean_text(cit.get("title"))
-        return {
-            "title": title,
-            "lead": lead,
-            "journal": cit.get("journal") or None,
-            "year": cit.get("year") or None,
-            "doi": cit.get("doi") or None,
-        }
-    return None
+        if "=" in c:
+            name, _, reason = c.partition("=")
+            name = name.strip()
+            reason = reason.strip().rstrip(".")
+            # Trim a leading "Use " so it reads "name — for raw FASTQ ...".
+            reason = re.sub(r"^use\s+", "", reason, flags=re.IGNORECASE)
+            item = "%s — %s" % (name, reason) if reason else name
+        else:
+            item = c
+        if item and not _HTML_RE.search(item) and item not in out:
+            out.append(item[:120])
+        if len(out) >= limit:
+            break
+    return out
 
 
 def _build_card(row: sqlite3.Row) -> Optional[Dict[str, Any]]:
-    card: Dict[str, Any] = {"hardware": _hardware(row["execution_info"], row["requirements"], row["container_info"])}
+    card: Dict[str, Any] = {}
 
-    purpose = _clean_text(row["scientific_context_v2"])
+    sections = _parse_annotation_v2(row["annotation_v2"])
+
+    # Purpose: prefer the clean description; fall back to when_to_use prose.
+    purpose = _clean_text(row["description"])
+    if not purpose:
+        purpose = _clean_text(sections.get("when_to_use"))
     if purpose:
         card["purpose"] = purpose[:260]
 
-    inputs = _file_kinds(_loads(row["inputs"]), 4)
-    outputs = _file_kinds(_loads(row["outputs"]), 4)
+    # Input -> output kinds.
+    inputs = _kinds(row["input_types"], 4) or _kinds(row["input_kinds"], 4)
+    outputs = _kinds(row["output_types"], 4)
     if inputs:
         card["inputs"] = inputs
     if outputs:
         card["outputs"] = outputs
 
-    fits = _clean_list(_loads(row["use_cases"]), 3)
-    not_fits = _clean_list(_loads(row["limitations"]), 3)
-    if fits:
-        card["fits"] = fits
-    if not_fits:
-        card["notFits"] = not_fits
+    # Fits: when_to_use scenarios. Not/alternatives: the alternatives section.
+    when = sections.get("when_to_use")
+    if when:
+        fits = _split_items(when, 3)
+        if fits:
+            card["fits"] = [f[:160] for f in fits]
+    alts = sections.get("alternatives") or sections.get("not_for") or sections.get("limitations")
+    if alts:
+        not_fits = _alternatives(alts, 3) if "=" in str(alts) else _split_items(alts, 3)
+        if not_fits:
+            card["notFits"] = not_fits
 
-    citation = _citation(row["structured_citations"], row["primary_citation"])
-    if citation:
-        card["citation"] = citation
+    # Compute: GPU if the pinned container is a CUDA/GPU image, else CPU.
+    img = str(row["docker_image"] or "")
+    card["hardware"] = {"kind": "GPU" if _GPU_RE.search(img) else "CPU", "memory": None}
 
-    # A card with nothing beyond the (always-present) hardware kind adds no value.
-    if len(card) == 1 and not card["hardware"].get("memory"):
+    # A card carrying only the (always-present) CPU/GPU kind adds little; still
+    # show it when we have at least I/O or a purpose.
+    if len(card) == 1:
         return None
     return card
 
 
 _SELECT = """
-    SELECT t.id AS id, t.inputs, t.outputs, t.requirements, t.execution_info,
-           t.container_info, t.structured_citations, t.scientific_context_v2,
-           k.use_cases, k.limitations, k.primary_citation
-    FROM tools t
-    LEFT JOIN tool_knowledge k ON k.tool_id = t.tool_id OR k.tool_name = t.name
-    WHERE t.id IN (%s)
+    SELECT id, name, filename, description, annotation_v2,
+           input_types, output_types, input_kinds, docker_image
+    FROM workflows
+    WHERE id IN (%s)
 """
 
 
 def enrich_ranked_cards(ranked: List[Dict[str, Any]], db_path: Optional[str] = None) -> List[Dict[str, Any]]:
     """Attach a ``card`` dict to each catalog (``type == 'workflow'``) result in place.
 
-    Chains carry no catalog id and are skipped. Never raises.
+    Joins on workflows.id and verifies the row's name/filename matches the ranked
+    result before attaching, so a card is never misattributed. Never raises.
     """
     try:
         if not ranked:
@@ -223,19 +208,19 @@ def enrich_ranked_cards(ranked: List[Dict[str, Any]], db_path: Optional[str] = N
         finally:
             conn.close()
 
-        # One tool may match several tool_knowledge rows via the OR join; keep the
-        # row that actually carries use_cases.
-        by_id: Dict[str, sqlite3.Row] = {}
-        for row in rows:
-            key = str(row["id"])
-            if key not in by_id or (not by_id[key]["use_cases"] and row["use_cases"]):
-                by_id[key] = row
+        by_id = {str(row["id"]): row for row in rows}
 
         for it in ranked:
             if it.get("type") != "workflow" or it.get("id") is None:
                 continue
             row = by_id.get(str(it.get("id")))
             if row is None:
+                continue
+            # Name-match guard: never attach a row whose identity differs from the
+            # ranked result (protects against any id-space drift).
+            rn, inm = _norm(row["name"]), _norm(it.get("name"))
+            rf, inf = _norm(row["filename"]), _norm(it.get("nextflow_path"))
+            if rn and inm and rn != inm and not (rf and inf and rf == inf):
                 continue
             card = _build_card(row)
             if card:
