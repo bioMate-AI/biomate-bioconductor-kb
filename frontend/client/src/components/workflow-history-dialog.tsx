@@ -42,6 +42,23 @@ interface RankedResult {
   /** Catalog identity (search_ranked), so "Run" selects exactly this row. */
   id?: number;
   nextflow_path?: string | null;
+  /** Rich card metadata surfaced from the tools + tool_knowledge catalog tables.
+   *  Every field is optional; a missing field is hidden, never shown blank. */
+  card?: {
+    hardware?: { kind?: string | null; memory?: string | null };
+    purpose?: string | null;
+    inputs?: string[];
+    outputs?: string[];
+    fits?: string[];
+    notFits?: string[];
+    citation?: {
+      title?: string | null;
+      lead?: string | null;
+      journal?: string | null;
+      year?: number | string | null;
+      doi?: string | null;
+    };
+  };
 }
 
 interface RunRow {
@@ -642,7 +659,62 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                               ranking score are not shown (founder 2026-11-12: "biomni_nextflow …
                               untolerable", "评分 52.1" means nothing to a user). */}
                           {r.domain && <DomainChip domain={r.domain} />}
+                          {r.card?.hardware?.kind && (
+                            <span
+                              data-testid={`browse-result-hw-${r.rank}`}
+                              className={`px-1.5 py-0.5 rounded font-mono font-medium ${r.card.hardware.kind === 'GPU'
+                                ? 'bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300'
+                                : 'bg-muted text-muted-foreground'}`}
+                            >
+                              {r.card.hardware.kind}{r.card.hardware.memory ? ` · ${r.card.hardware.memory}` : ''}
+                            </span>
+                          )}
                         </div>
+
+                        {/* Input → output file kinds */}
+                        {Boolean(r.card?.inputs?.length || r.card?.outputs?.length) && (
+                          <div className="text-fs-xs text-muted-foreground mt-1 flex items-center gap-1 flex-wrap">
+                            {r.card?.inputs?.length ? (
+                              <>
+                                <span className="font-medium">{tOr('workflows_library.io_in', 'In')}</span>
+                                {r.card.inputs.map((x) => <code key={`i-${x}`} className="px-1 rounded bg-muted">{x}</code>)}
+                              </>
+                            ) : null}
+                            {r.card?.outputs?.length ? (
+                              <>
+                                <span className="opacity-50">→</span>
+                                <span className="font-medium">{tOr('workflows_library.io_out', 'Out')}</span>
+                                {r.card.outputs.map((x) => <code key={`o-${x}`} className="px-1 rounded bg-muted">{x}</code>)}
+                              </>
+                            ) : null}
+                          </div>
+                        )}
+
+                        {/* Where it fits / does not fit */}
+                        {r.card?.fits?.length ? (
+                          <div className="text-fs-xs mt-1 flex gap-1.5">
+                            <span className="font-semibold text-emerald-700 dark:text-emerald-400 shrink-0">{tOr('workflows_library.fits', 'Fits')}</span>
+                            <span className="text-muted-foreground">{r.card.fits.join(' · ')}</span>
+                          </div>
+                        ) : null}
+                        {r.card?.notFits?.length ? (
+                          <div className="text-fs-xs mt-0.5 flex gap-1.5">
+                            <span className="font-semibold text-amber-700 dark:text-amber-500 shrink-0">{tOr('workflows_library.not_fits', 'Not')}</span>
+                            <span className="text-muted-foreground">{r.card.notFits.join(' · ')}</span>
+                          </div>
+                        ) : null}
+
+                        {/* Citation (structured sources only) */}
+                        {r.card?.citation && (r.card.citation.lead || r.card.citation.journal || r.card.citation.doi) ? (
+                          <div className="text-fs-xs text-muted-foreground mt-1 truncate" title={r.card.citation.title || undefined}>
+                            {r.card.citation.lead ? `${r.card.citation.lead}` : null}
+                            {r.card.citation.journal ? <>{r.card.citation.lead ? ', ' : null}<em>{r.card.citation.journal}</em></> : null}
+                            {r.card.citation.year ? ` ${r.card.citation.year}` : null}
+                            {r.card.citation.doi ? (
+                              <> · <a href={`https://doi.org/${r.card.citation.doi}`} target="_blank" rel="noreferrer" className="text-primary hover:underline" onClick={(e) => e.stopPropagation()}>doi&nbsp;↗</a></>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </div>
                       <Button
                         size="sm"

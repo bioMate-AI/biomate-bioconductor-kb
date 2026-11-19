@@ -2498,6 +2498,16 @@ def search_ranked(
     for i, item in enumerate(ranked):
         item["rank"] = i + 1
 
+    # Attach a rich "card" (purpose, fit/not-fit, I/O, compute, citation) to each
+    # catalog result, surfaced from the tools + tool_knowledge tables for the
+    # Workflows library UI. Guarded both here and inside the helper: any failure
+    # degrades to results-without-cards rather than failing the search.
+    try:
+        from galaxy.ai.workflow_card_enrich import enrich_ranked_cards
+        enrich_ranked_cards(ranked)
+    except Exception as _card_exc:
+        log.warning("[search_ranked] card enrichment unavailable: %s", _card_exc)
+
     return {"query": request.query, "results": ranked}
 
 
