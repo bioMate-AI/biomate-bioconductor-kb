@@ -38,7 +38,8 @@ function humanBytes(n?: number): string {
 function DirectoryScanFlow({ onBack, projectId }: { onBack: () => void; projectId?: string }) {
   const { toast } = useToast();
   const [path, setPath] = useState('');
-  const [mode, setMode] = useState<'index' | 'copy'>('index');
+  // Index-in-place is the only real behavior; "copy in" was removed (it copied nothing).
+  const mode = 'index' as const;
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [attaching, setAttaching] = useState(false);
@@ -96,8 +97,11 @@ function DirectoryScanFlow({ onBack, projectId }: { onBack: () => void; projectI
         <h3 className="text-sm font-semibold flex items-center gap-2"><FolderSearch className="w-4 h-4" /> Connect a directory</h3>
         <p className="text-xs text-muted-foreground mt-1">
           A share, an HPC scratch path, or an instrument output folder. Indexing reads the files where they
-          are and creates dataset objects that point at them — a large run directory is never copied. Each
-          scan is a version, so files that change are tracked rather than silently replaced.
+          are and creates dataset objects that point at them — a large run directory is never copied.
+        </p>
+        <p className="text-fs-xs text-amber-700 dark:text-amber-400 mt-1 flex items-start gap-1">
+          <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
+          Directory scanning runs only on a self-hosted / on-prem deployment — on the hosted cloud, paths can't be reached, so a scan is refused.
         </p>
       </div>
 
@@ -161,22 +165,8 @@ function DirectoryScanFlow({ onBack, projectId }: { onBack: () => void; projectI
             </table>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Label className="text-xs">How to attach</Label>
-            <div className="flex gap-1.5">
-              {([['index', 'Index in place'], ['copy', 'Copy in']] as const).map(([v, label]) => (
-                <button
-                  key={v} type="button" onClick={() => setMode(v)}
-                  data-testid={`directory-mode-${v}`}
-                  className={`text-fs-xs rounded-full border px-2.5 py-0.5 ${mode === v ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted/50'}`}
-                >{label}</button>
-              ))}
-            </div>
-          </div>
           <p className="text-fs-xs text-muted-foreground">
-            {mode === 'index'
-              ? 'Indexing reads the files where they are and creates dataset objects pointing at them — nothing is copied.'
-              : 'Copy-in is for small sets you want versioned inside the project; the files are copied and tracked.'}
+            The files are indexed where they are — dataset objects point at them, nothing is copied.
           </p>
 
           <Button size="sm" className="h-8 text-xs gap-1.5" onClick={attach} disabled={attaching} data-testid="directory-attach-btn">
@@ -202,9 +192,9 @@ const KINDS: {
   key: string; title: string; kind: string; mode: string; q: string; note: string;
   icon: React.ReactNode; action?: keyof Omit<AddConnectorFlowProps, 'projectId'>;
 }[] = [
-  { key: 'directory', title: 'A directory', kind: 'Data source', mode: 'Index in place, or copy in', icon: <FolderSearch className="w-4 h-4" />,
+  { key: 'directory', title: 'A directory', kind: 'Data source', mode: 'Index in place (on-prem only)', icon: <FolderSearch className="w-4 h-4" />,
     q: 'A share, an HPC scratch path, an instrument output folder.',
-    note: 'Indexing reads the files where they are and creates dataset objects that point at them — a 4 TB run directory is not copied. Each scan is a version, so files that change are tracked rather than silently replaced.' },
+    note: 'Indexing reads the files where they are and creates dataset objects that point at them — a 4 TB run directory is not copied. Runs only on a self-hosted / on-prem deployment (the hosted cloud cannot reach your paths).' },
   { key: 'database', title: 'A database', kind: 'Data source', mode: 'Connection + a read scope', icon: <Database className="w-4 h-4" />, action: 'onPickDatabase',
     q: 'Postgres, SQLite, a warehouse, an internal registry.',
     note: 'A read-only role and the tables it may see. A pull becomes a dataset object whose origin records the query and the time it ran — so a result can be reproduced against a moving database.' },
@@ -213,7 +203,7 @@ const KINDS: {
     note: 'Registered like any other model; it still needs held-out evidence on data in the product before it can gate anything. Marking it on-prem is what lets restricted data be routed to it.' },
   { key: 'instrument', title: 'An instrument', kind: 'Data source', mode: 'Feed + residency', icon: <Database className="w-4 h-4" />, action: 'onPickInstrument',
     q: 'A sequencer, a plate reader, a microscope — a device that emits data.',
-    note: 'Its output folder becomes a connected directory; runs read from it in place, and each poll is a version.' },
+    note: 'Its output folder becomes a connected directory; runs read from it in place as new files arrive.' },
   { key: 'skill', title: 'A skill or expert', kind: 'Skill', mode: 'Say what it needs and produces', icon: <Sparkles className="w-4 h-4" />, action: 'onPickSkill',
     q: 'A section to draft, a fit to run, a figure to build, or a reading your specialists always apply.',
     note: 'You describe it in your own words. It cannot change a parameter — to change what runs, write it in a project’s instructions.' },
