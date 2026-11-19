@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { HintTip } from "@/components/ui/hint-tip"
 import { Loader2, Play, Square, RefreshCw } from "lucide-react"
-import { seedLoopFixturesForCampaign } from "./dmta-loop-fixtures"
+import { seedLoopFixturesForCampaign, LOOP_ASSAY_DEMO_URL, LOOP_LIBRARY_DEMO_URL } from "./dmta-loop-fixtures"
 import type { OptimiseData } from "./models-panel"
 
 async function errorDetail(res: Response): Promise<string> {
@@ -219,6 +219,22 @@ export function RoundsSection({
       <p className="text-fs-xs text-muted-foreground/80" data-testid={`optimise-modality-desc-${modality}`}>
         {t(`models.rounds_modality_desc_${modality}`)}
       </p>
+      {/* Sample data is injected for small-molecule campaigns — link its exact source so
+          the user can see what it is and what it looks like (not fabricated data). */}
+      {modality === "small_molecule" && (
+        <p className="text-fs-xs text-muted-foreground/70" data-testid="optimise-demo-source">
+          {t("models.rounds_demo_source_label")}{" "}
+          <a className="text-primary hover:underline" href={LOOP_ASSAY_DEMO_URL} target="_blank" rel="noopener noreferrer">
+            {t("models.rounds_demo_assays")}
+          </a>{" · "}
+          <a className="text-primary hover:underline" href={LOOP_LIBRARY_DEMO_URL} target="_blank" rel="noopener noreferrer">
+            {t("models.rounds_demo_library")}
+          </a>{" · "}
+          <a className="text-primary hover:underline" href="https://moleculenet.org/datasets-1" target="_blank" rel="noopener noreferrer">
+            {t("models.rounds_demo_about")}
+          </a>
+        </p>
+      )}
       {modality !== "small_molecule" && (
         <div className="flex flex-wrap items-center gap-1.5" data-testid="optimise-generate">
           <input
