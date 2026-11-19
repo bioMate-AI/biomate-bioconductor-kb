@@ -15,3 +15,9 @@ export const UX_FEEDBACK_ADMIN_ENABLED =
  *  The backend and proxies are kept so the module can be re-enabled intact. */
 export const IND_REPORT_ENABLED = import.meta.env.VITE_ENABLE_IND_REPORT === "true";
 
+/** Directory connector — requires BIOMATE_CONNECTOR_SCAN_ROOTS (on-prem/self-host only;
+ *  the hosted cloud cannot reach a user's paths, so every scan is refused). Hidden by
+ *  default so users never see a connector that can't work here; a self-host deployment
+ *  turns it on with VITE_ENABLE_CONNECTOR_DIRECTORY=true. */
+export const CONNECTOR_DIRECTORY_ENABLED = import.meta.env.VITE_ENABLE_CONNECTOR_DIRECTORY === "true";
+

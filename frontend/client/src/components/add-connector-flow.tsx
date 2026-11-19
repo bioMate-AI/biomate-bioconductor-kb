@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { FolderSearch, Database, Brain, Sparkles, Plug, ChevronLeft, Loader2, AlertTriangle } from 'lucide-react';
+import { CONNECTOR_DIRECTORY_ENABLED } from '@/lib/feature-flags';
 
 type ScanType = { ext: string; label: string; count: number; bytes: number; becomes: string };
 type ScanResult = {
@@ -98,10 +99,6 @@ function DirectoryScanFlow({ onBack, projectId }: { onBack: () => void; projectI
         <p className="text-xs text-muted-foreground mt-1">
           A share, an HPC scratch path, or an instrument output folder. Indexing reads the files where they
           are and creates dataset objects that point at them — a large run directory is never copied.
-        </p>
-        <p className="text-fs-xs text-amber-700 dark:text-amber-400 mt-1 flex items-start gap-1">
-          <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
-          Directory scanning runs only on a self-hosted / on-prem deployment — on the hosted cloud, paths can't be reached, so a scan is refused.
         </p>
       </div>
 
@@ -192,9 +189,9 @@ const KINDS: {
   key: string; title: string; kind: string; mode: string; q: string; note: string;
   icon: React.ReactNode; action?: keyof Omit<AddConnectorFlowProps, 'projectId'>;
 }[] = [
-  { key: 'directory', title: 'A directory', kind: 'Data source', mode: 'Index in place (on-prem only)', icon: <FolderSearch className="w-4 h-4" />,
+  { key: 'directory', title: 'A directory', kind: 'Data source', mode: 'Index in place', icon: <FolderSearch className="w-4 h-4" />,
     q: 'A share, an HPC scratch path, an instrument output folder.',
-    note: 'Indexing reads the files where they are and creates dataset objects that point at them — a 4 TB run directory is not copied. Runs only on a self-hosted / on-prem deployment (the hosted cloud cannot reach your paths).' },
+    note: 'Indexing reads the files where they are and creates dataset objects that point at them — a 4 TB run directory is not copied.' },
   { key: 'database', title: 'A database', kind: 'Data source', mode: 'Connection + a read scope', icon: <Database className="w-4 h-4" />, action: 'onPickDatabase',
     q: 'Postgres, SQLite, a warehouse, an internal registry.',
     note: 'A read-only role and the tables it may see. A pull becomes a dataset object whose origin records the query and the time it ran — so a result can be reproduced against a moving database.' },
@@ -226,7 +223,9 @@ export function AddConnectorFlow(props: AddConnectorFlowProps) {
         </p>
       </div>
       <div className="space-y-2">
-        {KINDS.map(k => (
+        {/* The directory connector needs on-prem scan roots; hide it entirely where it
+            can't work (hosted cloud) rather than show a connector that always refuses. */}
+        {KINDS.filter(k => k.key !== 'directory' || CONNECTOR_DIRECTORY_ENABLED).map(k => (
           <div key={k.key} className="flex items-start gap-3 rounded-md border border-border p-3" data-testid={`add-kind-${k.key}`}>
             <div className="min-w-0 flex-1 space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
@@ -247,10 +246,12 @@ export function AddConnectorFlow(props: AddConnectorFlowProps) {
           </div>
         ))}
       </div>
-      <p className="text-fs-xs text-muted-foreground">
-        Nothing is attached until you have seen what was found. A directory scan reports the file types and
-        counts it detected, and what each will become, before it creates a single dataset object.
-      </p>
+      {CONNECTOR_DIRECTORY_ENABLED && (
+        <p className="text-fs-xs text-muted-foreground">
+          Nothing is attached until you have seen what was found. A directory scan reports the file types and
+          counts it detected, and what each will become, before it creates a single dataset object.
+        </p>
+      )}
     </div>
   );
 }
