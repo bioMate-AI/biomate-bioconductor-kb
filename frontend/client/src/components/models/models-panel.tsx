@@ -20,7 +20,7 @@ import { originLabel } from "./model-origin"
  * namespace, complete in both en and zh.
  */
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { t, tOr } from "@/lib/i18n"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -82,7 +82,7 @@ export type ModelsTrack = (typeof MODELS_TRACKS)[number]
 const TRACK_ICONS = [GraduationCap, Library, FlaskConical, Sparkles]
 
 // ── 模型库 — catalog ─────────────────────────────────────────────────────────
-function CatalogTable({ rows, onOpenModel }: { rows: ModelSummary[]; onOpenModel: (id: string) => void }) {
+function CatalogTable({ rows, onOpenModel, onRun }: { rows: ModelSummary[]; onOpenModel: (id: string) => void; onRun?: (id: string) => void }) {
   return (
     <div className="rounded border text-xs" data-testid="registry-table">
       <div className="grid grid-cols-[1.4fr_1fr_0.8fr_0.8fr_auto] gap-2 bg-muted px-2 py-1 font-semibold">
@@ -94,20 +94,36 @@ function CatalogTable({ rows, onOpenModel }: { rows: ModelSummary[]; onOpenModel
       </div>
       {rows.map((m) => (
         <div key={m.id} className="border-t">
-          <button
-            type="button"
-            className="grid w-full grid-cols-[1.4fr_1fr_0.8fr_0.8fr_auto] items-center gap-2 px-2 py-1.5 text-left hover:bg-muted/40"
-            data-testid={`registry-row-${m.id}`}
-            onClick={() => onOpenModel(m.id)}
-          >
-            <span className="truncate font-mono font-semibold">
-              {m.name} <span className="text-muted-foreground">{m.version}</span>
-            </span>
-            <span className="truncate text-muted-foreground">{m.family}</span>
-            <span className="truncate text-muted-foreground">{originLabel(m.origin)}</span>
-            <span className="text-muted-foreground">{m.usedByCount}</span>
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
+          {/* The row's info is one clickable area (opens the model); Run sits beside it
+              so a model can be launched straight from the catalog, no detour. */}
+          <div className="grid grid-cols-[1.4fr_1fr_0.8fr_0.8fr_auto] items-center gap-2 px-2 py-1.5 hover:bg-muted/40">
+            <button
+              type="button"
+              className="contents text-left"
+              data-testid={`registry-row-${m.id}`}
+              onClick={() => onOpenModel(m.id)}
+            >
+              <span className="truncate font-mono font-semibold">
+                {m.name} <span className="text-muted-foreground">{m.version}</span>
+              </span>
+              <span className="truncate text-muted-foreground">{m.family}</span>
+              <span className="truncate text-muted-foreground">{originLabel(m.origin)}</span>
+              <span className="text-muted-foreground">{m.usedByCount}</span>
+            </button>
+            <div className="flex items-center justify-end gap-1">
+              {onRun && (
+                <button
+                  type="button"
+                  className="rounded border px-1.5 py-0.5 text-fs-xs hover:bg-muted"
+                  data-testid={`registry-row-run-${m.id}`}
+                  onClick={() => onRun(m.id)}
+                >
+                  {t("models.run_action")}
+                </button>
+              )}
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+            </div>
+          </div>
           {m.lastInference?.status === "failed" && (
             <p
               className="flex items-start gap-1 px-2 pb-1.5 text-fs-xs text-destructive"
@@ -129,6 +145,17 @@ function CatalogTable({ rows, onOpenModel }: { rows: ModelSummary[]; onOpenModel
 
 function LibraryTrack({ project, onOpenModel, preselectModelId }: { project?: string; onOpenModel: (id: string) => void; preselectModelId?: string | null }) {
   const { data: models, isLoading, isError } = useModels()
+  // A Run clicked on a catalog row preselects the "Run a model" card below and
+  // scrolls to it (local, so it also layers over an incoming preselectModelId).
+  const [rowRun, setRowRun] = useState<string | null>(null)
+  const runRef = useRef<HTMLDivElement>(null)
+  const runModel = (id: string) => {
+    setRowRun(id)
+    requestAnimationFrame(() => {
+      const el = runRef.current
+      if (el && typeof el.scrollIntoView === "function") el.scrollIntoView({ behavior: "smooth", block: "nearest" })
+    })
+  }
   return (
     <div className="space-y-3" data-testid="track-library">
       <Card>
@@ -147,7 +174,7 @@ function LibraryTrack({ project, onOpenModel, preselectModelId }: { project?: st
               {t("models.registry_catalog_error")}
             </p>
           ) : (models ?? []).length ? (
-            <CatalogTable rows={models as ModelSummary[]} onOpenModel={onOpenModel} />
+            <CatalogTable rows={models as ModelSummary[]} onOpenModel={onOpenModel} onRun={runModel} />
           ) : (
             <p className="text-xs text-muted-foreground" data-testid="registry-empty">
               {t("models.registry_empty_catalog")}
@@ -160,7 +187,9 @@ function LibraryTrack({ project, onOpenModel, preselectModelId }: { project?: st
       <OwnedTrainingRegistry project={project} />
 
       {/* Run a model — merged here so the catalog and inference are one place. */}
-      <RunPretrained onOpenModel={onOpenModel} initialModelId={preselectModelId ?? undefined} />
+      <div ref={runRef}>
+        <RunPretrained onOpenModel={onOpenModel} initialModelId={rowRun ?? preselectModelId ?? undefined} />
+      </div>
     </div>
   )
 }

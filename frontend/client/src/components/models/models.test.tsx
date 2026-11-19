@@ -203,6 +203,16 @@ describe("ModelsPanel — 模型库 (Model library) tab", () => {
     await waitFor(() => expect(screen.getByTestId("model-object")).toBeTruthy())
   })
 
+  it("a catalog row's Run preselects that model in 'Run a model'", async () => {
+    mockFetchByUrl({ "/api/models": CATALOG, "/api/model-training-versions": { versions: [] } })
+    render(<ModelsPanel project="Test project" tab={1} />, { wrapper: wrapper() })
+    await waitFor(() => expect(screen.getByTestId("registry-table")).toBeTruthy())
+    fireEvent.click(screen.getByTestId("registry-row-run-bionemo:boltz2"))
+    await waitFor(() =>
+      expect(screen.getByTestId("run-pretrained-model").textContent).toContain("Boltz-2"),
+    )
+  })
+
   it("reports a catalog read failure instead of an empty library", async () => {
     mockFetchByUrl({ "/api/model-training-versions": { versions: [] } })
     render(<ModelsPanel project="Test project" tab={1} />, { wrapper: wrapper() })
