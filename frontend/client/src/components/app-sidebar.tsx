@@ -389,9 +389,10 @@ export function AppSidebar({
 
       {/* Projects section — always visible */}
       <div style={{ marginBottom: 8, borderTop: '1px solid var(--bm-border)', paddingTop: 8, maxHeight: '50vh', overflowY: 'auto', flexShrink: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', padding: '0 6px 4px 10px' }}>
           <HintTip hint={t('hint.nav.projects')}>
           <button
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px 4px', fontSize: 'var(--fs-xs)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', fontWeight: 600, width: '100%', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0, fontSize: 'var(--fs-xs)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', fontWeight: 600, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
             onClick={() => setProjectsExpanded(p => !p)}
             data-testid="button-projects-section"
           >
@@ -400,6 +401,17 @@ export function AppSidebar({
             {t('nav.projects')}
           </button>
           </HintTip>
+          <HintTip hint={t('hint.nav.new_project')}>
+          <button
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 3, borderRadius: 4, color: 'var(--bm-text-dim)', background: 'transparent', border: 'none', cursor: 'pointer', flexShrink: 0 }}
+            onClick={onNewProject}
+            data-testid="button-new-project"
+            aria-label={t('nav.new_project')}
+          >
+            <Plus className="w-3.5 h-3.5" style={{ opacity: 0.7 }} />
+          </button>
+          </HintTip>
+          </div>
           {projectsExpanded && apiProjects.map((proj) => {
             const isExpanded = expandedProjectIds.has(proj.id);
             return (
@@ -433,15 +445,12 @@ export function AppSidebar({
                     </button>
                     </HintTip>
                     {/* Project Runs navigation hidden: executions are accessible from their chats. */}
-                    <HintTip hint={t('hint.nav.project_new_chat')}>
-                    <button className="side-link" style={{ display: "flex", gap: 6, padding: "5px 10px", fontSize: 'var(--fs-meta)', width: "100%", color: "var(--bm-accent, oklch(0.55 0.14 245))" }} data-testid={`project-new-chat-${proj.id}`} onClick={() => { setContextProjectId(proj.id); onNewChat(); }}><Plus className="w-3 h-3" />{t("New Chat")}</button>
-                    </HintTip>
-                    {/* New chat sits ABOVE the chat list (founder 2026-11-12: at the bottom of a long list it was hard to find); the list folds. */}
-                    {projectChatRows(proj.id, projectSessions[proj.id], chatSessions, deletedChatIds).length > 0 && (
+                    {/* Chats folder header with an inline "+" new-chat (concise); the list folds under it. */}
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
                       <button
                         type="button"
                         className="side-link"
-                        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 'var(--fs-micro)', width: '100%', textAlign: 'left', color: 'var(--bm-text-dim)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0, padding: '3px 10px', fontSize: 'var(--fs-micro)', textAlign: 'left', color: 'var(--bm-text-dim)', background: 'transparent', border: 'none', cursor: 'pointer' }}
                         aria-expanded={!collapsedChatLists.has(proj.id)}
                         onClick={() => setCollapsedChatLists(prev => { const n = new Set(prev); if (n.has(proj.id)) n.delete(proj.id); else n.add(proj.id); return n; })}
                         data-testid={`project-chats-toggle-${proj.id}`}
@@ -449,23 +458,48 @@ export function AppSidebar({
                         {collapsedChatLists.has(proj.id) ? <ChevronRight className="w-3 h-3 shrink-0" /> : <ChevronDown className="w-3 h-3 shrink-0" />}
                         {t('nav.project_chats', { n: projectChatRows(proj.id, projectSessions[proj.id], chatSessions, deletedChatIds).length })}
                       </button>
-                    )}
-                    {!collapsedChatLists.has(proj.id) && projectChatRows(proj.id, projectSessions[proj.id], chatSessions, deletedChatIds).map(chat => <HintTip key={chat.session_id} hint={chat.title}><button data-testid={`button-project-chat-${chat.session_id}`} onClick={() => { setContextProjectId(proj.id); onChatSelect(chat.session_id); }} style={{ display: 'flex', gap: 7, padding: '5px 10px', borderRadius: 5, fontSize: 'var(--fs-meta)', width: '100%', textAlign: 'left', color: 'var(--bm-accent, oklch(0.55 0.14 245))', background: activeChatId === chat.session_id ? 'var(--bm-bg-elev)' : 'transparent' }}><span style={{ flexShrink: 0 }}>·</span><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span></button></HintTip>)}
+                      <HintTip hint={t('hint.nav.project_new_chat')}>
+                      <button
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 3, marginRight: 4, borderRadius: 4, color: 'var(--bm-accent, oklch(0.55 0.14 245))', background: 'transparent', border: 'none', cursor: 'pointer', flexShrink: 0 }}
+                        data-testid={`project-new-chat-${proj.id}`}
+                        onClick={() => { setContextProjectId(proj.id); onNewChat(); }}
+                        aria-label={t("New Chat")}
+                      ><Plus className="w-3.5 h-3.5" /></button>
+                      </HintTip>
+                    </div>
+                    {!collapsedChatLists.has(proj.id) && projectChatRows(proj.id, projectSessions[proj.id], chatSessions, deletedChatIds).map(chat => {
+                      const isConfirming = confirmingDeleteChatId === chat.session_id;
+                      const isActive = activeChatId === chat.session_id;
+                      return (
+                        <div key={chat.session_id} className="sidebar-chat-row" data-testid={`project-chat-row-${chat.session_id}`} style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 5, background: isActive ? 'var(--bm-bg-elev)' : 'transparent' }}>
+                          <HintTip hint={chat.title}>
+                          <button data-testid={`button-project-chat-${chat.session_id}`} onClick={() => { setContextProjectId(proj.id); onChatSelect(chat.session_id); }} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 10px', borderRadius: 5, fontSize: 'var(--fs-meta)', flex: 1, minWidth: 0, textAlign: 'left', color: 'var(--bm-accent, oklch(0.55 0.14 245))', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+                            <span style={{ flexShrink: 0 }}>·</span>
+                            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span>
+                          </button>
+                          </HintTip>
+                          {isConfirming ? (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0, paddingRight: 6 }}>
+                              <HintTip hint={tOr('chat.delete_confirm', 'Delete chat')} side="top">
+                              <button onClick={() => handleDeleteChat(chat.session_id)} data-testid={`confirm-delete-chat-${chat.session_id}`} aria-label={tOr('chat.delete_confirm', 'Delete chat')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 3, border: 'none', borderRadius: 4, background: 'transparent', cursor: 'pointer', color: 'var(--bm-err, oklch(0.58 0.18 25))' }}><Check className="w-3.5 h-3.5" /></button>
+                              </HintTip>
+                              <HintTip hint={tOr('common.cancel', 'Cancel')} side="top">
+                              <button onClick={() => setConfirmingDeleteChatId(null)} data-testid={`cancel-delete-chat-${chat.session_id}`} aria-label={tOr('common.cancel', 'Cancel')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 3, border: 'none', borderRadius: 4, background: 'transparent', cursor: 'pointer', color: 'var(--bm-text-dim)' }}><X className="w-3.5 h-3.5" /></button>
+                              </HintTip>
+                            </span>
+                          ) : (
+                            <HintTip hint={tOr('chat.delete_chat', 'Delete chat')} side="top">
+                            <button onClick={(e) => { e.stopPropagation(); setConfirmingDeleteChatId(chat.session_id); }} data-testid={`button-delete-project-chat-${chat.session_id}`} aria-label={tOr('chat.delete_chat', 'Delete chat')} className="sidebar-chat-delete" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 3, marginRight: 6, border: 'none', borderRadius: 4, background: 'transparent', cursor: 'pointer', color: 'var(--bm-text-dim)', opacity: 0.55, flexShrink: 0 }}><Trash2 className="w-3.5 h-3.5" /></button>
+                            </HintTip>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
             );
           })}
-          <HintTip hint={t('hint.nav.new_project')}>
-          <button
-            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '3px 10px', borderRadius: 5, color: 'var(--bm-text-dim)', fontSize: 'var(--fs-micro)', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left', marginTop: 2 }}
-            onClick={onNewProject}
-            data-testid="button-new-project"
-          >
-            <Plus className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
-            {t('nav.new_project')}
-          </button>
-          </HintTip>
         </div>
 
       {/* Chat history — scrollable, takes remaining space */}
