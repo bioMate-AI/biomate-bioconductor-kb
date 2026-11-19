@@ -179,7 +179,12 @@ export function RoundsSection({
       )
       refresh()
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : String(e))
+      const raw = e instanceof Error ? e.message : String(e)
+      // The backend returns a raw developer error when prerequisites are missing
+      // ("… requires assay data and a cached virtual library. Call POST …/virtual-library
+      // first."). Replace it with actionable guidance instead of a leaked API instruction.
+      const needsPrereq = /virtual.?library|assay data/i.test(raw)
+      setActionError(needsPrereq ? t("models.rounds_prereq_needed") : raw)
     } finally {
       setBusy(null)
     }

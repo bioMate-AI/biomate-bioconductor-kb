@@ -162,6 +162,10 @@ def test_plan_rejects_unrunnable_types_with_reason():
         build_training_plan({**BASE, "model_type": "chemprop_gnn"})
     with pytest.raises(ConfigError, match="Nextflow wrapper"):
         build_training_plan({**BASE, "model_type": "tabular_diffusion"})
+    # protein_diffusion is gated server-side too — its training image isn't provisioned,
+    # so a direct plan call must not hand back a launchable (doomed) workflow.
+    with pytest.raises(ConfigError, match="not provisioned"):
+        build_training_plan({**BASE, "model_type": "protein_diffusion"})
 
 
 def test_plan_llm_dpo_uses_trl_image_and_text_generation():

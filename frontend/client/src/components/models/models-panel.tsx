@@ -33,7 +33,7 @@ import { useModels, useTrainTrack, useOptimiseTrack } from "./models-api"
 import { useActiveProjectSafe } from "@/contexts/active-project-context"
 import { ModelObjectLoader } from "./model-object"
 import { OwnedTrainingRegistry } from "./owned-training-registry"
-import { RunPretrained } from "./run-pretrained"
+import { RunPretrained, isRunnableInInference } from "./run-pretrained"
 import { TrainingLauncher } from "./training-launcher"
 import { CodeSandboxPath } from "./code-sandbox-path"
 import { formatRunTime, openRunManager, runStatusLabel } from "./training-logic"
@@ -111,7 +111,9 @@ function CatalogTable({ rows, onOpenModel, onRun }: { rows: ModelSummary[]; onOp
               <span className="text-muted-foreground">{m.usedByCount}</span>
             </button>
             <div className="flex items-center justify-end gap-1">
-              {onRun && (
+              {/* Run only for models that have an inference surface here — hiding it for
+                  tabular/LLM artifacts avoids dropping the user on the wrong input form. */}
+              {onRun && isRunnableInInference(m.family) && (
                 <button
                   type="button"
                   className="rounded border px-1.5 py-0.5 text-fs-xs hover:bg-muted"

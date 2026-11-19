@@ -1508,6 +1508,7 @@
     "rounds_start": "Start loop",
     "rounds_stop": "Stop",
     "rounds_propose": "Propose next round",
+    "rounds_prereq_needed": "To propose a round, this campaign first needs measured assay data and a candidate library. Generate a library and upload assay results below (small-molecule campaigns load demo data automatically).",
     "rounds_controls_hint": "Creates a campaign for this project, seeded with sample BACE assay data and a candidate library, so you can start the loop or propose a round right away.",
     "rounds_need_project": "Select a project (sidebar or Train launcher) before creating a campaign.",
     "rounds_created": "Campaign ready for this project. Start the loop or propose a round when assay data and a library are in place.",

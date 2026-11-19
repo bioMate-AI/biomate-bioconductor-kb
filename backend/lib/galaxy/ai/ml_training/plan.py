@@ -42,6 +42,11 @@ UNAVAILABLE_TYPES = {
                     "(featurizer=rdkit_2d) or sklearn_gbr for molecular models.",
     "tabular_diffusion": "tabular_diffusion has no Nextflow wrapper that forwards its "
                          "parameters yet, so it cannot be launched.",
+    # RFdiffusion's training image is not provisioned — every launched run fails with
+    # NotImplementedError. Gate it server-side too (the UI already blocks it) so a
+    # direct plan call can't start a doomed Batch job.
+    "protein_diffusion": "protein_diffusion (RFdiffusion) training image is not "
+                         "provisioned yet, so a launched run cannot complete.",
 }
 
 # Metrics each learner actually emits (see tabular_trainer._score,

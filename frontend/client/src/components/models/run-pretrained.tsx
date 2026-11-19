@@ -64,6 +64,15 @@ const DOMAINS: Domain[] = [
   },
 ]
 
+// The families RunPretrained can actually resolve to an inference domain. A model
+// whose family is not here (e.g. a tabular or LLM training artifact) has no run
+// surface here, so the catalog Run / "use in a run" affordance must be hidden for it
+// rather than dropping the user on the wrong (structure) input form.
+const RUNNABLE_FAMILIES = new Set(DOMAINS.flatMap((d) => d.families))
+export function isRunnableInInference(family?: string | null): boolean {
+  return !!family && RUNNABLE_FAMILIES.has(family)
+}
+
 // Pick a concrete catalog model id for a domain, or the domain default.
 function pickModelId(domain: Domain, catalog: ModelSummary[] | undefined): string {
   const match = (catalog ?? []).find((m) => domain.families.includes(m.family))

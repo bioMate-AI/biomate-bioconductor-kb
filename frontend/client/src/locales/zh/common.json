@@ -2016,6 +2016,7 @@
     "rounds_start": "启动循环",
     "rounds_stop": "停止",
     "rounds_propose": "提案下一轮",
+    "rounds_prereq_needed": "要提案下一轮，该活动需要先有实测的测定数据和一个候选库。请在下方生成候选库并上传测定结果（小分子活动会自动加载演示数据）。",
     "rounds_controls_hint": "为本项目创建一个活动，并预置示例 BACE 测定数据与候选库，便于你立即启动循环或提出一轮。",
     "rounds_need_project": "创建活动前请先选择项目（侧栏或训练启动器）。",
     "rounds_created": "本项目活动已就绪。有测定数据与候选库后可启动循环或提案。",
