@@ -670,16 +670,16 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                       className={`flex items-start gap-3 px-2 py-2.5 rounded hover:bg-accent ${asPage ? 'break-inside-avoid mb-2' : ''}`}
                     >
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate flex items-center gap-1.5">
+                        <div className="text-base font-semibold truncate flex items-center gap-1.5">
                           {r.display_name || r.name}
                           {r.type === 'chain' && (
                             <span className="px-1 py-0.5 rounded text-fs-xs bg-amber-100 text-amber-700 font-medium">{tOr('workflows_library.chain', 'Chain')}</span>
                           )}
                         </div>
                         {r.description && (
-                          <div className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{r.description}</div>
+                          <div className="text-sm text-muted-foreground line-clamp-2 mt-0.5">{r.description}</div>
                         )}
-                        <div className="text-fs-xs text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
+                        <div className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5 flex-wrap">
                           {/* Domain as words (localized); the internal catalog source tag and the raw
                               ranking score are not shown (founder 2026-11-12: "biomni_nextflow …
                               untolerable", "评分 52.1" means nothing to a user). */}
@@ -698,18 +698,18 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
 
                         {/* Input → output file kinds */}
                         {Boolean(r.card?.inputs?.length || r.card?.outputs?.length) && (
-                          <div className="text-fs-xs text-muted-foreground mt-1 flex items-center gap-1 flex-wrap">
+                          <div className="text-sm text-muted-foreground mt-1.5 flex items-center gap-1.5 flex-wrap">
                             {r.card?.inputs?.length ? (
                               <>
                                 <span className="font-medium">{tOr('workflows_library.io_in', 'In')}</span>
-                                {r.card.inputs.map((x) => <code key={`i-${x}`} className="px-1 rounded bg-muted">{cleanKind(x)}</code>)}
+                                {r.card.inputs.map((x) => <code key={`i-${x}`} className="px-1 rounded bg-muted text-xs">{cleanKind(x)}</code>)}
                               </>
                             ) : null}
                             {r.card?.outputs?.length ? (
                               <>
                                 <span className="opacity-50">→</span>
                                 <span className="font-medium">{tOr('workflows_library.io_out', 'Out')}</span>
-                                {r.card.outputs.map((x) => <code key={`o-${x}`} className="px-1 rounded bg-muted">{cleanKind(x)}</code>)}
+                                {r.card.outputs.map((x) => <code key={`o-${x}`} className="px-1 rounded bg-muted text-xs">{cleanKind(x)}</code>)}
                               </>
                             ) : null}
                           </div>
@@ -717,13 +717,13 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
 
                         {/* Where it fits / does not fit */}
                         {r.card?.fits?.length ? (
-                          <div className="text-fs-xs mt-1 flex gap-1.5">
+                          <div className="text-sm mt-1.5 flex gap-2">
                             <span className="font-semibold text-emerald-700 dark:text-emerald-400 shrink-0">{tOr('workflows_library.fits', 'Fits')}</span>
                             <span className="text-muted-foreground line-clamp-2 min-w-0">{r.card.fits.join(' · ')}</span>
                           </div>
                         ) : null}
                         {r.card?.notFits?.length ? (
-                          <div className="text-fs-xs mt-0.5 flex gap-1.5">
+                          <div className="text-sm mt-1 flex gap-2">
                             <span className="font-semibold text-amber-700 dark:text-amber-500 shrink-0">{tOr('workflows_library.instead', 'Instead')}</span>
                             <span className="text-muted-foreground line-clamp-2 min-w-0">{r.card.notFits.join(' · ')}</span>
                           </div>
@@ -731,7 +731,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
 
                         {/* Citation (structured sources only) */}
                         {r.card?.citation && (r.card.citation.lead || r.card.citation.journal || r.card.citation.doi) ? (
-                          <div className="text-fs-xs text-muted-foreground mt-1 truncate" title={r.card.citation.title || undefined}>
+                          <div className="text-xs text-muted-foreground mt-1.5 truncate" title={r.card.citation.title || undefined}>
                             {r.card.citation.lead ? `${r.card.citation.lead}` : null}
                             {r.card.citation.journal ? <>{r.card.citation.lead ? ', ' : null}<em>{r.card.citation.journal}</em></> : null}
                             {r.card.citation.year ? ` ${r.card.citation.year}` : null}
