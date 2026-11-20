@@ -507,6 +507,20 @@ class InferResponse(BaseModel):
     run_id: str
 
 
+class RegisterExternalRequest(BaseModel):
+    """Register an external REST scoring model (a hosted endpoint / vendor service)
+    as a runnable custom model. The endpoint receives POST {input_key: [items]} and
+    returns scores at output_path — exactly what RESTModelWrapper calls. Weights-file
+    models are not accepted here: without a serving runtime they can't infer, so the
+    connector flow asks for an endpoint URL instead of faking a run."""
+
+    name: str
+    endpoint: str
+    input_key: str = "smiles"
+    output_path: str = "scores"
+    higher_is_better: bool = True
+
+
 # ``from __future__ import annotations`` turns the field annotations above into
 # strings (forward refs). Resolve them at load time so the models validate under
 # BOTH pydantic v1 (Galaxy runtime historically) and v2 (current), and under
@@ -1210,6 +1224,79 @@ def _fmt_ts(ts: Any) -> str:
         return _dt.datetime.utcfromtimestamp(float(ts)).strftime("%Y-%m-%d")
     except Exception:  # noqa: BLE001
         return "—"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /api/models/register-external  (connector "A model" → runnable catalog model)
+# Registered BEFORE the greedy /{model_id}/infer route so it is never read as an id.
+# ─────────────────────────────────────────────────────────────────────────────
+def _ensure_owner_models_campaign(owner_id: str) -> str:
+    """Ensure an owned campaign exists to hold this user's connector-registered models,
+    so they surface through _owned_campaign_ids → the catalog. Idempotent."""
+    import os
+    import sqlite3
+    from datetime import datetime, timezone
+    from pathlib import Path
+
+    campaign_id = f"connector-models-{owner_id}"
+    path = Path(os.environ.get("BIOMATE_CAMPAIGN_REGISTRY_DB",
+        str(Path(_campaign_db_dir()).parent / "campaigns_registry.db")))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with sqlite3.connect(str(path)) as conn:
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS campaigns (campaign_id TEXT PRIMARY KEY, "
+                "user_id TEXT NOT NULL DEFAULT '', molecule_name TEXT NOT NULL DEFAULT '', "
+                "target TEXT NOT NULL DEFAULT '', indication TEXT NOT NULL DEFAULT '', "
+                "sponsor TEXT NOT NULL DEFAULT '', objective TEXT NOT NULL DEFAULT 'balance', "
+                "created_at TEXT NOT NULL)")
+            conn.execute(
+                "INSERT OR IGNORE INTO campaigns (campaign_id, user_id, molecule_name, created_at) "
+                "VALUES (?, ?, ?, ?)",
+                (campaign_id, owner_id, "Connector models", datetime.now(timezone.utc).isoformat()))
+            conn.commit()
+    except sqlite3.Error as exc:
+        raise HTTPException(status_code=503, detail="Model ownership store is unavailable") from exc
+    _campaign_db(campaign_id)  # create the per-campaign DB + tables
+    return campaign_id
+
+
+@router.post(
+    "/api/models/register-external",
+    require_admin=True,
+    summary="Register an external REST scoring model (hosted endpoint) as a runnable custom model.",
+)
+def register_external_model(body: RegisterExternalRequest,
+                            owner_id: Optional[str] = Header(None, alias="X-BioMate-User-Id")) -> Dict[str, Any]:
+    owner_id = _request_owner(owner_id)
+    name = (body.name or "").strip()
+    endpoint = (body.endpoint or "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="A model name is required")
+    if not (endpoint.startswith("http://") or endpoint.startswith("https://")):
+        raise HTTPException(status_code=400, detail="endpoint must be an http(s) URL we can call for scoring")
+
+    campaign_id = _ensure_owner_models_campaign(owner_id)
+    try:
+        from galaxy.ai.drug_discovery.custom_model_wrapper import RESTModelWrapper
+        from galaxy.ai.drug_discovery.custom_model_registry import get_registry
+
+        wrapper = RESTModelWrapper(
+            name=name, campaign_id=campaign_id, endpoint=endpoint,
+            input_key=(body.input_key or "smiles"), output_path=(body.output_path or "scores"),
+            higher_is_better=bool(body.higher_is_better))
+        registry = get_registry(_campaign_db(campaign_id))
+        version = registry.register(wrapper, {"registered_by": owner_id, "source": "connector",
+                                              "endpoint": endpoint})
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        log.warning("models: register-external %s failed: %s", name, exc)
+        raise HTTPException(status_code=400, detail=f"Could not register the model: {str(exc)[:300]}")
+
+    return {"id": _custom_model_id(campaign_id, name), "name": name,
+            "family": "rest", "origin": "custom",
+            "version": getattr(version, "version", None)}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

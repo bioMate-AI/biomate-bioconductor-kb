@@ -221,3 +221,23 @@ def test_trained_artifact_cannot_bypass_gate_via_register(tmp_path):
 def test_unknown_model_raises_keyerror(tmp_path):
     with pytest.raises(KeyError):
         CustomModelRegistry(str(tmp_path / "camp.db")).run_named_model(CAMPAIGN, "nope", ["CCO"])
+
+
+def test_external_rest_model_registers_and_surfaces(tmp_path):
+    """Connector 'A model' mechanism: an external REST scorer registers as an active
+    version AND writes a custom_model_registrations row (mode 'rest'), so it surfaces in
+    the catalog (_iter_custom_registrations) and is runnable — no training artifact.
+    This is exactly what models_inference.register_external_model relies on."""
+    db = str(tmp_path / "ext.db")
+    reg = CustomModelRegistry(db)
+    wrapper = RESTModelWrapper(name="ext scorer", campaign_id="connector-models-u1",
+                               endpoint="https://example.test/score",
+                               input_key="smiles", output_path="scores")
+    mv = reg.register(wrapper, {"registered_by": "u1", "source": "connector"})
+    assert mv.version == 1
+    assert reg.get_version("connector-models-u1", "ext scorer", 1).status == "active"
+    with sqlite3.connect(db) as conn:
+        rows = conn.execute(
+            "SELECT model_name, mode FROM custom_model_registrations WHERE campaign_id=?",
+            ("connector-models-u1",)).fetchall()
+    assert ("ext scorer", "rest") in rows

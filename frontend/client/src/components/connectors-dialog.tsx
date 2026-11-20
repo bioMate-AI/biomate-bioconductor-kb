@@ -11,6 +11,7 @@ import { SettingsDialog } from './settings-dialog';
 import { normalizeSkillPack, type SkillPack } from './skills-selector';
 import { InstrumentsSection } from './instruments-section';
 import { McpServerForm } from './mcp-server-form';
+import { RegisterModelForm } from './register-model-form';
 import { tOr } from '@/lib/i18n';
 import { HintTip } from '@/components/ui/hint-tip';
 import { ImportSkillForm } from './import-skill-form';
@@ -54,7 +55,7 @@ interface Connector extends DeclaredFacts {
 // user's stated preference locally so the UI is stable, not because it gates access.
 const DEFAULT_SCOPE: Scope = 'account';
 
-type TabId = 'databases' | 'ai' | 'yours' | 'instruments' | 'skills' | 'mcp';
+type TabId = 'databases' | 'ai' | 'yours' | 'instruments' | 'skills' | 'mcp' | 'model';
 
 // NOTE: A "Skills" tab (upload / activate .md skill files) was scaffolded here but
 // removed — no backend read the selection (`/api/skills` returned nothing and
@@ -544,7 +545,7 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
             <AddConnectorFlow
               onPickDatabase={() => { setActiveTab('databases'); setSourceView('private'); setAdding(false); }}
               onPickMcp={() => { setActiveTab('mcp'); setAdding(false); }}
-              onPickModel={() => { setSettingsOpen(true); setAdding(false); }}
+              onPickModel={() => { setActiveTab('model'); setAdding(false); }}
               onPickSkill={() => { setActiveTab('skills'); setAdding(false); }}
               onPickInstrument={() => { setActiveTab('databases'); setSourceView('instruments'); setAdding(false); }}
             />
@@ -555,6 +556,7 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
           {activeTab === 'ai' && <><div className="p-4"><button className="text-sm underline" onClick={() => setSettingsOpen(true)}>Configure model providers and API keys</button></div><ConnectorTable compact={embedded} rows={AI} scopes={scopes} onScopeChange={setScope} /></>}
           {activeTab === 'yours' && <div className="p-5"><PrivateDbConnectionForm /></div>}
           {activeTab === 'mcp' && <div className="p-5"><McpServerForm /></div>}
+          {activeTab === 'model' && <div className="p-5"><RegisterModelForm /></div>}
           {activeTab === 'skills' && <div className="p-5 space-y-6">
             <ImportSkillForm onImported={loadPacks} />
             <AddSkillForm onCreated={loadPacks} />
