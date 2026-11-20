@@ -98,6 +98,11 @@ interface WorkflowHistoryDialogProps {
    */
   library?: boolean;
   /**
+   * Render as a full-page panel (no Dialog chrome) instead of a modal — used by
+   * the /workflows route so the library gets full width/height like Models.
+   */
+  asPage?: boolean;
+  /**
    * Seed the chat composer with a run request for the clicked catalog result.
    * The library wrapper navigates to /?draft=<prompt> (the established, non-
    * destructive seed path) so the user reviews and runs. `selection` is the
@@ -132,7 +137,7 @@ function formatWhen(iso: string | undefined | null): string {
 
 const PAGE_SIZE = 50;
 
-export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgain, initialTab, importOnly = false, library = false, onSeedChat }: WorkflowHistoryDialogProps) {
+export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgain, initialTab, importOnly = false, library = false, asPage = false, onSeedChat }: WorkflowHistoryDialogProps) {
   const [activeTab, setActiveTab] = useState<HistoryTab>(initialTab ?? (library ? 'browse' : importOnly ? 'upload' : 'runs'));
   const [rows, setRows] = useState<RunRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -430,13 +435,13 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
   const showingFrom = total === 0 ? 0 : offset + 1;
   const showingTo = Math.min(offset + PAGE_SIZE, total);
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl" data-testid="workflow-history-dialog">
-        <DialogHeader>
-          <DialogTitle>{library ? tOr('workflows_library.title', 'Workflows library') : importOnly ? tOr('workflows_library.tab_import', 'Import Workflow') : tOr('workflows_library.title_short', 'Workflows')}</DialogTitle>
-        </DialogHeader>
+  const titleText = library ? tOr('workflows_library.title', 'Workflows library') : importOnly ? tOr('workflows_library.tab_import', 'Import Workflow') : tOr('workflows_library.title_short', 'Workflows');
+  // Full-page mode gets tall scroll regions and a 2-column result grid; the modal keeps its compact sizing.
+  const scrollH = asPage ? 'h-[calc(100vh-230px)]' : 'h-[340px]';
+  const browseListCls = asPage ? 'grid grid-cols-1 lg:grid-cols-2 gap-x-5 gap-y-0 items-start' : 'space-y-1';
 
+  const inner = (
+    <>
         {/* Tabs */}
         <div className="flex gap-1 border-b pb-0 -mb-px">
           {library && <HintTip hint={tOr('hint.workflows_library.browse', '')} side="bottom"><button
@@ -501,7 +506,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
               />
             </div>
 
-            <ScrollArea className="h-[340px] pr-3">
+            <ScrollArea className={`${scrollH} pr-3`}>
               {loading && (
                 <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
                   <Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading…
@@ -623,7 +628,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
               />
             </div>
 
-            <ScrollArea className="h-[340px] pr-3 mt-2">
+            <ScrollArea className={`${scrollH} pr-3 mt-2`}>
               {browseLoading && (
                 <div className="flex items-center justify-center py-12 text-sm text-muted-foreground" data-testid="browse-loading" aria-live="polite">
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -650,7 +655,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                 </div>
               )}
               {!browseLoading && !browseError && browseResults.length > 0 && (
-                <ul className="space-y-1" data-testid="browse-results-list">
+                <ul className={browseListCls} data-testid="browse-results-list">
                   {browseResults.map((r) => (
                     <li
                       key={`${r.type || 'wf'}-${r.name}-${r.rank}`}
@@ -838,7 +843,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
               data-testid="personal-workflows-search"
             />
           </div>
-          <ScrollArea className="h-[340px] pr-3">
+          <ScrollArea className={`${scrollH} pr-3`}>
             {importsLoading && (
               <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading…
@@ -899,6 +904,25 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
           </ScrollArea>
           </>
         )}
+    </>
+  );
+
+  if (asPage) {
+    return (
+      <div className="flex flex-col h-full min-h-0" data-testid="workflow-history-page">
+        <h2 className="text-base font-semibold pb-2 shrink-0">{titleText}</h2>
+        {inner}
+      </div>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl" data-testid="workflow-history-dialog">
+        <DialogHeader>
+          <DialogTitle>{titleText}</DialogTitle>
+        </DialogHeader>
+        {inner}
       </DialogContent>
     </Dialog>
   );

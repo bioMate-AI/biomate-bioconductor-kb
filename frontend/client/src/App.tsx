@@ -64,6 +64,7 @@ import WorkflowDeepLink from "@/pages/WorkflowDeepLink";
 import RunLanding from "@/pages/RunLanding";
 import CapabilitiesPage from "@/pages/capabilities";
 import { ModelsPanel } from "@/components/models";
+import { WorkflowsLibraryDialog } from "@/components/workflows-library-dialog";
 import { ConnectorsDialog } from "@/components/connectors-dialog";
 import DataHubPage from "@/pages/data-hub";
 import { DesignGenerate } from "@/components/design-generate/DesignGenerate";
@@ -707,6 +708,26 @@ function Router({
         >
           <div className="flex-1 min-h-0 overflow-y-auto" data-testid="models-scroll-region">
             <div className="max-w-5xl mx-auto p-4"><ModelsPanel /></div>
+          </div>
+        </PlatformLayout>
+      </Route>
+
+      {/* Workflows library as a full-page panel (consistent with /models), not a modal. */}
+      <Route path="/workflows">
+        <PlatformLayout
+          sidebarCollapsed={sidebarCollapsed}
+          setSidebarCollapsed={setSidebarCollapsed}
+          onNewChat={onNewChat}
+          onChatSelect={onChatSelect}
+          onCategorySelect={onCategorySelect}
+          onToolSelect={onToolSelect}
+          onProjectSelect={onProjectSelect}
+          onNewProject={onNewProject}
+          activeChatId={currentChatSession?.id}
+          chatSessions={chatSessions}
+        >
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col" data-testid="workflows-scroll-region">
+            <div className="max-w-6xl mx-auto w-full px-4 pt-4 flex-1 min-h-0 flex flex-col"><WorkflowsLibraryDialog asPage /></div>
           </div>
         </PlatformLayout>
       </Route>

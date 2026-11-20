@@ -1,6 +1,6 @@
 /**
- * AppSidebar — the "Workflows" entry opens the unified Workflows library
- * (WorkflowsLibraryDialog), NOT the dead StarredWorkflowsDialog.
+ * AppSidebar — the "Workflows" entry navigates to the full-page /workflows
+ * library (consistent with /models), NOT the dead StarredWorkflowsDialog.
  *
  * Only fetch is mocked; the auth/active-project contexts and the heavy dialogs
  * are stubbed so the test stays scoped to the sidebar nav wiring.
@@ -9,7 +9,8 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 
-vi.mock('wouter', () => ({ useLocation: () => ['/', vi.fn()] }));
+const { setLocationSpy } = vi.hoisted(() => ({ setLocationSpy: vi.fn() }));
+vi.mock('wouter', () => ({ useLocation: () => ['/', setLocationSpy] }));
 vi.mock('@/contexts/auth-context', () => ({
   useAuth: () => ({ user: { id: 1, email: 'lifeifei163361@163.com' }, logout: vi.fn() }),
 }));
@@ -44,14 +45,13 @@ describe('AppSidebar — Workflows library entry', () => {
     expect(screen.getByTestId('button-workflows-nav')).toBeInTheDocument();
   });
 
-  it('clicking Workflows opens the library, not the dead Starred dialog', () => {
+  it('clicking Workflows navigates to the /workflows page, not the dead Starred dialog', () => {
     render(<AppSidebar chatSessions={[] as any} />);
-    expect(screen.queryByTestId('workflows-library-open')).not.toBeInTheDocument();
     expect(screen.queryByTestId('dead-starred-dialog')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('button-workflows-nav'));
 
-    expect(screen.getByTestId('workflows-library-open')).toBeInTheDocument();
+    expect(setLocationSpy).toHaveBeenCalledWith('/workflows');
     expect(screen.queryByTestId('dead-starred-dialog')).not.toBeInTheDocument();
   });
 });

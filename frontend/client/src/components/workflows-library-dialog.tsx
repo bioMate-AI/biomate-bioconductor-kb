@@ -19,8 +19,11 @@ import { WorkflowHistoryDialog } from './workflow-history-dialog';
 import { stashWorkflowSelection, type WorkflowSelection } from '@/lib/workflow-selection';
 
 interface WorkflowsLibraryDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  /** Modal mode: controlled open state. Ignored (treated as always-open) when asPage. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Render as a full-page panel (the /workflows route) instead of a modal. */
+  asPage?: boolean;
   /**
    * Seed the chat composer with the given prompt. Defaults to navigating to
    * /?draft=<prompt>, which App.tsx consumes to pre-fill (not auto-send) the
@@ -29,11 +32,12 @@ interface WorkflowsLibraryDialogProps {
   onSeedChat?: (prompt: string, selection?: WorkflowSelection) => void;
 }
 
-export function WorkflowsLibraryDialog({ open, onOpenChange, onSeedChat }: WorkflowsLibraryDialogProps) {
+export function WorkflowsLibraryDialog({ open = false, onOpenChange, asPage = false, onSeedChat }: WorkflowsLibraryDialogProps) {
   return (
     <WorkflowHistoryDialog
-      open={open}
-      onOpenChange={onOpenChange}
+      open={asPage ? true : open}
+      onOpenChange={onOpenChange ?? (() => {})}
+      asPage={asPage}
       library
       onSeedChat={(prompt, selection) => {
         if (onSeedChat) { onSeedChat(prompt, selection); return; }
