@@ -438,8 +438,8 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
   const titleText = library ? tOr('workflows_library.title', 'Workflows library') : importOnly ? tOr('workflows_library.tab_import', 'Import Workflow') : tOr('workflows_library.title_short', 'Workflows');
   // Full-page mode gets tall scroll regions and a 2-column result grid; the modal keeps its compact sizing.
   const scrollH = asPage ? 'h-[calc(100vh-230px)]' : 'h-[340px]';
-  // Masonry columns so uneven card heights pack tightly (no grid row gaps).
-  const browseListCls = asPage ? 'lg:columns-2 [column-gap:1.25rem]' : 'space-y-1';
+  // Single full-width column with generous spacing between cards.
+  const browseListCls = asPage ? 'flex flex-col gap-3' : 'space-y-1';
   // Trim a trailing parenthetical note and cap length so I/O chips stay short
   // (e.g. "expression data.rds (SummarizedExperiment object)" -> "expression data.rds").
   const cleanKind = (s: string) => {
@@ -667,71 +667,87 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                     <li
                       key={`${r.type || 'wf'}-${r.name}-${r.rank}`}
                       data-testid={`browse-result-${r.rank}`}
-                      className={`flex items-start gap-3 px-2 py-2.5 rounded hover:bg-accent ${asPage ? 'break-inside-avoid mb-2' : ''}`}
+                      className={asPage
+                        ? 'rounded-xl border bg-card px-5 py-4 transition-colors hover:border-foreground/20'
+                        : 'flex items-start gap-3 px-2 py-2.5 rounded hover:bg-accent'}
                     >
-                      <div className="flex-1 min-w-0">
-                        <div className="text-base font-semibold truncate flex items-center gap-1.5">
-                          {r.display_name || r.name}
-                          {r.type === 'chain' && (
-                            <span className="px-1 py-0.5 rounded text-fs-xs bg-amber-100 text-amber-700 font-medium">{tOr('workflows_library.chain', 'Chain')}</span>
-                          )}
-                        </div>
-                        {r.description && (
-                          <div className="text-sm text-muted-foreground line-clamp-2 mt-0.5">{r.description}</div>
-                        )}
-                        <div className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5 flex-wrap">
-                          {/* Domain as words (localized); the internal catalog source tag and the raw
-                              ranking score are not shown (founder 2026-11-12: "biomni_nextflow …
-                              untolerable", "评分 52.1" means nothing to a user). */}
-                          {r.domain && <DomainChip domain={r.domain} />}
-                          {r.card?.hardware?.kind && (
-                            <span
-                              data-testid={`browse-result-hw-${r.rank}`}
-                              className={`px-1.5 py-0.5 rounded font-mono font-medium ${r.card.hardware.kind === 'GPU'
-                                ? 'bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300'
-                                : 'bg-muted text-muted-foreground'}`}
-                            >
-                              {r.card.hardware.kind}{r.card.hardware.memory ? ` · ${r.card.hardware.memory}` : ''}
-                            </span>
-                          )}
+                      <div className="flex flex-col gap-3 w-full">
+                        {/* Header: identity + badges (left), Run (right) */}
+                        <div className="flex items-start gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="text-[17px] font-semibold leading-tight">{r.display_name || r.name}</h3>
+                              {r.type === 'chain' && (
+                                <span className="px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-700 font-medium">{tOr('workflows_library.chain', 'Chain')}</span>
+                              )}
+                              {r.domain && <DomainChip domain={r.domain} />}
+                              {r.card?.hardware?.kind && (
+                                <span
+                                  data-testid={`browse-result-hw-${r.rank}`}
+                                  className={`px-2 py-0.5 rounded font-mono text-xs font-medium ${r.card.hardware.kind === 'GPU'
+                                    ? 'bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300'
+                                    : 'bg-muted text-muted-foreground'}`}
+                                >
+                                  {r.card.hardware.kind}{r.card.hardware.memory ? ` · ${r.card.hardware.memory}` : ''}
+                                </span>
+                              )}
+                            </div>
+                            {r.description && (
+                              <p className="text-sm text-muted-foreground leading-relaxed mt-2 line-clamp-3 max-w-[72ch]">{r.description}</p>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="shrink-0"
+                            data-testid={`button-run-catalog-${r.rank}`}
+                            title={tOr('workflows_library.run_title', 'Seed a chat to run this workflow')}
+                            onClick={() => handleRunCatalog(r)}
+                          >
+                            <Play className="w-3.5 h-3.5 mr-1" />{tOr('workflows_library.run', 'Run')}
+                          </Button>
                         </div>
 
-                        {/* Input → output file kinds */}
+                        {/* Dataflow strip: In → Out */}
                         {Boolean(r.card?.inputs?.length || r.card?.outputs?.length) && (
-                          <div className="text-sm text-muted-foreground mt-1.5 flex items-center gap-1.5 flex-wrap">
+                          <div className="flex items-center gap-x-3 gap-y-1.5 flex-wrap rounded-lg border bg-muted/40 px-3.5 py-2.5 text-sm">
                             {r.card?.inputs?.length ? (
-                              <>
-                                <span className="font-medium">{tOr('workflows_library.io_in', 'In')}</span>
-                                {r.card.inputs.map((x) => <code key={`i-${x}`} className="px-1 rounded bg-muted text-xs">{cleanKind(x)}</code>)}
-                              </>
+                              <div className="flex items-baseline gap-1.5 flex-wrap min-w-0">
+                                <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{tOr('workflows_library.io_in', 'In')}</span>
+                                {r.card.inputs.map((x) => <code key={`i-${x}`} className="px-1.5 py-0.5 rounded bg-background text-xs">{cleanKind(x)}</code>)}
+                              </div>
                             ) : null}
+                            {r.card?.inputs?.length && r.card?.outputs?.length ? <span className="text-muted-foreground shrink-0">→</span> : null}
                             {r.card?.outputs?.length ? (
-                              <>
-                                <span className="opacity-50">→</span>
-                                <span className="font-medium">{tOr('workflows_library.io_out', 'Out')}</span>
-                                {r.card.outputs.map((x) => <code key={`o-${x}`} className="px-1 rounded bg-muted text-xs">{cleanKind(x)}</code>)}
-                              </>
+                              <div className="flex items-baseline gap-1.5 flex-wrap min-w-0">
+                                <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{tOr('workflows_library.io_out', 'Out')}</span>
+                                {r.card.outputs.map((x) => <code key={`o-${x}`} className="px-1.5 py-0.5 rounded bg-background text-xs">{cleanKind(x)}</code>)}
+                              </div>
                             ) : null}
                           </div>
                         )}
 
-                        {/* Where it fits / does not fit */}
-                        {r.card?.fits?.length ? (
-                          <div className="text-sm mt-1.5 flex gap-2">
-                            <span className="font-semibold text-emerald-700 dark:text-emerald-400 shrink-0">{tOr('workflows_library.fits', 'Fits')}</span>
-                            <span className="text-muted-foreground line-clamp-2 min-w-0">{r.card.fits.join(' · ')}</span>
-                          </div>
-                        ) : null}
-                        {r.card?.notFits?.length ? (
-                          <div className="text-sm mt-1 flex gap-2">
-                            <span className="font-semibold text-amber-700 dark:text-amber-500 shrink-0">{tOr('workflows_library.instead', 'Instead')}</span>
-                            <span className="text-muted-foreground line-clamp-2 min-w-0">{r.card.notFits.join(' · ')}</span>
+                        {/* Where it fits / what to use instead — stacked, roomy */}
+                        {(r.card?.fits?.length || r.card?.notFits?.length) ? (
+                          <div className="flex flex-col gap-2">
+                            {r.card?.fits?.length ? (
+                              <div className="flex gap-3 text-sm leading-relaxed">
+                                <span className="font-semibold text-emerald-700 dark:text-emerald-400 w-16 shrink-0">{tOr('workflows_library.fits', 'Fits')}</span>
+                                <span className="text-muted-foreground line-clamp-3 min-w-0">{r.card.fits.join(' · ')}</span>
+                              </div>
+                            ) : null}
+                            {r.card?.notFits?.length ? (
+                              <div className="flex gap-3 text-sm leading-relaxed">
+                                <span className="font-semibold text-amber-700 dark:text-amber-500 w-16 shrink-0">{tOr('workflows_library.instead', 'Instead')}</span>
+                                <span className="text-muted-foreground line-clamp-3 min-w-0">{r.card.notFits.join(' · ')}</span>
+                              </div>
+                            ) : null}
                           </div>
                         ) : null}
 
                         {/* Citation (structured sources only) */}
                         {r.card?.citation && (r.card.citation.lead || r.card.citation.journal || r.card.citation.doi) ? (
-                          <div className="text-xs text-muted-foreground mt-1.5 truncate" title={r.card.citation.title || undefined}>
+                          <div className="text-xs text-muted-foreground truncate" title={r.card.citation.title || undefined}>
                             {r.card.citation.lead ? `${r.card.citation.lead}` : null}
                             {r.card.citation.journal ? <>{r.card.citation.lead ? ', ' : null}<em>{r.card.citation.journal}</em></> : null}
                             {r.card.citation.year ? ` ${r.card.citation.year}` : null}
@@ -741,15 +757,6 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                           </div>
                         ) : null}
                       </div>
-                      <Button
-                        size="sm"
-                        variant="default"
-                        data-testid={`button-run-catalog-${r.rank}`}
-                        title={tOr('workflows_library.run_title', 'Seed a chat to run this workflow')}
-                        onClick={() => handleRunCatalog(r)}
-                      >
-                        <Play className="w-3.5 h-3.5 mr-1" />{tOr('workflows_library.run', 'Run')}
-                      </Button>
                     </li>
                   ))}
                 </ul>

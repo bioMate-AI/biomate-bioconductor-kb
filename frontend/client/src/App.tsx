@@ -727,7 +727,7 @@ function Router({
           chatSessions={chatSessions}
         >
           <div className="flex-1 min-h-0 overflow-hidden flex flex-col" data-testid="workflows-scroll-region">
-            <div className="max-w-6xl mx-auto w-full px-4 pt-4 flex-1 min-h-0 flex flex-col"><WorkflowsLibraryDialog asPage /></div>
+            <div className="max-w-4xl mx-auto w-full px-4 pt-4 flex-1 min-h-0 flex flex-col"><WorkflowsLibraryDialog asPage /></div>
           </div>
         </PlatformLayout>
       </Route>
