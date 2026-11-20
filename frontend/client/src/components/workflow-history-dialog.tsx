@@ -438,7 +438,14 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
   const titleText = library ? tOr('workflows_library.title', 'Workflows library') : importOnly ? tOr('workflows_library.tab_import', 'Import Workflow') : tOr('workflows_library.title_short', 'Workflows');
   // Full-page mode gets tall scroll regions and a 2-column result grid; the modal keeps its compact sizing.
   const scrollH = asPage ? 'h-[calc(100vh-230px)]' : 'h-[340px]';
-  const browseListCls = asPage ? 'grid grid-cols-1 lg:grid-cols-2 gap-x-5 gap-y-0 items-start' : 'space-y-1';
+  // Masonry columns so uneven card heights pack tightly (no grid row gaps).
+  const browseListCls = asPage ? 'lg:columns-2 [column-gap:1.25rem]' : 'space-y-1';
+  // Trim a trailing parenthetical note and cap length so I/O chips stay short
+  // (e.g. "expression data.rds (SummarizedExperiment object)" -> "expression data.rds").
+  const cleanKind = (s: string) => {
+    const t = s.replace(/\s*\([^)]*\)\s*$/, '').trim();
+    return t.length > 26 ? t.slice(0, 25) + '…' : t;
+  };
 
   const inner = (
     <>
@@ -660,7 +667,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                     <li
                       key={`${r.type || 'wf'}-${r.name}-${r.rank}`}
                       data-testid={`browse-result-${r.rank}`}
-                      className="flex items-start gap-3 px-2 py-2.5 rounded hover:bg-accent"
+                      className={`flex items-start gap-3 px-2 py-2.5 rounded hover:bg-accent ${asPage ? 'break-inside-avoid mb-2' : ''}`}
                     >
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium truncate flex items-center gap-1.5">
@@ -695,14 +702,14 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                             {r.card?.inputs?.length ? (
                               <>
                                 <span className="font-medium">{tOr('workflows_library.io_in', 'In')}</span>
-                                {r.card.inputs.map((x) => <code key={`i-${x}`} className="px-1 rounded bg-muted">{x}</code>)}
+                                {r.card.inputs.map((x) => <code key={`i-${x}`} className="px-1 rounded bg-muted">{cleanKind(x)}</code>)}
                               </>
                             ) : null}
                             {r.card?.outputs?.length ? (
                               <>
                                 <span className="opacity-50">→</span>
                                 <span className="font-medium">{tOr('workflows_library.io_out', 'Out')}</span>
-                                {r.card.outputs.map((x) => <code key={`o-${x}`} className="px-1 rounded bg-muted">{x}</code>)}
+                                {r.card.outputs.map((x) => <code key={`o-${x}`} className="px-1 rounded bg-muted">{cleanKind(x)}</code>)}
                               </>
                             ) : null}
                           </div>
@@ -712,13 +719,13 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
                         {r.card?.fits?.length ? (
                           <div className="text-fs-xs mt-1 flex gap-1.5">
                             <span className="font-semibold text-emerald-700 dark:text-emerald-400 shrink-0">{tOr('workflows_library.fits', 'Fits')}</span>
-                            <span className="text-muted-foreground">{r.card.fits.join(' · ')}</span>
+                            <span className="text-muted-foreground line-clamp-2 min-w-0">{r.card.fits.join(' · ')}</span>
                           </div>
                         ) : null}
                         {r.card?.notFits?.length ? (
                           <div className="text-fs-xs mt-0.5 flex gap-1.5">
                             <span className="font-semibold text-amber-700 dark:text-amber-500 shrink-0">{tOr('workflows_library.instead', 'Instead')}</span>
-                            <span className="text-muted-foreground">{r.card.notFits.join(' · ')}</span>
+                            <span className="text-muted-foreground line-clamp-2 min-w-0">{r.card.notFits.join(' · ')}</span>
                           </div>
                         ) : null}
 
