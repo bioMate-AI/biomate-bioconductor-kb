@@ -82,7 +82,25 @@ export type ModelsTrack = (typeof MODELS_TRACKS)[number]
 const TRACK_ICONS = [GraduationCap, Library, FlaskConical, Sparkles]
 
 // ── 模型库 — catalog ─────────────────────────────────────────────────────────
-function CatalogTable({ rows, onOpenModel, onRun }: { rows: ModelSummary[]; onOpenModel: (id: string) => void; onRun?: (id: string) => void }) {
+// Remove a registered (custom) model — two-step confirm so it isn't a one-click loss.
+function RemoveButton({ id, onRemove }: { id: string; onRemove: (id: string) => void }) {
+  const [confirming, setConfirming] = useState(false)
+  return (
+    <button
+      type="button"
+      className={confirming
+        ? "rounded border border-destructive/50 px-1.5 py-0.5 text-fs-xs text-destructive hover:bg-destructive/10"
+        : "rounded border px-1.5 py-0.5 text-fs-xs text-muted-foreground hover:bg-muted"}
+      data-testid={`registry-row-remove-${id}`}
+      onClick={() => { if (confirming) onRemove(id); else setConfirming(true) }}
+      onBlur={() => setConfirming(false)}
+    >
+      {confirming ? t("models.remove_confirm") : t("models.remove_action")}
+    </button>
+  )
+}
+
+function CatalogTable({ rows, onOpenModel, onRun, onRemove }: { rows: ModelSummary[]; onOpenModel: (id: string) => void; onRun?: (id: string) => void; onRemove?: (id: string) => void }) {
   return (
     <div className="rounded border text-xs" data-testid="registry-table">
       <div className="grid grid-cols-[1.4fr_1fr_0.8fr_0.8fr_auto] gap-2 bg-muted px-2 py-1 font-semibold">
@@ -123,6 +141,8 @@ function CatalogTable({ rows, onOpenModel, onRun }: { rows: ModelSummary[]; onOp
                   {t("models.run_action")}
                 </button>
               )}
+              {/* Only models you registered (origin 'custom') can be removed. */}
+              {onRemove && m.origin === "custom" && <RemoveButton id={m.id} onRemove={onRemove} />}
               <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
             </div>
           </div>
@@ -158,6 +178,13 @@ function LibraryTrack({ project, onOpenModel, preselectModelId }: { project?: st
       if (el && typeof el.scrollIntoView === "function") el.scrollIntoView({ behavior: "smooth", block: "nearest" })
     })
   }
+  const qc = useQueryClient()
+  // Remove a registered model — disables it server-side; the catalog drops it.
+  const removeModel = (id: string) => {
+    void fetch(`/api/models/${encodeURIComponent(id)}/disable`, { method: "POST", credentials: "include" })
+      .then(() => qc.invalidateQueries({ queryKey: ["/api/models"] }))
+      .catch(() => {})
+  }
   return (
     <div className="space-y-3" data-testid="track-library">
       <Card>
@@ -176,7 +203,7 @@ function LibraryTrack({ project, onOpenModel, preselectModelId }: { project?: st
               {t("models.registry_catalog_error")}
             </p>
           ) : (models ?? []).length ? (
-            <CatalogTable rows={models as ModelSummary[]} onOpenModel={onOpenModel} onRun={runModel} />
+            <CatalogTable rows={models as ModelSummary[]} onOpenModel={onOpenModel} onRun={runModel} onRemove={removeModel} />
           ) : (
             <p className="text-xs text-muted-foreground" data-testid="registry-empty">
               {t("models.registry_empty_catalog")}

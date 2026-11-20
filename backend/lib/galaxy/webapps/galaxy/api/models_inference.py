@@ -239,7 +239,9 @@ def _iter_custom_registrations(owner_id: Optional[str] = None) -> List[Dict[str,
                 cols = [d[0] for d in cur.description]
                 for row in cur.fetchall():
                     record = dict(zip(cols, row))
-                    if record.get("campaign_id") in owned:
+                    # A disabled registration (the user removed it from their library)
+                    # is excluded from the catalog.
+                    if record.get("campaign_id") in owned and record.get("enabled", 1):
                         out.append(record)
         except sqlite3.Error as exc:
             log.warning("Owned model store unavailable: %s", exc)
@@ -1297,6 +1299,29 @@ def register_external_model(body: RegisterExternalRequest,
     return {"id": _custom_model_id(campaign_id, name), "name": name,
             "family": "rest", "origin": "custom",
             "version": getattr(version, "version", None)}
+
+
+@router.post(
+    "/api/models/{model_id:path}/disable",
+    require_admin=True,
+    summary="Remove a custom model you registered (disables it; drops from the catalog).",
+)
+def disable_model(model_id: str,
+                  owner_id: Optional[str] = Header(None, alias="X-BioMate-User-Id")) -> Dict[str, Any]:
+    owner_id = _request_owner(owner_id)
+    parsed = _parse_custom_id(model_id)
+    if parsed is None:
+        raise HTTPException(status_code=400, detail="Only custom (registered) models can be removed")
+    campaign_id, model_name = parsed
+    if campaign_id not in _owned_campaign_ids(owner_id):
+        raise HTTPException(status_code=404, detail=f"Unknown model id: {model_id}")
+    try:
+        from galaxy.ai.drug_discovery.custom_model_registry import get_registry
+        get_registry(_campaign_db(campaign_id)).toggle(campaign_id, model_name, enabled=False)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("models: disable %s failed: %s", model_id, exc)
+        raise HTTPException(status_code=400, detail=f"Could not remove the model: {str(exc)[:200]}")
+    return {"id": model_id, "removed": True}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

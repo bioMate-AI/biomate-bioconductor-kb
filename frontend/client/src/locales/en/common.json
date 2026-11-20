@@ -1373,6 +1373,8 @@
     "col_score": "Score",
     "col_used_by": "Used by",
     "run_action": "Run",
+    "remove_action": "Remove",
+    "remove_confirm": "Confirm?",
     "col_verdict": "Verdict",
     "columns_error": "Could not read the dataset columns.",
     "columns_loading": "Reading the dataset columns…",

@@ -213,6 +213,26 @@ describe("ModelsPanel — 模型库 (Model library) tab", () => {
     )
   })
 
+  it("only a registered (custom) model shows Remove, and it needs a two-step confirm", async () => {
+    const posted: string[] = []
+    global.fetch = vi.fn(async (url: any, init?: any) => {
+      const u = String(url)
+      if (init?.method === "POST" && u.includes("/disable")) { posted.push(u); return { ok: true, status: 200, json: async () => ({ removed: true }) } as any }
+      const body = u.includes("/api/model-training-versions") ? { versions: [] } : u.includes("/api/models") ? CATALOG : {}
+      return { ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body) } as any
+    }) as unknown as typeof fetch
+    render(<ModelsPanel project="Test project" tab={1} />, { wrapper: wrapper() })
+    await waitFor(() => expect(screen.getByTestId("registry-row-remove-custom:camp1/potency-gp")).toBeTruthy())
+    // A hosted (non-custom) model can't be removed.
+    expect(screen.queryByTestId("registry-row-remove-bionemo:boltz2")).toBeNull()
+    const btn = () => screen.getByTestId("registry-row-remove-custom:camp1/potency-gp")
+    fireEvent.click(btn())                                   // arms the confirm
+    expect(btn().textContent).toMatch(/Confirm/i)
+    expect(posted).toHaveLength(0)                           // nothing sent on first click
+    fireEvent.click(btn())                                   // confirms → POST
+    await waitFor(() => expect(posted.some((u) => u.includes("/disable"))).toBe(true))
+  })
+
   it("reports a catalog read failure instead of an empty library", async () => {
     mockFetchByUrl({ "/api/model-training-versions": { versions: [] } })
     render(<ModelsPanel project="Test project" tab={1} />, { wrapper: wrapper() })

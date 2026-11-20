@@ -1881,6 +1881,8 @@
     "col_score": "分值",
     "col_used_by": "调用方",
     "run_action": "运行",
+    "remove_action": "移除",
+    "remove_confirm": "确认？",
     "col_verdict": "结论",
     "columns_error": "无法读取数据集的列。",
     "columns_loading": "正在读取数据集的列…",
