@@ -173,7 +173,7 @@
     "open_in_data": "Open in Data",
     "open_file_panel": "Open beside the chat",
     "file_panel_error": "This file could not be opened — it may have been removed.",
-    "library_input_reminder": "{{name}} runs on your data: attach a file (📎) or paste your inputs (e.g. SMILES, sequences) in the message before sending — otherwise it runs on the workflow's example inputs."
+    "library_input_reminder": "{{name}} runs on your data: attach a file (📎) or paste your inputs (e.g. SMILES, sequences) before sending. Send with no data and it runs on a built-in example dataset only if this workflow includes one — otherwise BioMate asks you for the input it needs."
   },
   "composer": {
     "data": "data",
@@ -1839,8 +1839,8 @@
     "retry": "Retry",
     "uploading": "Uploading…",
     "drop_active": "Drop files or folders here",
-    "drop_hint": "Drop files or folders here, or click to browse",
-    "files_folders_supported": "Files and folders supported",
+    "drop_hint": "Drop files or folders here, or click to browse files",
+    "files_folders_supported": "Files and folders both supported",
     "session_help_prefix": "Up to 50 GB per file; drop a folder to upload its files. Already on S3/HTTP/FTP? Use ",
     "no_datasets_yet": "No datasets yet",
     "no_datasets_hint": "Upload a file above or import from URL",

@@ -179,7 +179,7 @@
     "open_in_data": "在数据中打开",
     "open_file_panel": "在对话旁打开",
     "file_panel_error": "无法打开此文件，它可能已被删除。",
-    "library_input_reminder": "{{name}} 将使用你的数据运行：发送前请附加文件（📎）或在消息中粘贴输入（如 SMILES、序列）；否则将使用工作流自带的示例输入。"
+    "library_input_reminder": "{{name}} 将使用你的数据运行：发送前请附加文件（📎）或在消息中粘贴输入（如 SMILES、序列）。若不提供数据，仅当该工作流自带示例数据集时才会用它运行，否则 BioMate 会提示你提供所需的输入。"
   },
   "composer": {
     "data": "数据",
@@ -2319,8 +2319,8 @@
     "retry": "重试",
     "uploading": "正在上传…",
     "drop_active": "将文件或文件夹拖放到此处",
-    "drop_hint": "将文件或文件夹拖放到此处，或点击浏览",
-    "files_folders_supported": "支持文件和文件夹",
+    "drop_hint": "将文件或文件夹拖放到此处，或点击浏览文件",
+    "files_folders_supported": "文件和文件夹均支持",
     "session_help_prefix": "每个文件最大 50 GB；拖放文件夹可上传其中的文件。已在 S3/HTTP/FTP 上？请使用 ",
     "no_datasets_yet": "暂无数据集",
     "no_datasets_hint": "在上方上传文件，或从网址导入",
