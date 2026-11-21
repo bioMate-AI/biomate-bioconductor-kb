@@ -14,7 +14,7 @@
  * Reuses the catalog (useModels) + the existing TrainingLauncher (with an adaptOf prop),
  * so the data upload, method selection and launch are the tested launcher machinery.
  */
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { t } from "@/lib/i18n"
 import { useActiveProjectSafe } from "@/contexts/active-project-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -28,7 +28,7 @@ const SELECT = "mt-1 w-full rounded border bg-background px-2 py-1 text-xs"
 // model is offered; larger bases arrive with the GPU tier (kept honest, not implied).
 const BUILT_IN_BASES = [{ id: "base:llm-small", labelKey: "adapt_base_llm_small" }]
 
-export function AdaptModel({ project }: { project?: string }) {
+export function AdaptModel({ project, preselectBaseId }: { project?: string; preselectBaseId?: string | null }) {
   const ctx = useActiveProjectSafe()
   const projectId = project || ctx?.activeProjectId || ""
   const models = useModels()
@@ -36,6 +36,11 @@ export function AdaptModel({ project }: { project?: string }) {
 
   // Your own registered models can be versioned; hosted BioNeMo models are inference-only.
   const owned = (models.data ?? []).filter((m) => m.origin === "custom")
+  // Arriving from a model's "Supersede" preselects it as the base (only if it's yours).
+  useEffect(() => {
+    if (preselectBaseId && owned.some((m) => m.id === preselectBaseId)) setBaseId(preselectBaseId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preselectBaseId, models.data])
   const isBuiltIn = baseId.startsWith("base:")
   // Only your own models thread adapt_of (→ next version). A built-in base trains fresh.
   const adaptOf = baseId && !isBuiltIn ? baseId : undefined

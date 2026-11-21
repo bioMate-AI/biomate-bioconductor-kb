@@ -483,6 +483,8 @@ export function ModelsPanel({
 
   const { data: models } = useModels()
   const [openModelId, setOpenModelId] = useState<string | null>(null)
+  // Superseding a model = making its next version via Adapt (adapt_of), preselected.
+  const [adaptPreselect, setAdaptPreselect] = useState<string | null>(null)
   // A model the user chose to "use in a run" — lands on the Library tab with
   // RunPretrained preselected to it, so the detail view is no longer a dead end.
   const [runPreselect, setRunPreselect] = useState<string | null>(null)
@@ -512,7 +514,7 @@ export function ModelsPanel({
           onOpenModel={(ref) => setOpenModelId(ref)}
           // Wire the detail actions so the model page is no longer a dead end:
           onUseInRun={(id) => { setRunPreselect(id); setOpenModelId(null); setTab(1) }}
-          onSupersede={() => { setOpenModelId(null); setTab(0) }}
+          onSupersede={(id) => { setAdaptPreselect(id); setOpenModelId(null); setTab(3) }}
           onOpenRun={() => openRunManager()}
         />
       </div>
@@ -635,7 +637,7 @@ export function ModelsPanel({
               <p className="text-fs-xs text-muted-foreground" data-testid="tab-purpose-adapt">
                 {t("models.tab_purpose_adapt")}
               </p>
-              <AdaptTrack project={projectArg} />
+              <AdaptTrack project={projectArg} preselectBaseId={adaptPreselect} />
             </TabsContent>
           </Tabs>
         </CardContent>

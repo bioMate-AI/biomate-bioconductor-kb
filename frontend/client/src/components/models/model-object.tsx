@@ -142,8 +142,10 @@ export function ModelObject({
           <div className="ml-auto flex items-center gap-2">
             <span className="text-fs-xs text-muted-foreground">{originLabel(identity.origin)}</span>
             {/* Only render an action when its handler is wired — otherwise the
-                button is an inert no-op in the live /models route. */}
-            {onSupersede && (
+                button is an inert no-op in the live /models route. Supersede = make the
+                next VERSION, which only applies to a model you own (origin 'custom'); a
+                hosted BioNeMo model isn't yours to version. */}
+            {onSupersede && identity.origin === "custom" && (
             <Button
               variant="outline"
               size="sm"

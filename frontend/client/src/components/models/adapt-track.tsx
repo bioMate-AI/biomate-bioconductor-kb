@@ -29,11 +29,11 @@ import { AdaptModel } from "./adapt-model"
  * (IND_REPORT_ENABLED=false) it has no editor feeding it and is hidden, matching
  * every other IND entry point (feature-flags.ts).
  */
-export function AdaptTrack({ project }: { project?: string }) {
+export function AdaptTrack({ project, preselectBaseId }: { project?: string; preselectBaseId?: string | null }) {
   return (
     <div className="space-y-3" data-testid="adapt-track">
       {/* General model adaptation (SFT / DPO / RL / rule-following → new version). */}
-      <AdaptModel project={project} />
+      <AdaptModel project={project} preselectBaseId={preselectBaseId} />
       {IND_REPORT_ENABLED && <HouseStyleAdapt project={project} />}
     </div>
   )

@@ -404,8 +404,8 @@ describe("ModelObject", () => {
     // Header actions
     fireEvent.click(screen.getByTestId("model-object-use-in-run"))
     expect(onUseInRun).toHaveBeenCalledWith("bionemo:boltz2")
-    fireEvent.click(screen.getByTestId("model-object-supersede"))
-    expect(onSupersede).toHaveBeenCalledWith("bionemo:boltz2")
+    // Supersede = make the next version — only for a model you own, not a hosted BioNeMo one.
+    expect(screen.queryByTestId("model-object-supersede")).toBeNull()
 
     // Lineage rows are objects, not strings
     fireEvent.mouseDown(screen.getByTestId("model-tab-lineage"))
@@ -426,6 +426,14 @@ describe("ModelObject", () => {
     await waitFor(() =>
       expect(screen.getByTestId("model-iface-signature").textContent).toContain("infer"),
     )
+  })
+
+  it("Supersede fires with the model id for a model you own (custom)", () => {
+    const onSupersede = vi.fn()
+    const ownDetail = { ...MODEL_DETAIL, identity: { ...MODEL_DETAIL.identity, origin: "custom" } }
+    render(<ModelObject detail={ownDetail} modelId="custom:camp1/potency-gp" onSupersede={onSupersede} />, { wrapper: wrapper() })
+    fireEvent.click(screen.getByTestId("model-object-supersede"))
+    expect(onSupersede).toHaveBeenCalledWith("custom:camp1/potency-gp")
   })
 })
 
