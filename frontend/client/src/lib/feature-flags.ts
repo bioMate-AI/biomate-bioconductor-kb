@@ -21,3 +21,9 @@ export const IND_REPORT_ENABLED = import.meta.env.VITE_ENABLE_IND_REPORT === "tr
  *  turns it on with VITE_ENABLE_CONNECTOR_DIRECTORY=true. */
 export const CONNECTOR_DIRECTORY_ENABLED = import.meta.env.VITE_ENABLE_CONNECTOR_DIRECTORY === "true";
 
+/** Instrument connectors — client/deployment-dependent (the watcher + health checks reach
+ *  LAN devices or a local output folder, which the hosted cloud cannot). Hidden by default
+ *  so users aren't shown a connector that can't work here; a self-host deployment turns it
+ *  on with VITE_ENABLE_CONNECTOR_INSTRUMENTS=true. */
+export const CONNECTOR_INSTRUMENTS_ENABLED = import.meta.env.VITE_ENABLE_CONNECTOR_INSTRUMENTS === "true";
+

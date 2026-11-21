@@ -10,6 +10,7 @@ import { AddConnectorFlow } from './add-connector-flow';
 import { SettingsDialog } from './settings-dialog';
 import { normalizeSkillPack, type SkillPack } from './skills-selector';
 import { InstrumentsSection } from './instruments-section';
+import { CONNECTOR_INSTRUMENTS_ENABLED } from '@/lib/feature-flags';
 import { McpServerForm } from './mcp-server-form';
 import { RegisterModelForm } from './register-model-form';
 import { tOr } from '@/lib/i18n';
@@ -552,7 +553,7 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
           </div>
         )}
           {!adding && <>
-          {activeTab === 'databases' && <><div className="flex flex-wrap gap-2 px-5 py-3 border-b border-border">{(['public', 'private', 'instruments'] as const).map(view => <button key={view} className={sourceView === view ? 'text-xs rounded-md px-3 py-1.5 bg-muted font-semibold' : 'text-xs rounded-md px-3 py-1.5 text-muted-foreground'} onClick={() => setSourceView(view)}>{view === 'public' ? 'Public databases' : view === 'private' ? 'Private databases' : 'Instruments'}</button>)}</div>{sourceView === 'public' ? <DatabasesTab compact={embedded} selected={selectedDbs} onToggle={toggleDb} scopes={scopes} onScopeChange={setScope} /> : sourceView === 'private' ? <div className="p-5"><PrivateDbConnectionForm /></div> : <InstrumentsSection />}</>}
+          {activeTab === 'databases' && <><div className="flex flex-wrap gap-2 px-5 py-3 border-b border-border">{((['public', 'private', 'instruments'] as const).filter(v => v !== 'instruments' || CONNECTOR_INSTRUMENTS_ENABLED)).map(view => <button key={view} className={sourceView === view ? 'text-xs rounded-md px-3 py-1.5 bg-muted font-semibold' : 'text-xs rounded-md px-3 py-1.5 text-muted-foreground'} onClick={() => setSourceView(view)}>{view === 'public' ? 'Public databases' : view === 'private' ? 'Private databases' : 'Instruments'}</button>)}</div>{sourceView === 'public' ? <DatabasesTab compact={embedded} selected={selectedDbs} onToggle={toggleDb} scopes={scopes} onScopeChange={setScope} /> : sourceView === 'private' ? <div className="p-5"><PrivateDbConnectionForm /></div> : (CONNECTOR_INSTRUMENTS_ENABLED ? <InstrumentsSection /> : <DatabasesTab compact={embedded} selected={selectedDbs} onToggle={toggleDb} scopes={scopes} onScopeChange={setScope} />)}</>}
           {activeTab === 'ai' && <><div className="p-4"><button className="text-sm underline" onClick={() => setSettingsOpen(true)}>Configure model providers and API keys</button></div><ConnectorTable compact={embedded} rows={AI} scopes={scopes} onScopeChange={setScope} /></>}
           {activeTab === 'yours' && <div className="p-5"><PrivateDbConnectionForm /></div>}
           {activeTab === 'mcp' && <div className="p-5"><McpServerForm /></div>}
@@ -565,7 +566,7 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
               {packsError ? <p role="alert">Could not load expert packs. Please reload to try again.</p> : packs === null ? <p>Loading expert packs…</p> : packs.length === 0 ? <p className="text-sm text-muted-foreground">No experts yet — create one above.</p> : packs.map(pack => <article key={pack.id} className="py-4 border-b border-border"><h3 className="text-sm font-medium">{pack.label}</h3>{pack.description && <p className="text-sm text-muted-foreground mt-1">{pack.description}</p>}</article>)}
             </div>
           </div>}
-          {activeTab === 'instruments' && <InstrumentsSection />}
+          {activeTab === 'instruments' && CONNECTOR_INSTRUMENTS_ENABLED && <InstrumentsSection />}
           </>}
         </div>
 

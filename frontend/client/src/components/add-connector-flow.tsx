@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { FolderSearch, Database, Brain, Sparkles, Plug, ChevronLeft, Loader2, AlertTriangle } from 'lucide-react';
-import { CONNECTOR_DIRECTORY_ENABLED } from '@/lib/feature-flags';
+import { CONNECTOR_DIRECTORY_ENABLED, CONNECTOR_INSTRUMENTS_ENABLED } from '@/lib/feature-flags';
 
 type ScanType = { ext: string; label: string; count: number; bytes: number; becomes: string };
 type ScanResult = {
@@ -223,9 +223,13 @@ export function AddConnectorFlow(props: AddConnectorFlowProps) {
         </p>
       </div>
       <div className="space-y-2">
-        {/* The directory connector needs on-prem scan roots; hide it entirely where it
-            can't work (hosted cloud) rather than show a connector that always refuses. */}
-        {KINDS.filter(k => k.key !== 'directory' || CONNECTOR_DIRECTORY_ENABLED).map(k => (
+        {/* Directory + instrument connectors need an on-prem deployment (LAN paths/devices
+            the hosted cloud can't reach); hide them here rather than show a connector that
+            can't work. A self-host turns them on via their flags. */}
+        {KINDS
+          .filter(k => k.key !== 'directory' || CONNECTOR_DIRECTORY_ENABLED)
+          .filter(k => k.key !== 'instrument' || CONNECTOR_INSTRUMENTS_ENABLED)
+          .map(k => (
           <div key={k.key} className="flex items-start gap-3 rounded-md border border-border p-3" data-testid={`add-kind-${k.key}`}>
             <div className="min-w-0 flex-1 space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
