@@ -3859,6 +3859,67 @@ Query: "run on fixture:empiar-10028-movies pixel_size=0.885 voltage=300 symmetry
 
         return suggestions
 
+    def _coerce_list_param_value(self, param: dict, value):
+        """Coerce a scalar/comma-joined value into a JSON-array string when the
+        target param is a list-type parameter.
+
+        BioMate/nf-core list params (alleles, peptides, smiles_list, …) are parsed
+        by Groovy's ``JsonSlurper`` at workflow startup, which hard-fails on a bare
+        ``a,b`` string (``Unable to determine the current character … 'a'``). LLM and
+        rule inference frequently emit ``HLA-A*02:01,HLA-B*07:02`` for such params,
+        which previously flowed through raw and killed the run at parse time before
+        any computation (mhc_binding_prediction, 2026-11-20).
+
+        A param is treated as list-type when its schema default is a JSON array
+        (``["a","b"]`` or a Python ``list``) or its declared type is list-like.
+        Non-list params, already-valid JSON arrays (e.g. the smiles_list extractor's
+        own output), and non-string values pass through unchanged. Never raises.
+        """
+        import json as _json
+        try:
+            orig_default = param.get("default")
+            if orig_default is None:
+                orig_default = param.get("value")
+            ptype = str(param.get("type", "")).lower()
+            _default_is_array = (
+                isinstance(orig_default, list)
+                or (
+                    isinstance(orig_default, str)
+                    and orig_default.strip().startswith("[")
+                    and orig_default.strip().endswith("]")
+                )
+            )
+            _type_is_list = ptype in (
+                "list", "array", "multiselect", "multi", "string[]", "list[string]",
+            )
+            if not (_default_is_array or _type_is_list):
+                return value
+            # A Python list → JSON-encode directly.
+            if isinstance(value, list):
+                return _json.dumps(value, separators=(",", ":"))
+            if not isinstance(value, str):
+                return value
+            _v = value.strip()
+            # Already a valid JSON array → leave as-is (don't double-encode).
+            if _v.startswith("[") and _v.endswith("]"):
+                try:
+                    if isinstance(_json.loads(_v), list):
+                        return _v
+                except Exception:
+                    pass  # malformed array → fall through and rebuild from tokens
+            # Split a scalar / comma / semicolon / "and"-joined string into tokens.
+            import re as _re
+            _tokens = [
+                t.strip().strip('"').strip("'")
+                for t in _re.split(r'\s*,\s*|\s*;\s*|\s+and\s+', _v)
+                if t.strip()
+            ]
+            if not _tokens:
+                return value
+            return _json.dumps(_tokens, separators=(",", ":"))
+        except Exception:
+            return value
+
     def _apply_llm_suggestions(
         self,
         req: list,
@@ -3886,9 +3947,18 @@ Query: "run on fixture:empiar-10028-movies pixel_size=0.885 voltage=300 symmetry
                     # Always override default with LLM suggestion — the user explicitly
                     # stated this value so it must override the schema default (pdb_id,
                     # ligand_smiles, box_center, exhaustiveness, etc.)
-                    p["default"] = s["value"]
+                    # Coerce list-type params (schema default is a JSON array, e.g.
+                    # alleles/peptides) into a JSON-array string: these are parsed by
+                    # Groovy's JsonSlurper at workflow startup, which hard-fails on a
+                    # bare 'a,b' string ("unexpected character 'a'"). LLM/rule inference
+                    # commonly emits 'HLA-A*02:01,HLA-B*07:02' for such params; without
+                    # this the run dies instantly at parse time (mhc_binding_prediction,
+                    # 2026-11-20). Non-list params + already-valid JSON arrays (smiles_list)
+                    # pass through unchanged.
+                    _coerced = self._coerce_list_param_value(p, s["value"])
+                    p["default"] = _coerced
                     # Also set as the working value
-                    p["value"] = s["value"]
+                    p["value"] = _coerced
                 out.append(p)
             return out
 
